@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  pygeoapi:
+    image: geopython/pygeoapi
+    ports:
+      - "5001:80"
+    volumes:
+      - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgis/postgis
+    restart: always
+    environment:
+      POSTGRES_DB: my_geospatial_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my_password
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
