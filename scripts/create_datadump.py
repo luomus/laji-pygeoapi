@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 
 # Path to the GeoJSON file
-geojson_file = r'C:/Users/alpoturu/pygeoapi_docker/test_db/10000_species.geo.json'
+geojson_file = r'10000_species.geo.json'
 
 # Database connection parameters
 db_params = {
