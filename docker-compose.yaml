@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_DB: my_geospatial_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: my_password
+      POSTGRES_PASSWORD: admin123
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:
