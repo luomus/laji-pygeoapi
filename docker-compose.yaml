@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services:
   pygeoapi:
@@ -13,11 +13,14 @@ services:
   postgres:
     image: postgis/postgis
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "postgres", "-d", "my_geospatial_db"]
     environment:
-      POSTGRES_DB: my_geospatial_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
