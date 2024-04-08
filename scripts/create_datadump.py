@@ -3,13 +3,13 @@ from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 
 # Path to the GeoJSON file
-geojson_file = r'10000_species.geo.json'
+geojson_file = r'scripts/10000_species.geo.json'
 
 # Database connection parameters
 db_params = {
     'dbname': 'my_geospatial_db2',
     'user': 'postgres',
-    'password': '', #ADD PASSWORD
+    'password': 'admin123',
     'host': 'localhost',
     'port': '5432'
 }
