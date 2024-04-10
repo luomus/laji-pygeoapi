@@ -4,7 +4,7 @@ services:
   pygeoapi:
     image: geopython/pygeoapi
     ports:
-      - "5001:80"
+      - "5000:80"
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
     depends_on:
@@ -15,13 +15,16 @@ services:
     image: postgis/postgis
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "postgres", "-d", "my_geospatial_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d my_geospatial_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - /var/lib/postgresql/data
+      - ./scripts/init_postgis_test.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
