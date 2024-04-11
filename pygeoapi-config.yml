@@ -89,13 +89,13 @@ metadata:
         role: pointOfContact
 
 resources:
-    occurrences:
+    Insects_and_arachnids:
         type: collection
-        title: Occurrences_laji_fi
+        title: Insects_and_arachnids occurrences
         description: data from lajifi
         keywords:
             en:
-                - occurrences
+                - birds
                 - species
         extents:
             spatial:
@@ -110,6 +110,206 @@ resources:
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: ogc_fid
-            table: postgis_dump
-            geom_field: wkb_geometry
+            id_field: record_id
+            table: Insects_and_arachnids
+            geom_field: geometry
+            
+    Fungi_and_lichens:
+        type: collection
+        title: Fungi_and_lichens occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - birds
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Fungi_and_lichens
+            geom_field: geometry
+            
+    Birds:
+        type: collection
+        title: Bird occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - birds
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Birds
+            geom_field: geometry
+
+    Other_organisms:
+        type: collection
+        title: Other_organisms occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - Other_organisms
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Other_organisms
+            geom_field: geometry
+
+    Molluscs:
+        type: collection
+        title: Molluscs occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - Molluscs
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Molluscs
+            geom_field: geometry
+
+    Vascular_plants:
+        type: collection
+        title: Vascular_plants occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - Vascular_plants
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Vascular_plants
+            geom_field: geometry
+
+    Mammals:
+        type: collection
+        title: Mammals occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - Mammals
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Mammals
+            geom_field: geometry
+
+    Bryophytes:
+        type: collection
+        title: Bryophytes occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - Bryophytes
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Bryophytes
+            geom_field: geometry
+
+    Fishes:
+        type: collection
+        title: Fishes occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - Fishes
+                - species
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: Fishes
+            geom_field: geometry            

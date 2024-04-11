@@ -1,5 +1,5 @@
 from sqlalchemy import inspect
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, MetaData
 import geopandas as gpd
 import pandas as pd
 
@@ -9,11 +9,8 @@ db_params = {
     'user': 'postgres',
     'password': 'admin123',
     'host': 'localhost',
-    'port': '5432'
+    'port': '5433'
 }
-
-# Table name in the database
-table_name = 'postgis_dump'
 
 # Connect to the PostGIS database
 engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
@@ -24,25 +21,35 @@ with engine.connect() as connection:
     connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
     connection.commit()
 
-# Get a list of tables in the database
-inspector = inspect(engine)
-tables = inspector.get_table_names()
+def drop_all_tables(engine):
+    # Find all table names
+    metadata = MetaData()
+    metadata.reflect(engine)
+    all_tables =  metadata.tables.keys()
 
-# Print the list of tables
-print("Tables in the database:")
-for table in tables:
-    print(table)
+    # Loop over tables and try to drop them.
+    for table_name in all_tables:
+        try:
+            metadata.tables[table_name].drop(engine)
+            print(f"table {table_name} dropped")
+        except:
+            print(f"Can't drop table {table_name}")
 
-# Query the table and load it into a GeoDataFrame
-sql = f"SELECT * FROM {table_name}"
-gdf = gpd.read_postgis(sql, engine, geom_col='wkb_geometry')
-print(gdf.head())
-print(gdf.crs)
+def get_all_tables(engine):
+    # Get a list of tables in the database
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
 
-# Explicitly close the connection
+    # Print the list of tables
+    print("Tables in the database:")
+    for table in tables:
+        print(table)
+
+get_all_tables(engine)
+#drop_all_tables(engine)
+
+
+
 connection.close()
-
-# Dispose of the engine
 engine.dispose()
-
 print("Done.")
