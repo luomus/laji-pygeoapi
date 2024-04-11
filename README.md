@@ -7,17 +7,28 @@ Pygeoapi installation with PostGIS test database for laji.fi occurrence data
 git clone https://github.com/luomus/laji_pygeoapi.git
 ```
 
-3. Go to the directory
+2. Go to the directory
 ```
 cd laji_pygeoapi
 ```
 
-2. Run docker command:
+3. Run docker command:
 ```
 docker compose up --build
 ```
 
-7. Go to the http://localhost:5000/
+4. Run python script when postgres container is up:
+```
+python scripts/create_datadump_from_gpck.py
+```
 
-8. If you want to modify the API, open ```pygeoapi-config.yml``` to edit and then run ```docker compose up``` again
+5. Press CTRL + to stop the docker and compose it up again
+```
+docker compose down
+docker compose up
+```
+
+4. Go to the http://localhost:5000/ and see the data
+
+5. If you want to modify the API, open ```pygeoapi-config.yml``` to edit and then run ```docker compose up``` again
 
