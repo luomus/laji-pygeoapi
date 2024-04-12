@@ -24,7 +24,6 @@ python scripts/create_datadump_from_gpck.py
 
 5. Press CTRL + to stop the docker and compose it up again
 ```
-docker compose down
 docker compose up
 ```
 
