@@ -1,0 +1,25 @@
+
+    <placeholder_table_name>:
+        type: collection
+        title: <placeholder_table_name> occurrences
+        description: data from lajifi
+        keywords:
+            en:
+                - <placeholder_table_name>
+                - species
+        extents:
+            spatial:
+                bbox: <placeholder_bbox>
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: record_id
+            table: <placeholder_table_name>
+            geom_field: geometry
