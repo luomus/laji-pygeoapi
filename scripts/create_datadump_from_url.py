@@ -5,11 +5,12 @@ import re
 import pandas as pd
 from tqdm import tqdm
 import requests
+import pyogrio, psycopg2, geoalchemy2
 
 print("Start")
 # Path to the GeoJSON file
-data_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE'
-#data_url = r'test_data\10000_virva_data.json'
+#data_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE'
+data_url = r'test_data\10000_virva_data.json'
 taxon_file = r'scripts\taxon-export.tsv'
 template_resource = r'scripts\template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
@@ -49,8 +50,28 @@ def clean_table_name(group_name):
     return f'{cleaned_name}'
 
 def get_bbox(sub_gdf):
+    # Return bounding box for geometries
     minx, miny, maxx, maxy = sub_gdf.geometry.total_bounds
     return [minx, miny, maxx, maxy]
+
+def get_min_and_max_dates(sub_gdf):
+    dates = sub_gdf['gathering.displayDateTime']
+    # Convert the 'gathering.displayDateTime' column to pandas datetime format
+    try:
+        dates = pd.to_datetime(dates.str.split(' ', expand=True)[0] + 'T00:00:00Z')
+    except:
+        dates = pd.to_datetime(dates + 'T00:00:00Z')
+    
+    # Filter out NaT (Not a Time) values
+    dates = dates.dropna()
+
+    # Get the minimum and maximum dates in RFC3339 format
+    if len(dates) > 0:
+        start_date = dates.min().strftime('%Y-%m-%dT%H:%M:%SZ')
+        end_date = dates.max().strftime('%Y-%m-%dT%H:%M:%SZ')
+        return start_date, end_date
+    else:
+        return None, None
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
     # This function adds data sets to the pygeoapi config file
@@ -71,7 +92,7 @@ def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
 # Loop over API pages and read the data 
 print("Retrieving data from the API...")
 # last_page = get_last_page(data_url)
-last_page = 3
+last_page = 1
 gdf = gpd.GeoDataFrame()
 for page_no in tqdm(range(1,last_page+1)):
     next_page = data_url.replace('page=1', f'page={page_no}')
@@ -82,13 +103,14 @@ for page_no in tqdm(range(1,last_page+1)):
 taxonomy_df = pd.read_table(taxon_file, sep='\t')
 gdf = gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.scientificName', right_on='Scientific name', how='left')
 
+
 # Connect to the PostGIS database
 print("Creating database connection...")
 engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
 
 # Create a new database if not exists
-if not database_exists(engine.url):
-    create_database(engine.url)
+#if not database_exists(engine.url):
+#    create_database(engine.url)
 
 # Add Postgis plugin if not added
 with engine.connect() as connection:
@@ -107,20 +129,24 @@ for group_name in gdf['Class, Scientific name'].unique():
     
     # Get cleaned table name, bounding box (bbox) and number of rows (n_rows)
     table_name = clean_table_name(group_name)
-    bbox = get_bbox(sub_gdf)
-    n_rows = len(sub_gdf)
-    tot_rows += n_rows
+    if table_name != 'nan':
+        bbox = get_bbox(sub_gdf)
+        min_date, max_date = get_min_and_max_dates(sub_gdf)
+        n_rows = len(sub_gdf)
+        tot_rows += n_rows
 
-    template_params = {
-        "<placeholder_table_name>": table_name,
-        "<placeholder_bbox>": str(bbox)
-    }
+        template_params = {
+            "<placeholder_table_name>": table_name,
+            "<placeholder_bbox>": str(bbox),
+            "<placeholder_min_date>": str(min_date),
+            "<placeholder_max_date>": str(max_date)
+        }
 
-    # Create a postgis table and add to the pygeoapi config. file
-    #add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
-    #sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
+        # Create a postgis table and add to the pygeoapi config. file
+        add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
+        sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
 
-    print(f"In total {n_rows} rows of {table_name} inserted to the database and pygeoapi config file")
+        print(f"In total {n_rows} rows of {table_name} inserted to the database and pygeoapi config file")
 
 
 print(f"In total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
