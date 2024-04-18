@@ -26,3 +26,4 @@
             id_field: unit.unitId
             table: <placeholder_table_name>
             geom_field: geometry
+            time_field: datetimestamp
