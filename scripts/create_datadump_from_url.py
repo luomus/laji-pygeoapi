@@ -7,10 +7,12 @@ from tqdm import tqdm
 import requests
 import pyogrio, psycopg2, geoalchemy2
 
+pd.options.mode.copy_on_write = True
+
 print("Start")
 # Path to the GeoJSON file
-#data_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE'
-data_url = r'test_data\10000_virva_data.json'
+data_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE'
+#data_url = r'test_data\10000_virva_data.json'
 taxon_file = r'scripts\taxon-export.tsv'
 template_resource = r'scripts\template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
@@ -25,7 +27,7 @@ db_params = {
 }
 
 def get_last_page(data_url):
-    # Get the last page number
+    # Get the last page number from API
     try:
         response = requests.get(data_url)
         api_response = response.json()
@@ -58,23 +60,23 @@ def get_min_and_max_dates(sub_gdf):
     dates = sub_gdf['gathering.displayDateTime']
     # Convert the 'gathering.displayDateTime' column to pandas datetime format
     try:
-        dates = pd.to_datetime(dates.str.split(' ', expand=True)[0] + 'T00:00:00Z')
+        dates = pd.to_datetime(dates.str.split(' ', expand=True).iloc[:, 0] + 'T00:00:00Z')
     except:
         dates = pd.to_datetime(dates + 'T00:00:00Z')
     
     # Filter out NaT (Not a Time) values
-    dates = dates.dropna()
+    dates_without_na = dates.dropna()
 
     # Get the minimum and maximum dates in RFC3339 format
-    if len(dates) > 0:
-        start_date = dates.min().strftime('%Y-%m-%dT%H:%M:%SZ')
-        end_date = dates.max().strftime('%Y-%m-%dT%H:%M:%SZ')
-        return start_date, end_date
+    if len(dates_without_na) > 0:
+        start_date = str(dates_without_na.min().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        end_date = str(dates_without_na.max().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        return start_date, end_date, dates
     else:
-        return None, None
+        return None, None, None
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
-    # This function adds data sets to the pygeoapi config file
+    # This function adds postgis tables to the pygeoapi config file
 
     # Read the template file
     with open(template_resource, "r") as file:
@@ -101,8 +103,9 @@ for page_no in tqdm(range(1,last_page+1)):
 
 # Merge taxonomy information to the geodataframe
 taxonomy_df = pd.read_table(taxon_file, sep='\t')
-gdf = gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.scientificName', right_on='Scientific name', how='left')
-
+gdf['unit.linkings.taxon.id'] = 'http://tun.fi/MX.' + gdf['unit.linkings.taxon.id'].str.extract('MX\.(\d+)')
+taxonomy_df['Identifier'] = 'http://tun.fi/MX.' + taxonomy_df['Identifier'].str.extract('MX\.(\d+)')
+gdf = gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.id', right_on='Identifier', how='left')
 
 # Connect to the PostGIS database
 print("Creating database connection...")
@@ -123,27 +126,29 @@ no_family_name = gdf[gdf['Class, Scientific name'].isnull()]
 
 print("Looping over all species classes...")
 for group_name in gdf['Class, Scientific name'].unique():
-    
     # Filter the GeoDataFrame based on species
     sub_gdf = gdf[gdf['Class, Scientific name'] == group_name]
-    
+
     # Get cleaned table name, bounding box (bbox) and number of rows (n_rows)
     table_name = clean_table_name(group_name)
     if table_name != 'nan':
         bbox = get_bbox(sub_gdf)
-        min_date, max_date = get_min_and_max_dates(sub_gdf)
+        min_date, max_date, dates = get_min_and_max_dates(sub_gdf)
+        sub_gdf['datetimestamp'] = dates.astype(str)
         n_rows = len(sub_gdf)
         tot_rows += n_rows
 
+        # Create parameters dictionary to fill the template for pygeoapi config file
         template_params = {
             "<placeholder_table_name>": table_name,
             "<placeholder_bbox>": str(bbox),
-            "<placeholder_min_date>": str(min_date),
-            "<placeholder_max_date>": str(max_date)
+            "<placeholder_min_date>": min_date,
+            "<placeholder_max_date>": max_date
         }
-
-        # Create a postgis table and add to the pygeoapi config. file
+        # Create a postgis table 
         add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
+
+        # Add postgis table information to the pygeoapi config
         sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
 
         print(f"In total {n_rows} rows of {table_name} inserted to the database and pygeoapi config file")
