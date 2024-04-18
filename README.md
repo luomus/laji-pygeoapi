@@ -19,6 +19,7 @@ docker compose up --build
 
 4. Run python script when postgres container is up:
 ```
+pip install requirements.txt
 python scripts/create_datadump_from_gpck.py
 ```
 
