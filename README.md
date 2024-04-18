@@ -1,5 +1,5 @@
 # laji_pygeoapi
-Pygeoapi installation with PostGIS test database for laji.fi occurrence data
+Pygeoapi installation with PostGIS test database for laji.fi occurrence data.
 
 # Docker Deploy
 1. Clone the directory
