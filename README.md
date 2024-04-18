@@ -27,7 +27,7 @@ python scripts/create_datadump_from_gpck.py
 docker compose up
 ```
 
-4. Go to the http://localhost:5000/ and see the data
+6. Go to the http://localhost:5000/ and see the data
 
-5. If you want to modify the API, open ```pygeoapi-config.yml``` to edit and then run ```docker compose up``` again
+7. If you want to modify the API, open ```pygeoapi-config.yml``` to edit and then run ```docker compose up``` again
 
