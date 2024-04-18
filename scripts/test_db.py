@@ -12,9 +12,10 @@ db_params = {
     'port': '5433'
 }
 
+pygeoapi_config = r'pygeoapi-config.yml'
+
 # Connect to the PostGIS database
 engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
-
 
 
 with engine.connect() as connection:
@@ -45,9 +46,31 @@ def get_all_tables(engine):
     for table in tables:
         print(table)
 
-get_all_tables(engine)
-#drop_all_tables(engine)
+def clear_collections_from_config(pygeoapi_config):
+    # Read the contents of the file
+    with open(pygeoapi_config, 'r') as file:
+        lines = file.readlines()
 
+    # Find the index of the line containing the keyword "resources"
+    keyword_index = None
+    for i, line in enumerate(lines):
+        if "resources" in line:
+            keyword_index = i
+            break
+
+    # If the keyword is found, keep only the lines before it
+    if keyword_index is not None:
+        lines = lines[:keyword_index+1]
+
+    # Write the modified contents back to the file
+    with open(pygeoapi_config, 'w') as file:
+        file.writelines(lines)
+        print("All collections removed from pygeoapi config file")
+
+
+#get_all_tables(engine)
+drop_all_tables(engine)
+clear_collections_from_config(pygeoapi_config)
 
 
 connection.close()
