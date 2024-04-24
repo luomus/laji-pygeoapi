@@ -19,6 +19,7 @@ taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 #taxon_file = r'scripts\taxon-export.tsv'
 template_resource = r'scripts\template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
+lookup_table = r'scripts\lookup_table_columns.csv'
 
 # Database connection parameters
 db_params = {
@@ -39,9 +40,7 @@ def get_last_page(data_url):
         print("An error occurred:", e)
 
 def clean_table_name(group_name):
-    # Function to clean and return a table name 
-    
-    # If name not exists
+    # Function to clean and return a table name
     if group_name is None or group_name =='nan' or group_name == '':
         return 'unclassified'
     
@@ -54,14 +53,27 @@ def clean_table_name(group_name):
 
     return f'{cleaned_name}'
 
+def clean_column_names(gdf, lookup_table):
+    # Load the lookup table CSV into a DataFrame
+    lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
+
+    # Map all column names according to the names in the lookup table
+    column_mapping = {}
+    for index, row in lookup_df.iterrows():
+        column_mapping[row['finbif_api_var']] = row['translated_var']
+
+    # Rename columns based on the mapping
+    gdf.rename(columns=column_mapping, inplace=True)
+    return gdf
+
 def get_bbox(sub_gdf):
     # Return bounding box for geometries
     minx, miny, maxx, maxy = sub_gdf.geometry.total_bounds
     return [minx, miny, maxx, maxy]
 
 def get_min_and_max_dates(sub_gdf):
-    dates = sub_gdf['gathering.displayDateTime']
-    # Convert the 'gathering.displayDateTime' column to pandas datetime format
+    dates = sub_gdf['formatted_date_time']
+    # Convert the 'formatted_date_time' column to pandas datetime format
     try:
         dates = pd.to_datetime(dates.str.split(' ', expand=True).iloc[:, 0] + 'T00:00:00Z')
     except:
@@ -142,7 +154,6 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
 
     # Apply the function to each row and store the result in a new column
     id_df['mainTaxon'] = id_df['informalTaxonGroups'].apply(find_main_taxon)
-    print(id_df['mainTaxon'])
 
     response = requests.get(taxon_name_url)
     json_data_results = response.json().get('results', [])
@@ -155,9 +166,12 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
 gdf = get_occurrence_data(occurrence_url, pages=1)
 taxon_df = get_taxon_data(taxon_id_url, taxon_name_url, pages='all')
 
-# Merge taxonomy information to the geodataframe
+# Merge taxonomy information to the occurrence data
 gdf['unit.linkings.taxon.id'] = gdf['unit.linkings.taxon.id'].str.extract('(MX\.\d+)')
 gdf = gdf.merge(taxon_df, left_on='unit.linkings.taxon.id', right_on='id_x', how='left')
+
+# Clean column names
+gdf = clean_column_names(gdf, lookup_table)
 
 # Connect to the PostGIS database
 print("Creating database connection...")
@@ -207,5 +221,5 @@ for group_name in gdf['name'].unique():
 
 
 print(f"In total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
-print(f"In total {len(no_family_name)} species without scientific family name were discarded")
+print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
 print("API is ready to use.")

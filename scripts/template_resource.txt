@@ -1,8 +1,8 @@
 
     <placeholder_table_name>:
         type: collection
-        title: <placeholder_table_name> occurrences
-        description: data from lajifi
+        title: <placeholder_table_name> 
+        description: occurrences from laji.fi
         keywords:
             en:
                 - <placeholder_table_name>
@@ -23,7 +23,7 @@
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: unit.unitId
+            id_field: record_id
             table: <placeholder_table_name>
             geom_field: geometry
             time_field: datetimestamp
