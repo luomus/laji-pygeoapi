@@ -68,11 +68,37 @@ def clear_collections_from_config(pygeoapi_config):
         print("All collections removed from pygeoapi config file")
 
 
-#get_all_tables(engine)
-drop_all_tables(engine)
-clear_collections_from_config(pygeoapi_config)
 
 
-connection.close()
-engine.dispose()
-print("Done.")
+def main():
+    while True:
+        # Prompt user for input
+        choice = input("Enter the number of the function you want to use:\n"
+                       "1. List all tables\n"
+                       "2. Drop all tables\n"
+                       "3. Clear tables from pygeoapi config file\n"
+                       "Enter 'q' to quit\n")
+
+        # Check if user wants to quit
+        if choice.lower() == 'q':
+            print("Exiting...")
+            break
+
+        # Call the corresponding function based on user's choice
+        if choice == '1':
+            get_all_tables(engine)
+        elif choice == '2':
+            drop_all_tables(engine)
+        elif choice == '3':
+            clear_collections_from_config(pygeoapi_config)
+        else:
+            print("Invalid choice. Please enter a valid number and press Enter.")
+
+    connection.close()
+    engine.dispose()
+    print("Done.")
+
+if __name__ == "__main__":
+    main()
+
+
