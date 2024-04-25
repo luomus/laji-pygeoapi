@@ -2,12 +2,15 @@ from sqlalchemy import inspect
 from sqlalchemy import create_engine, text, MetaData
 import geopandas as gpd
 import pandas as pd
+import os
+from dotenv import load_dotenv
 
-# Database connection parameters
+# Database connection parameters from the secret .env file
+load_dotenv()
 db_params = {
-    'dbname': 'my_geospatial_db',
-    'user': 'postgres',
-    'password': 'admin123',
+    'dbname': os.getenv('POSTGRES_DB'),
+    'user': os.getenv('POSTGRES_USER') ,
+    'password': os.getenv('POSTGRES_PASSWORD') ,
     'host': 'localhost',
     'port': '5433'
 }
