@@ -27,7 +27,7 @@
             table: <placeholder_table_name>
             geom_field: geometry
             time_field: datetimestamp
-            title_field: common_name_en
+            title_field: scientificName
             crs:
                 - https://www.opengis.net/def/crs/EPSG/0/4326
                 - https://www.opengis.net/def/crs/EPSG/0/3067
