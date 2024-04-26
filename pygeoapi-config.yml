@@ -79,7 +79,7 @@ metadata:
         address: Pohjoinen Rautatiekatu 13 
         city: Helsinki
         stateorprovince: Uusimaa
-        postalcode: 00100
+        postalcode: FI-00100
         country: Finland
         phone: +358 29 412 8819
         email: alpo.turunen@helsinki.fi
@@ -90,193 +90,21 @@ metadata:
 
 resources:
 
-    Insects_and_arachnids:
-        type: collection
-        title: Insects_and_arachnids occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Insects_and_arachnids
-                - species
-        extents:
-            spatial:
-                bbox: [20.8032, 59.8114, 30.19489, 69.29177]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Insects_and_arachnids
-            geom_field: geometry
-
-    Fungi_and_lichens:
-        type: collection
-        title: Fungi_and_lichens occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Fungi_and_lichens
-                - species
-        extents:
-            spatial:
-                bbox: [19.54703, 59.78293, 30.46603, 69.01698]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Fungi_and_lichens
-            geom_field: geometry
-
-    Birds:
-        type: collection
-        title: Birds occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Birds
-                - species
-        extents:
-            spatial:
-                bbox: [19.53695, 59.80844, 30.41057, 69.90905]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Birds
-            geom_field: geometry
-
-    Other_organisms:
-        type: collection
-        title: Other_organisms occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Other_organisms
-                - species
-        extents:
-            spatial:
-                bbox: [21.44, 60.1697, 30.46637, 63.83365]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Other_organisms
-            geom_field: geometry
-
-    Molluscs:
-        type: collection
-        title: Molluscs occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Molluscs
-                - species
-        extents:
-            spatial:
-                bbox: [21.44, 59.81645, 26.83505, 63.59488]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Molluscs
-            geom_field: geometry
-
-    Vascular_plants:
-        type: collection
-        title: Vascular_plants occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Vascular_plants
-                - species
-        extents:
-            spatial:
-                bbox: [19.83214, 59.81239, 29.80941, 68.86395]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Vascular_plants
-            geom_field: geometry
-
-    unclassified:
-        type: collection
-        title: unclassified occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - unclassified
-                - species
-        extents:
-            spatial:
-                bbox: [nan, nan, nan, nan]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: unclassified
-            geom_field: geometry
-
     Mammals:
         type: collection
-        title: Mammals occurrences
-        description: data from lajifi
+        title: Mammals 
+        description: occurrences from laji.fi
         keywords:
             en:
                 - Mammals
                 - species
         extents:
             spatial:
-                bbox: [20.67209, 59.81438, 30.19818, 69.3983]
+                bbox: [20.819598, 59.813116, 30.326695, 67.808354]
                 crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-01-15T00:00:00Z
+                end: 2024-04-26T00:00:00Z
         providers:
           - type: feature
             name: PostgreSQL
@@ -286,22 +114,30 @@ resources:
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: record_id
+            id_field: occurrenceID
             table: Mammals
             geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
 
-    Bryophytes:
+    Birds:
         type: collection
-        title: Bryophytes occurrences
-        description: data from lajifi
+        title: Birds 
+        description: occurrences from laji.fi
         keywords:
             en:
-                - Bryophytes
+                - Birds
                 - species
         extents:
             spatial:
-                bbox: [21.11718, 59.8116, 29.3188, 66.36791]
+                bbox: [19.721958, 59.774893, 30.930585, 69.18262]
                 crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-01-15T00:00:00Z
+                end: 2024-04-26T00:00:00Z
         providers:
           - type: feature
             name: PostgreSQL
@@ -311,22 +147,30 @@ resources:
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: record_id
-            table: Bryophytes
+            id_field: occurrenceID
+            table: Birds
             geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
 
-    Fishes:
+    Vascular_plants:
         type: collection
-        title: Fishes occurrences
-        description: data from lajifi
+        title: Vascular_plants 
+        description: occurrences from laji.fi
         keywords:
             en:
-                - Fishes
+                - Vascular_plants
                 - species
         extents:
             spatial:
-                bbox: [19.89204, 59.93033, 28.9, 67.78485]
+                bbox: [19.94978, 60.131183, 28.170114, 61.198278]
                 crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-24T00:00:00Z
+                end: 2024-04-25T00:00:00Z
         providers:
           - type: feature
             name: PostgreSQL
@@ -336,22 +180,30 @@ resources:
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: record_id
-            table: Fishes
+            id_field: occurrenceID
+            table: Vascular_plants
             geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
 
-    Myriapods:
+    Lichenized_and_lichenicolous_fungi:
         type: collection
-        title: Myriapods occurrences
-        description: data from lajifi
+        title: Lichenized_and_lichenicolous_fungi 
+        description: occurrences from laji.fi
         keywords:
             en:
-                - Myriapods
+                - Lichenized_and_lichenicolous_fungi
                 - species
         extents:
             spatial:
-                bbox: [22.00991, 59.8114, 24.8689, 61.68613]
+                bbox: [19.88586, 60.10683, 30.46581, 65.92288]
                 crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-02-03T00:00:00Z
+                end: 2024-04-20T00:00:00Z
         providers:
           - type: feature
             name: PostgreSQL
@@ -361,97 +213,30 @@ resources:
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: record_id
-            table: Myriapods
+            id_field: occurrenceID
+            table: Lichenized_and_lichenicolous_fungi
             geom_field: geometry
-
-    Worms:
-        type: collection
-        title: Worms occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Worms
-                - species
-        extents:
-            spatial:
-                bbox: [22.35238, 60.1697, 27.16446, 63.64631]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Worms
-            geom_field: geometry
-
-    Algae:
-        type: collection
-        title: Algae occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Algae
-                - species
-        extents:
-            spatial:
-                bbox: [23.63584, 59.93557, 25.79742, 62.25196]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Algae
-            geom_field: geometry
-
-    Crustaceans:
-        type: collection
-        title: Crustaceans occurrences
-        description: data from lajifi
-        keywords:
-            en:
-                - Crustaceans
-                - species
-        extents:
-            spatial:
-                bbox: [19.88419, 60.10876, 24.93754, 62.52323]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
-            id_field: record_id
-            table: Crustaceans
-            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
 
     Reptiles_and_amphibians:
         type: collection
-        title: Reptiles_and_amphibians occurrences
-        description: data from lajifi
+        title: Reptiles_and_amphibians 
+        description: occurrences from laji.fi
         keywords:
             en:
                 - Reptiles_and_amphibians
                 - species
         extents:
             spatial:
-                bbox: [22.33024, 60.06715, 27.58347, 62.81241]
+                bbox: [21.357839, 60.06715, 27.58347, 62.81241]
                 crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-02-25T00:00:00Z
+                end: 2024-04-19T00:00:00Z
         providers:
           - type: feature
             name: PostgreSQL
@@ -461,6 +246,374 @@ resources:
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: record_id
+            id_field: occurrenceID
             table: Reptiles_and_amphibians
             geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Moths_and_butterflies:
+        type: collection
+        title: Moths_and_butterflies 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Moths_and_butterflies
+                - species
+        extents:
+            spatial:
+                bbox: [21.074811, 60.088405, 25.746484, 62.230013]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-01-31T00:00:00Z
+                end: 2024-04-15T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Moths_and_butterflies
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Bryophytes:
+        type: collection
+        title: Bryophytes 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Bryophytes
+                - species
+        extents:
+            spatial:
+                bbox: [22.30017, 59.98126, 28.683366, 61.31176]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-06T00:00:00Z
+                end: 2024-04-15T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Bryophytes
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Fungi_and_lichens:
+        type: collection
+        title: Fungi_and_lichens 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Fungi_and_lichens
+                - species
+        extents:
+            spatial:
+                bbox: [23.595933, 60.212156, 24.679616, 61.940594]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-02-06T00:00:00Z
+                end: 2024-04-13T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Fungi_and_lichens
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Macrofungi:
+        type: collection
+        title: Macrofungi 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Macrofungi
+                - species
+        extents:
+            spatial:
+                bbox: [22.167362, 60.264261, 25.730559, 67.647971]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-01T00:00:00Z
+                end: 2024-04-13T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Macrofungi
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Dragonflies:
+        type: collection
+        title: Dragonflies 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Dragonflies
+                - species
+        extents:
+            spatial:
+                bbox: [21.437221, 60.365205, 25.67308, 61.18352]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-28T00:00:00Z
+                end: 2024-04-12T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Dragonflies
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Algae:
+        type: collection
+        title: Algae 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Algae
+                - species
+        extents:
+            spatial:
+                bbox: [24.714495, 60.107976, 24.75787, 60.14634]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-02-18T00:00:00Z
+                end: 2024-04-06T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Algae
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Beetles:
+        type: collection
+        title: Beetles 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Beetles
+                - species
+        extents:
+            spatial:
+                bbox: [23.633838, 60.08293, 23.79499, 61.498499]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-26T00:00:00Z
+                end: 2024-04-05T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Beetles
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    True_bugs:
+        type: collection
+        title: True_bugs 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - True_bugs
+                - species
+        extents:
+            spatial:
+                bbox: [28.830795, 61.878581, 28.833966, 61.878987]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-31T00:00:00Z
+                end: 2024-03-31T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: True_bugs
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Spiders:
+        type: collection
+        title: Spiders 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Spiders
+                - species
+        extents:
+            spatial:
+                bbox: [25.86805, 60.228021, 25.870774, 60.229608]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-30T00:00:00Z
+                end: 2024-03-30T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Spiders
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    Fishes:
+        type: collection
+        title: Fishes 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - Fishes
+                - species
+        extents:
+            spatial:
+                bbox: [23.125441, 59.93033, 27.16449, 63.64631]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-03-02T00:00:00Z
+                end: 2024-03-18T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: Fishes
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+
+    True_flies:
+        type: collection
+        title: True_flies 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - True_flies
+                - species
+        extents:
+            spatial:
+                bbox: [29.79728, 62.58345, 29.79728, 62.58345]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2024-02-11T00:00:00Z
+                end: 2024-02-11T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: occurrenceID
+            table: True_flies
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificName
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
