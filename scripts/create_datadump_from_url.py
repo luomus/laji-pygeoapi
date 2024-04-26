@@ -20,9 +20,9 @@ occurrence_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeS
 taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic'
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 #taxon_file = r'scripts\taxon-export.tsv'
-template_resource = r'scripts\template_resource.txt'
+template_resource = r'scripts/template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
-lookup_table = r'scripts\lookup_table_columns.csv'
+lookup_table = r'scripts/lookup_table_columns.csv'
 
 # Database connection parameters from the secret .env file
 load_dotenv()
@@ -126,12 +126,15 @@ def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
     gdf = gpd.GeoDataFrame()
     if multiprocessing==True:
         with concurrent.futures.ProcessPoolExecutor() as executor:
+            progress_bar = tqdm(total=last_page)
             futures = [executor.submit(download_page, data_url, page_no) for page_no in range(1, last_page + 1)]
             for future in concurrent.futures.as_completed(futures):
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
+                progress_bar.update(1)
+            progress_bar.close()
     else:
-        for page_no in tqdm(range(1,last_page+1)):
-            next_gdf = download_page(data_url, page_no)
+        for page_no in range(1,last_page+1):
+            next_gdf = tqdm(download_page(data_url, page_no))
             gdf = pd.concat([gdf, next_gdf])
 
     gdf = gdf[['unit.linkings.taxon.id','unit.linkings.taxon.scientificName','unit.linkings.taxon.vernacularName.en','unit.unitId','gathering.displayDateTime','geometry']]
@@ -179,7 +182,7 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
 
 def main():
     # Get the data sets
-    gdf = get_occurrence_data(occurrence_url, multiprocessing=True, pages=10)
+    gdf = get_occurrence_data(occurrence_url, multiprocessing=True, pages=1)
     taxon_df = get_taxon_data(taxon_id_url, taxon_name_url, pages='all')
 
     # Merge taxonomy information to the occurrence data

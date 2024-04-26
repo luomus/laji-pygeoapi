@@ -19,8 +19,6 @@ pygeoapi_config = r'pygeoapi-config.yml'
 
 # Connect to the PostGIS database
 engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
-
-
 with engine.connect() as connection:
     connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
     connection.commit()
