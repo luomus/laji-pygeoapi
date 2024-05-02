@@ -1,0 +1,33 @@
+
+    <placeholder_table_name>:
+        type: collection
+        title: <placeholder_table_name> 
+        description: occurrences from laji.fi
+        keywords:
+            en:
+                - <placeholder_table_name>
+                - species
+        extents:
+            spatial:
+                bbox: <placeholder_bbox>
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: <placeholder_min_date>
+                end: <placeholder_max_date>
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: index
+            table: <placeholder_table_name>
+            geom_field: geometry
+            time_field: datetimestamp
+            title_field: scientificNameInterpreted
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
