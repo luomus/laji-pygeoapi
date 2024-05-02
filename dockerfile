@@ -8,12 +8,12 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application to the server
-COPY scripts/main.py .
-COPY scripts/edit_db.py .
-COPY scripts/template_resource.txt .
-COPY scripts/lookup_table_columns.csv .
-COPY scripts/process_data.py .
-COPY scripts/edit_config.py .
+COPY src/main.py .
+COPY src/edit_db.py .
+COPY src/template_resource.txt .
+COPY src/lookup_table_columns.csv .
+COPY src/process_data.py .
+COPY src/edit_config.py .
 COPY pygeoapi-config.yml .
 
 CMD python main.py
