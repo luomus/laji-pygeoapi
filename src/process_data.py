@@ -2,6 +2,7 @@
 
 import pandas as pd
 import re
+import datetime
 
 def get_bbox(sub_gdf):
     # Return bounding box for geometries
@@ -12,12 +13,33 @@ def get_bbox(sub_gdf):
 
 def get_min_and_max_dates(sub_gdf):
     dates = sub_gdf['eventDateTimeDisplay']
-    # Convert the 'formatted_date_time' column to pandas datetime format
-    try:
-        dates = pd.to_datetime(dates.str.split(' ', expand=True).iloc[:, 0] + 'T00:00:00Z')
-    except:
-        dates = pd.to_datetime(dates + 'T00:00:00Z')
-    
+
+    # Define the regex patterns to find days and times
+    date_regex = '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+    time_regex = '[0-9]{1}:[0-9]{2}'
+    time2_regex = '[0-9]{2}:[0-9]{2}'
+
+    # Loop over dates and translate into the correct form
+    for i, date in enumerate(dates):
+        day = re.search(date_regex, date)
+        time1 = re.search(time_regex, date)
+        time2 = re.search(time2_regex, date)
+        if day and time1:
+            datetime = day.group(0) + 'T0' + time1.group(0) + 'Z'
+            dates.iloc[i] = datetime
+        elif day and time2:
+            datetime = day.group(0) + 'T' + time2.group(0) + 'Z'
+            dates.iloc[i] = datetime
+        elif day: 
+            datetime = day.group(0) + 'T00:00Z'
+            dates.iloc[i] = datetime
+        else:
+            dates.iloc[i] = '1900-01-01T00:00Z'
+            print("No valid date found in format YYYY-MM-DD")
+
+    # Convert dates to datetime format
+    dates = pd.to_datetime(dates)
+
     # Filter out NaT (Not a Time) values
     dates_without_na = dates.dropna()
 
@@ -27,8 +49,7 @@ def get_min_and_max_dates(sub_gdf):
         end_date = str(dates_without_na.max().strftime('%Y-%m-%dT%H:%M:%SZ'))
         return start_date, end_date, dates
     else:
-        return None, None, None
-    
+        return None, None, dates    
     
 def column_names_to_dwc(gdf, lookup_table):
     # Load the lookup table CSV into a DataFrame
