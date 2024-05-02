@@ -46,17 +46,17 @@ def download_page(data_url, page_no):
     return gdf
 
 def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
-    # Loop over API pages and return the data as GeoDataFrame
     
+    # Get the last page of API results
     if pages == 'all':
         last_page = get_last_page(data_url)
     else:
         last_page = int(pages)
     
     print(f"Retrieving {last_page} pages of occurrence data from the API...")
-
     gdf = gpd.GeoDataFrame()
     if multiprocessing==True:
+        # Use multiprocessing to retrieve page by page. Finally merge all pages into one geodataframe
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = [executor.submit(download_page, data_url, page_no) for page_no in range(1, last_page + 1)]
             progress_bar = tqdm(total=last_page)
@@ -64,24 +64,24 @@ def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
                 progress_bar.update(1)
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
             progress_bar.close()
+
     else:
+        # Retrieve data page by page without multiprocessing 
         for page_no in tqdm(range(1,last_page+1)):
             next_gdf = download_page(data_url, page_no)
             gdf = pd.concat([gdf, next_gdf])
 
-    gdf = gdf[['unit.linkings.taxon.id','unit.linkings.taxon.scientificName','unit.linkings.taxon.vernacularName.en','unit.unitId','gathering.displayDateTime','geometry']]
     return gdf
 
 def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
-    # Loop over API pages and return data as Dataframe
     
+    # Get the last page of API results
     if pages == 'all':
         last_page = get_last_page(taxon_id_url)
     else:
         last_page = int(pages)
         
     print(f"Retrieving {last_page} pages of taxon data from the API...")
-
     id_df = pd.DataFrame()
     for page_no in tqdm(range(1, last_page + 1)):
         next_page = taxon_id_url.replace('page=1', f'page={page_no}')
@@ -100,31 +100,48 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
             min_value = 'MVL.' + str(min(numeric_values))
         else:
             min_value = str(row)
-        # Find the minimum value
-        
+
         return min_value
 
     # Apply the function to each row and store the result in a new column
     id_df['mainTaxon'] = id_df['informalTaxonGroups'].apply(find_main_taxon)
 
+    # Get the another data
     response = requests.get(taxon_name_url)
     json_data_results = response.json().get('results', [])
     name_df = pd.json_normalize(json_data_results)
 
+    # Join taxon data sets together
     df = pd.merge(id_df, name_df, left_on='mainTaxon', right_on='id')
+
     return df
 
 def main():
     print("Start")
 
     # Get the data sets
-    gdf = get_occurrence_data(occurrence_url, multiprocessing=True, pages=1) # or '10000_virva_data.json' if local test data only
+    gdf = get_occurrence_data(occurrence_url, multiprocessing=True, pages=10) # or '10000_virva_data.json' if local test data only
     taxon_df = get_taxon_data(taxon_id_url, taxon_name_url, pages='all') # or taxon_df = pd.read_csv('taxon-export.csv') if local test data only
 
     # Merge taxonomy information to the occurrence data
     print("Joining data sets together...")
     gdf['unit.linkings.taxon.id'] = gdf['unit.linkings.taxon.id'].str.extract('(MX\.\d+)')
     gdf = gdf.merge(taxon_df, left_on='unit.linkings.taxon.id', right_on='id_x', how='left')
+
+    # Select only specific columns
+    gdf = gdf[['unit.linkings.taxon.id',
+               'unit.linkings.taxon.scientificName',
+               'unit.linkings.taxon.vernacularName.en',
+               'unit.linkings.taxon.vernacularName.fi',
+               'unit.unitId',
+               'gathering.displayDateTime',
+               'gathering.gatheringId',
+               'document.collectionId',
+               'document.documentId',
+               'mainTaxon',
+               'hasSubGroup',
+               'name',
+               'geometry']]
 
     # Translate column names to comply with the darwin core standard
     gdf = process_data.column_names_to_dwc(gdf, lookup_table)
@@ -138,23 +155,25 @@ def main():
 
     # Iterate over unique values of the "class" attribute
     tot_rows = 0
-    no_family_name = gdf[gdf['name'].isnull()]
+    no_family_name = gdf[gdf['InformalGroupName'].isnull()]
 
-    # Clear config file and database to make space for new data sets
+    # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config)
     edit_db.drop_all_tables(engine)
 
     print("Looping over all species classes...")
-    for group_name in gdf['name'].unique():
+    for group_name in gdf['InformalGroupName'].unique():
         # Filter the GeoDataFrame based on species group
-        sub_gdf = gdf[gdf['name'] == group_name]
+        sub_gdf = gdf[gdf['InformalGroupName'] == group_name]
 
-        # Get cleaned table name, bounding box (bbox) and number of rows (n_rows)
+        # Get cleaned table name
         table_name = process_data.clean_table_name(group_name)
-        if table_name != 'nan':
+
+        if table_name != 'unclassified' and table_name != 'nan':
             bbox = process_data.get_bbox(sub_gdf)
             min_date, max_date, dates = process_data.get_min_and_max_dates(sub_gdf)
-            sub_gdf['datetimestamp'] = dates.astype(str)
+            sub_gdf['eventDateTimeDisplay'] = dates.astype(str)
+            sub_gdf['index'] = sub_gdf.index
             n_rows = len(sub_gdf)
             tot_rows += n_rows
 

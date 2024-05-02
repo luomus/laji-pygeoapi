@@ -23,11 +23,11 @@
                 dbname: my_geospatial_db
                 user: postgres
                 password: admin123
-            id_field: occurrenceID
+            id_field: index
             table: <placeholder_table_name>
             geom_field: geometry
             time_field: datetimestamp
-            title_field: scientificName
+            title_field: scientificNameInterpreted
             crs:
                 - https://www.opengis.net/def/crs/EPSG/0/4326
                 - https://www.opengis.net/def/crs/EPSG/0/3067

@@ -38,7 +38,6 @@ def get_min_and_max_dates(sub_gdf):
 
     # Convert dates to datetime format
     dates = pd.to_datetime(dates)
-
     # Filter out NaT (Not a Time) values
     dates_without_na = dates.dropna()
 

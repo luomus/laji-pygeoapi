@@ -62,7 +62,7 @@ unit.individualCountMale;male_abundance;individualCountMale;integer;integer
 unit.interpretations.annotatedTaxonId;annotated_taxon_id;annotatedTaxonID;character;uri
 unit.interpretations.pairCount;pair_abundance;pairCount;integer;integer
 unit.lifeStage;life_stage;lifeStage;character;factor
-unit.linkings.originalTaxon.checklist;orig_taxon_checklist;originalTaxonChecklist;character;uri
+originalTaxon.checklist;orig_taxon_checklist;originalTaxonChecklist;character;uri
 unit.linkings.originalTaxon.cursiveName;orig_scientific_name_italicised;originalScientificNameItalicised;logical;logical
 unit.linkings.originalTaxon.finnish;orig_taxon_finnish;originalTaxonNameFinnish;logical;logical
 unit.linkings.originalTaxon.id;orig_taxon_id;originalTaxonID;character;uri
@@ -83,9 +83,9 @@ computed_var_from_id_informal_groups;informal_groups;informalTaxonGroups;charact
 unit.linkings.taxon.scientificNameAuthorship;scientific_name_author;scientificNameAuthorship;character;character
 unit.linkings.taxon.scientificNameDisplayName;scientific_display_name;scientificNameDisplay;character;character
 unit.linkings.taxon.vernacularName;common_name;vernacularName;character;character
-unit.linkings.taxon.vernacularName.en;common_name_en;vernacularName;character;character
-unit.linkings.taxon.vernacularName.fi;common_name_fi;vernacularName;character;character
-unit.linkings.taxon.vernacularName.sv;common_name_sv;vernacularName;character;character
+unit.linkings.taxon.vernacularName.en;common_name_en;vernacularNameEng;character;character
+unit.linkings.taxon.vernacularName.fi;common_name_fi;vernacularNameFin;character;character
+unit.linkings.taxon.vernacularName.sv;common_name_sv;vernacularNameSwe;character;character
 unit.media.author;record_media_author;associatedMediaBy;character;character
 unit.media.caption;record_media_caption;associatedMediaCaption;character;character
 unit.media.copyrightOwner;record_media_copyright;associatedMediaRightsHolder;character;character
@@ -723,3 +723,4 @@ gathering.media.fullResolutionMediaAvailable;event_media_full_res;eventAssociate
 gathering.media.type;event_media_type2;eventAssociatedMediaType2;character;factor
 unit.media.fullResolutionMediaAvailable;record_media_full_res;occurrenceAssociatedMediaFullRes;logical;logical
 unit.media.type;record_media_type2;occurrenceAssociatedMediaType2;character;factor
+name;informal_group_name;InformalGroupName;character;character
