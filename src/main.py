@@ -18,7 +18,7 @@ taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selec
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 #taxon_name_file = r'test_data/informal-taxon-groups.json'
 template_resource = r'template_resource.txt'
-pygeoapi_config = r'pygeoapi-config.yml'
+pygeoapi_config = r'/pygeoapi/local.config.yml'
 lookup_table = r'lookup_table_columns.csv'
 
 # Load environment variables from .env file
@@ -119,7 +119,7 @@ def main():
 
     # Get the data sets
     gdf = get_occurrence_data(occurrence_url, multiprocessing=True, pages=1) # or '10000_virva_data.json' if local test data only
-    taxon_df = get_taxon_data(taxon_id_url, taxon_name_url, pages='all') # or taxon_df = pd.read_csv('tmp.csv') if local test data only
+    taxon_df = get_taxon_data(taxon_id_url, taxon_name_url, pages='all') # or taxon_df = pd.read_csv('taxon-export.csv') if local test data only
 
     # Merge taxonomy information to the occurrence data
     print("Joining data sets together...")
@@ -130,19 +130,19 @@ def main():
     gdf = process_data.column_names_to_dwc(gdf, lookup_table)
 
     # Connect to the PostGIS database
-    #print("Creating database connection...")
-    #engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
-    #with engine.connect() as connection:
-    #    connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
-    #    connection.commit()
+    print("Creating database connection...")
+    engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
+    with engine.connect() as connection:
+        connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
+        connection.commit()
 
     # Iterate over unique values of the "class" attribute
     tot_rows = 0
     no_family_name = gdf[gdf['name'].isnull()]
 
     # Clear config file and database to make space for new data sets
-    #edit_config.clear_collections_from_config(pygeoapi_config)
-    #edit_db.drop_all_tables(engine)
+    edit_config.clear_collections_from_config(pygeoapi_config)
+    edit_db.drop_all_tables(engine)
 
     print("Looping over all species classes...")
     for group_name in gdf['name'].unique():
@@ -166,10 +166,10 @@ def main():
                 "<placeholder_max_date>": max_date
             }
             # Add database information into the config file
-            #edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
+            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
 
             # Add data to the database
-            #sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
+            sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
 
             print(f"In total {n_rows} rows of {table_name} inserted to the database and pygeoapi config file")
 

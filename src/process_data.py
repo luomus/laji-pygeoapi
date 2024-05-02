@@ -10,7 +10,6 @@ def get_bbox(sub_gdf):
     return [minx, miny, maxx, maxy]
 
 
-
 def get_min_and_max_dates(sub_gdf):
     dates = sub_gdf['eventDateTimeDisplay']
 
@@ -34,8 +33,8 @@ def get_min_and_max_dates(sub_gdf):
             datetime = day.group(0) + 'T00:00Z'
             dates.iloc[i] = datetime
         else:
-            dates.iloc[i] = '1900-01-01T00:00Z'
-            print("No valid date found in format YYYY-MM-DD")
+            dates.iloc[i] = None
+            print(f"{date} is not a valid date format (e.g. YYYY-MM-DD)")
 
     # Convert dates to datetime format
     dates = pd.to_datetime(dates)

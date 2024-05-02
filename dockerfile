@@ -14,6 +14,5 @@ COPY src/template_resource.txt .
 COPY src/lookup_table_columns.csv .
 COPY src/process_data.py .
 COPY src/edit_config.py .
-COPY pygeoapi-config.yml .
 
 CMD python main.py
