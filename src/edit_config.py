@@ -1,8 +1,11 @@
-""" This file edits the pygeoapi config file """
-
 def clear_collections_from_config(pygeoapi_config):
+    """
+    Deletes collection information from the pygeoapi configuration file.
+
+    Parameters:
+    pygeoapi_config (str): The path to the pygeoapi configuration file.
+    """
     print("Deleting collection information from the pygeoapi config file...")
-    # Read the contents of the file
     with open(pygeoapi_config, 'r') as file:
         lines = file.readlines()
 
@@ -25,7 +28,14 @@ def clear_collections_from_config(pygeoapi_config):
 
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
-    # This function adds information of the postgis tables to the pygeoapi config file
+    """
+    Adds information of the PostGIS tables to the pygeoapi configuration file. See https://docs.pygeoapi.io/en/latest/configuration.html#resources
+
+    Parameters:
+    template_resource (str): The path to the template file. 
+    template_params (dict): Dictionary containing placeholders and their corresponding real values.
+    pygeoapi_config (str): The path to the pygeoapi configuration file.
+    """
 
     # Read the template file
     with open(template_resource, "r") as file:

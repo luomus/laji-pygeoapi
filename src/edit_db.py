@@ -1,5 +1,3 @@
-""" This file manages the PostGIS database """
-
 from sqlalchemy import inspect
 from sqlalchemy import create_engine, text, MetaData
 import geopandas as gpd
@@ -24,6 +22,12 @@ with engine.connect() as connection:
     connection.commit()
 
 def drop_all_tables(engine=engine):
+    """
+    Drops all tables in the database except default PostGIS tables.
+
+    Parameters:
+    engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine for database connection
+    """
     print("Clearing the database for new data...")
     
     postgis_default_tables = ['spatial_ref_sys',
@@ -76,7 +80,12 @@ def drop_all_tables(engine=engine):
 
 
 def get_all_tables(engine):
-    # Get a list of tables in the database
+    """
+    Retrieves and prints all table names in the database.
+
+    Parameters:
+    engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine for database connection.
+    """
     inspector = inspect(engine)
     tables = inspector.get_table_names()
 
@@ -87,6 +96,11 @@ def get_all_tables(engine):
 
 
 def main():
+    """
+    Main function for managing the PostGIS database.
+    Provides a user interface to list tables or drop all tables in the database.
+    Not used normally
+    """
     while True:
         # Prompt user for input
         choice = input("\nEnter the number of the function you want to use:\n"
@@ -113,5 +127,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
