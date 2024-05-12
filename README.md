@@ -6,12 +6,12 @@ To install and run the Pygeoapi instance locally, follow these steps:
 
 1. Clone the directory
 ```
-git clone https://github.com/luomus/laji_pygeoapi.git
+git clone https://github.com/luomus/laji-pygeoapi.git
 ```
 
 2. Go to the directory
 ```
-cd laji_pygeoapi
+cd laji-pygeoapi
 ```
 
 3. Run docker command:
