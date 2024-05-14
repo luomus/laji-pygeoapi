@@ -21,6 +21,7 @@ COPY src/lookup_table_columns.csv .
 COPY src/process_data.py .
 COPY src/edit_config.py .
 COPY src/load_data.py .
+COPY pygeoapi-config.yml .
 
 # Copy test data
 COPY test_data/10000_virva_data.json .
