@@ -3,7 +3,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import pyogrio, psycopg2, geoalchemy2, os
-import process_data, edit_config, edit_db, load_data
+import process_data, edit_config, edit_db, load_data, edit_configmaps
 
 # Set options for pandas and geopandas
 pd.options.mode.copy_on_write = True
@@ -115,6 +115,8 @@ def main():
 
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
+
+    edit_configmaps.update_configmap()
     print("API is ready to use.")
 
 if __name__ == '__main__':
