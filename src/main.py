@@ -11,12 +11,13 @@ gpd.options.io_engine = "pyogrio" # Faster way to read data
 
 # URLs and file paths
 occurrence_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE'
-occurrence_file = r'test_data/10000_virva_data.json'
+occurrence_file = r'10000_virva_data.json'
 taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic'
 taxon_id_file = r'test_data/taxon-export.tsv'
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 template_resource = r'template_resource.txt'
-pygeoapi_config = r'/pygeoapi/local.config.yml'
+pygeoapi_config_in = r'pygeoapi-config.yml'
+pygeoapi_config_out = r'pygeoapi-config_out.yml' #r'pygeoapi/local.config.yml' ??
 lookup_table = r'lookup_table_columns.csv'
 
 # Load environment variables from .env file
@@ -35,9 +36,10 @@ def main():
     """
 
     # Get the data sets
-    gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=True, pages=2) # If you want to test locally, replace occurrence_url -> occurrence_file
+    gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=True, pages=5) 
+    #gdf = load_data.get_occurrence_data(occurrence_file,  multiprocessing=True)  # If you want to test locally, use this and comment out the line above
     taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all') 
-    #taxon_df = pd.read_csv('test_data/taxon-export.csv') # If you want to test locally, use this and comment out the line above
+    #taxon_df = pd.read_csv('taxon-export.csv') # If you want to test locally, use this and comment out the line above
 
     # Merge taxonomy information to the occurrence data
     print("Joining data sets together...")
@@ -74,7 +76,7 @@ def main():
     no_family_name = gdf[gdf['InformalGroupName'].isnull()]
 
     # Clear config file and database to make space for new data sets. 
-    edit_config.clear_collections_from_config(pygeoapi_config)
+    edit_config.clear_collections_from_config(pygeoapi_config_in)
     edit_db.drop_all_tables(engine)
 
     print("Looping over all species classes...")
@@ -90,7 +92,7 @@ def main():
             bbox = process_data.get_bbox(sub_gdf)
             min_date, max_date, dates = process_data.get_min_and_max_dates(sub_gdf)
             sub_gdf['eventDateTimeDisplay'] = dates.astype(str)
-            sub_gdf['index'] = sub_gdf.index
+            sub_gdf['localID'] = sub_gdf.index
             n_rows = len(sub_gdf)
             tot_rows += n_rows
 
@@ -102,7 +104,7 @@ def main():
                 "<placeholder_max_date>": max_date
             }
             # Add database information into the config file
-            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
+            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_in, pygeoapi_config_out)
 
             # Add data to the database
             sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
