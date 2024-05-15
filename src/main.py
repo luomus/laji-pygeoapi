@@ -116,7 +116,7 @@ def main():
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
 
-    edit_configmaps.update_configmap()
+    edit_configmaps.update_configmap(pygeoapi_config_out)
     print("API is ready to use.")
 
 if __name__ == '__main__':

@@ -1,10 +1,10 @@
 import requests
 
-def update_configmap():
+def update_configmap(pygeoapi_config_out):
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
         token = f.read()
 
-    with open("pygeoapi-config-out.yml", "r") as f:
+    with open(pygeoapi_config_out, "r") as f:
         file_content = f.read()       
 
     # replace the config map    
