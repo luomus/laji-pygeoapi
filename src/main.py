@@ -76,7 +76,7 @@ def main():
     no_family_name = gdf[gdf['InformalGroupName'].isnull()]
 
     # Clear config file and database to make space for new data sets. 
-    edit_config.clear_collections_from_config(pygeoapi_config_in)
+    edit_config.clear_collections_from_config(pygeoapi_config_in, pygeoapi_config_out)
     edit_db.drop_all_tables(engine)
 
     print("Looping over all species classes...")
