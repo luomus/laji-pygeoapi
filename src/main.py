@@ -71,14 +71,15 @@ def main():
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
         connection.commit()
 
-    # Iterate over unique values of "InformalGroupName" attribute
-    tot_rows = 0 
-    no_family_name = gdf[gdf['InformalGroupName'].isnull()]
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config_in, pygeoapi_config_out)
     edit_db.drop_all_tables(engine)
 
+    tot_rows = 0 
+    no_family_name = gdf[gdf['InformalGroupName'].isnull()]
+
+    # Iterate over unique values of "InformalGroupName" attribute
     print("Looping over all species classes...")
     for group_name in gdf['InformalGroupName'].unique():
         

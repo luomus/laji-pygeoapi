@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 import requests, pyogrio, psycopg2, geoalchemy2, os, concurrent.futures
-import edit_config, edit_db, process_data
 
 def get_last_page(data_url):
     """
@@ -22,7 +21,9 @@ def get_last_page(data_url):
         api_response = response.json()
         return(api_response.get("lastPage"))
     except Exception as e:
-        print("An error occurred:", e)
+        print("An error occurred when getting the last page of api results. Perhaps JSON file is invalid. Returning only the first page.")
+        return 1
+        
 
 def download_page(data_url, page_no):
     """
@@ -73,7 +74,6 @@ def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
         # Retrieve data page by page without multiprocessing 
         for page_no in tqdm(range(1,last_page+1)):
             next_gdf = download_page(data_url, page_no)
-            print("mergind pages...")
             gdf = pd.concat([gdf, next_gdf])
 
     return gdf

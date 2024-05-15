@@ -34,7 +34,6 @@ def add_to_pygeoapi_config(template_resource, template_params, output_config):
     Parameters:
     template_resource (str): The path to the template file.
     template_params (dict): Dictionary containing placeholders and their corresponding real values.
-    input_config (str): The path to the input pygeoapi configuration file.
     output_config (str): The path to the output pygeoapi configuration file.
     """
 

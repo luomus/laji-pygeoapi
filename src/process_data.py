@@ -1,6 +1,5 @@
 import pandas as pd
 import re
-import datetime
 
 def get_bbox(sub_gdf):
     """
@@ -14,7 +13,6 @@ def get_bbox(sub_gdf):
     """
     minx, miny, maxx, maxy = sub_gdf.geometry.total_bounds
     return [minx, miny, maxx, maxy]
-
 
 def get_min_and_max_dates(sub_gdf):
     """
@@ -30,26 +28,29 @@ def get_min_and_max_dates(sub_gdf):
 
     # Define the regex patterns to find days and times
     date_regex = '[0-9]{4}-[0-9]{2}-[0-9]{2}'
-    time_regex = '[0-9]{1}:[0-9]{2}'
-    time2_regex = '[0-9]{2}:[0-9]{2}'
+    time_regex = '[0-9]{2}:[0-9]{2}'
+    time2_regex = '[0-9]{1}:[0-9]{2}'
 
     # Loop over dates and translate into the correct form
     for i, date in enumerate(dates):
-        day = re.search(date_regex, date)
-        time1 = re.search(time_regex, date)
-        time2 = re.search(time2_regex, date)
-        if day and time1:
-            datetime = day.group(0) + 'T0' + time1.group(0) + 'Z'
-            dates.iloc[i] = datetime
-        elif day and time2:
-            datetime = day.group(0) + 'T' + time2.group(0) + 'Z'
-            dates.iloc[i] = datetime
-        elif day: 
-            datetime = day.group(0) + 'T00:00Z'
-            dates.iloc[i] = datetime
-        else:
+        try:
+            day = re.search(date_regex, date)
+            time1 = re.search(time_regex, date)
+            time2 = re.search(time2_regex, date)
+            if day and time1:
+                datetime = day.group(0) + 'T' + time1.group(0) + 'Z'
+                dates.iloc[i] = datetime
+            elif day and time2:
+                datetime = day.group(0) + 'T0' + time2.group(0) + 'Z'
+                dates.iloc[i] = datetime
+            elif day: 
+                datetime = day.group(0) + 'T00:00Z'
+                dates.iloc[i] = datetime
+            else:
+                dates.iloc[i] = None
+        except TypeError:
             dates.iloc[i] = None
-            print(f"{date} is not a valid date format (e.g. YYYY-MM-DD)")
+            print(f"{date} is not a valid date format (e.g. YYYY-MM-DD or YYYY-MM-DD [HH-MM])")
 
     # Convert dates to datetime format
     dates = pd.to_datetime(dates)
