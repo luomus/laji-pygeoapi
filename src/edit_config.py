@@ -27,7 +27,7 @@ def clear_collections_from_config(pygeoapi_config_in, pygeoapi_config_out):
         print("Warning: Didn't remove any collections as the pygeoapi configuration file does not have resources section")
 
 
-def add_to_pygeoapi_config(template_resource, template_params, input_config, output_config):
+def add_to_pygeoapi_config(template_resource, template_params, output_config):
     """
     Adds information of the PostGIS tables to the pygeoapi configuration file. See https://docs.pygeoapi.io/en/latest/configuration.html#resources
 
@@ -38,10 +38,6 @@ def add_to_pygeoapi_config(template_resource, template_params, input_config, out
     output_config (str): The path to the output pygeoapi configuration file.
     """
 
-    # Read the input config file (i.e. config without any resources) and store its content
-    with open(input_config, "r") as file:
-        input_content = file.read()
-
     # Read the template file
     with open(template_resource, "r") as file:
         template = file.read()
@@ -50,7 +46,6 @@ def add_to_pygeoapi_config(template_resource, template_params, input_config, out
     for key, value in template_params.items():
         template = template.replace(key, value)
 
-    # Write the input content followed by the filled template to the output config file
-    with open(output_config, "w") as file:
-        file.write(input_content)
+    # Append the filled template to the output config file
+    with open(output_config, "a") as file:
         file.write(template)

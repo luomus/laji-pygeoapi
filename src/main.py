@@ -104,7 +104,7 @@ def main():
                 "<placeholder_max_date>": max_date
             }
             # Add database information into the config file
-            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_in, pygeoapi_config_out)
+            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
 
             # Add data to the database
             sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
