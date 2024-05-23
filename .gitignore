@@ -1,2 +1,6 @@
-myenv/
+venv/
 .env
+rahti_files
+.vscode
+test/__pycache__
+src/__pycache__
