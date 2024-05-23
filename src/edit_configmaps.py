@@ -1,6 +1,21 @@
-import requests
+import requests, os
+
+def get_kubernetes_info():
+    with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace") as f:
+        namespace = f.read().strip()
+
+    api_url = "https://{}:{}".format(
+        os.environ['KUBERNETES_SERVICE_HOST'],
+        os.environ['KUBERNETES_SERVICE_PORT']
+    )
+
+    return api_url, namespace
 
 def update_configmap(pygeoapi_config_out):
+
+    api_url, namespace = get_kubernetes_info()
+
+
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
         token = f.read()
 
@@ -15,11 +30,11 @@ def update_configmap(pygeoapi_config_out):
     }]
 
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
-    r = requests.patch("https://api.2.rahti.csc.fi:6443/api/v1/namespaces/laji-pygeoapi/configmaps/pygeoapi-config", headers=headers, json=data)
+    r = requests.patch(f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config", headers=headers, json=data)
 
     # find the pods we want to restart
     headers = {"Authorization": "Bearer {}".format(token)}
-    data = requests.get("https://api.2.rahti.csc.fi:6443/api/v1/namespaces/laji-pygeoapi/pods", headers=headers).json()
+    data = requests.get(f"{api_url}/api/v1/namespaces/{namespace}/pods", headers=headers).json()
     items = data["items"]
 
     deploymentconfig_name = "pygeoapi"
@@ -27,4 +42,4 @@ def update_configmap(pygeoapi_config_out):
 
     # restart the pods by deleting them
     for pod in target_pods:
-        a = requests.delete("https://api.2.rahti.csc.fi:6443/api/v1/namespaces/laji-pygeoapi/pods/{}".format(pod), headers=headers)
+        a = requests.delete(f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}", headers=headers)
