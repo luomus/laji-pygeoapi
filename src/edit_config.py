@@ -1,9 +1,12 @@
-""" This file edits the pygeoapi config file """
+def clear_collections_from_config(pygeoapi_config_in, pygeoapi_config_out):
+    """
+    Deletes collection information from the pygeoapi configuration file.
 
-def clear_collections_from_config(pygeoapi_config):
+    Parameters:
+    pygeoapi_config (str): The path to the pygeoapi configuration file.
+    """
     print("Deleting collection information from the pygeoapi config file...")
-    # Read the contents of the file
-    with open(pygeoapi_config, 'r') as file:
+    with open(pygeoapi_config_in, 'r') as file:
         lines = file.readlines()
 
     # Find the index of the line containing the keyword "resources"
@@ -18,14 +21,21 @@ def clear_collections_from_config(pygeoapi_config):
         lines = lines[:keyword_index+1]
 
         # Write the modified contents back to the file
-        with open(pygeoapi_config, 'w') as file:
+        with open(pygeoapi_config_out, 'w') as file:
             file.writelines(lines)
     else:
         print("Warning: Didn't remove any collections as the pygeoapi configuration file does not have resources section")
 
 
-def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
-    # This function adds information of the postgis tables to the pygeoapi config file
+def add_to_pygeoapi_config(template_resource, template_params, output_config):
+    """
+    Adds information of the PostGIS tables to the pygeoapi configuration file. See https://docs.pygeoapi.io/en/latest/configuration.html#resources
+
+    Parameters:
+    template_resource (str): The path to the template file.
+    template_params (dict): Dictionary containing placeholders and their corresponding real values.
+    output_config (str): The path to the output pygeoapi configuration file.
+    """
 
     # Read the template file
     with open(template_resource, "r") as file:
@@ -34,7 +44,7 @@ def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
     # Replace placeholders with real values
     for key, value in template_params.items():
         template = template.replace(key, value)
-   
-    # Append filled template to the config file
-    with open(pygeoapi_config, "a") as file:
+
+    # Append the filled template to the output config file
+    with open(output_config, "a") as file:
         file.write(template)

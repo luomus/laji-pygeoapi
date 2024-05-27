@@ -1,0 +1,656 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+  - name: DB_SECRET
+    required: true
+    value: db-secret
+  - name: APP
+    required:
+    value: laji-pygeoapitest
+  - name: BRANCH
+    required:
+    value: dev
+  - name: POSTGRES_PASSWORD
+    required: true
+  - name: POSTGRES_USER
+    required: true
+  - name: POSTGRES_DB
+    required: true
+  - name: STORAGE_CLASS
+    required: true
+    value: standard-csi
+  - name: HOST_URL
+    required: true
+  - name: DB_PORT
+    required: true
+    value: "5432"
+  - name: PYGEOAPI_PORT
+    required: true
+    value: "5000"
+  - name: GITHUB_REPOSITORY_URL 
+    displayName: Source Repository URL 
+    description: The URL of the repository with the application source code 
+    value: https://github.com/luomus/laji-pygeoapi.git
+    required: true 
+  - name: GITHUB_SECRET
+    required: true
+    generate: expression
+    from: "[a-zA-Z0-9]{20}"
+  - name: DOCKER_REGISTRY_AUTH
+    description: Base64 encoded Docker registry auth (username:password)
+    required: true
+    value: ewoiaGVsbG8iOiAiaGVsbG8gd29ybGQiCn0K
+  - name: REGISTRY_SECRET_NAME
+    description: Name of the Docker registry secret
+    required: true
+    value: my-secret
+    
+metadata:
+  name: ${APP}
+  annotations:
+    openshift.io/display-name: "OGC API for laji.fi data"
+    description: >-
+        Pygeoapi based server implementation of the OGC API Features standard for the data from laji.fi
+        More info: https://github.com/luomus/laji-pygeoapi
+
+objects:
+  - kind: PersistentVolumeClaim
+    apiVersion: v1
+    metadata:
+      name: postgres-claim
+      labels:
+        io.kompose.service: postgres-claim
+        app: postgres
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+      storageClassName: ${STORAGE_CLASS}
+      volumeMode: Filesystem
+
+  - kind: Secret
+    apiVersion: v1
+    metadata:
+      name: ${DB_SECRET}
+    data:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+    type: Opaque
+
+  - kind: Secret
+    apiVersion: v1
+    metadata:
+      name: ${REGISTRY_SECRET_NAME}
+    data:
+      .dockerconfigjson: ${DOCKER_REGISTRY_AUTH}
+    type: kubernetes.io/dockerconfigjson  
+  
+  
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: pygeoapi-openapi
+      labels:
+        app: pygeoapi
+    immutable: false
+    data:
+      pygeoapi-openapi.yml: ''
+
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: pygeoapi-config
+      labels:
+        app: pygeoapi
+    data:
+      pygeoapi-config.yml: |-
+        server:
+            bind:
+                host: 0.0.0.0
+                port: {PYGEOAPI_PORT}
+            url: "${HOST_URL}"
+            mimetype: application/json; charset=UTF-8
+            encoding: utf-8
+            gzip: false
+            languages:
+                - en-US
+            # cors: true
+            pretty_print: true
+            limit: 10
+            # templates:
+              # path: /path/to/Jinja2/templates
+              # static: /path/to/static/folder # css/js/img
+            map:
+                url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            # ogc_schemas_location: /opt/schemas.opengis.net
+            
+        logging:
+            level: ERROR
+            #logfile: /tmp/pygeoapi.log
+        metadata:
+            identification:
+                title:
+                    en: FinBIF occurrence data OGC API
+                description:
+                    en: This portal allows you to query and fetch occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Currently, this portal includes data specified by virva-authority filters. 
+                keywords:
+                    en:
+                        - occurrence
+                        - geospatial data
+                        - api
+                keywords_type: theme
+                terms_of_service: https://creativecommons.org/licenses/by/4.0/
+                url: https://example.org
+            license:
+                name: CC-BY 4.0 license
+                url: https://creativecommons.org/licenses/by/4.0/
+            provider:
+                name: Luomus
+                url: https://laji.fi/
+            contact:
+                name: Alpo, Turunen
+                position: Spatial Data Specialist
+                address: Pohjoinen Rautatiekatu 13 
+                city: Helsinki
+                stateorprovince: Uusimaa
+                postalcode: FI-00100
+                country: Finland
+                phone: +358 29 412 8819
+                email: alpo.turunen@helsinki.fi
+                url: https://laji.fi/
+                hours: Mo-Fr 08:00-17:00
+                instructions: During hours of service. Off on weekends.
+                role: pointOfContact
+        resources:
+            Birds:
+                type: collection
+                title: Birds 
+                description: occurrences from laji.fi
+                keywords:
+                    en:
+                        - Birds
+                        - species
+                extents:
+                    spatial:
+                        bbox: [19.33897, 59.504462, 31.307532, 70.069293]
+                        crs: https://www.opengis.net/def/crs/EPSG/0/4326
+                    temporal: 
+                        begin: 2023-07-12T00:00:00Z
+                        end: 2024-05-20T03:40:00Z
+                providers:
+                  - type: feature
+                    name: PostgreSQL
+                    data:
+                        host: postgres
+                        port: ${DB_PORT}
+                        dbname: my_geospatial_db
+                        user: postgres
+                        password: admin123
+                    id_field: localID
+                    uri: occurrenceID
+                    table: Birds
+                    geom_field: geometry
+                    time_field: datetimestamp
+                    title_field: scientificNameInterpreted
+                    crs:
+                        - https://www.opengis.net/def/crs/EPSG/0/4326
+                        - https://www.opengis.net/def/crs/EPSG/0/3067
+                        
+
+
+  - kind: ServiceAccount
+    apiVersion: v1
+    metadata:
+      name: configmap-update-sa
+      labels:
+        app: python-scripts
+    secrets:
+      - name: ${DB_SECRET}
+    imagePullSecrets:
+      - name: ${REGISTRY_SECRET_NAME}  
+  
+  
+
+
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
+    metadata:
+      name: postgres
+      labels:
+        io.kompose.service: postgres
+        app: postgres
+    spec:
+      lookupPolicy:
+        local: false
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: postgis/postgis
+          generation: 1
+          importPolicy:
+            importMode: Legacy
+          referencePolicy:
+            type: Source
+            
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
+    metadata:
+      name: pygeoapi
+      labels:
+        app: pygeoapi
+    spec:
+      lookupPolicy:
+        local: false
+      tags:
+        - name: latest
+          generation: 1
+          importPolicy:
+            importMode: Legacy
+          referencePolicy:
+            type: Source
+
+
+
+
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
+    metadata:
+      name: python-scripts
+      labels:
+        io.kompose.service: python-scripts
+        app: python-scripts
+    spec:
+      lookupPolicy:
+        local: false
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: python-scripts
+          generation: 1
+          importPolicy:
+            importMode: Legacy
+          referencePolicy:
+            type: Source
+
+  - kind: Role
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: configmap-update-role
+      labels:
+        app: python-scripts
+    rules:
+      - verbs:
+          - patch
+        apiGroups:
+          - ''
+        resources:
+          - configmaps
+        resourceNames:
+          - pygeoapi-config
+      - verbs:
+          - delete
+          - list
+        apiGroups:
+          - ''
+        resources:
+          - pods
+  - kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: configmap-update-binding
+    subjects:
+      - kind: ServiceAccount
+        name: configmap-update-sa
+        namespace: laji-pygeoapi
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: configmap-update-role
+
+  - kind: BuildConfig
+    apiVersion: build.openshift.io/v1
+    metadata:
+      name: pygeoapi-build
+      labels:
+        app: pygeoapi
+    spec:
+      nodeSelector: null
+      output:
+        to:
+          kind: ImageStreamTag
+          name: 'pygeoapi:latest'
+      resources: {}
+      successfulBuildsHistoryLimit: 5
+      failedBuildsHistoryLimit: 5
+      strategy:
+        type: Docker
+        dockerStrategy:
+          dockerfilePath: pygeoapi/Dockerfile
+      postCommit: {}
+      source:
+        type: Git
+        git:
+          uri: "${GITHUB_REPOSITORY_URL}"
+          ref: "${BRANCH}"
+      triggers:
+        - type: ConfigChange
+      runPolicy: Serial
+
+  - kind: BuildConfig
+    apiVersion: build.openshift.io/v1
+    metadata:
+      name: python-scripts-build
+      labels:
+        app: python-scripts
+    spec:
+      nodeSelector: null
+      output:
+        to:
+          kind: ImageStreamTag
+          name: 'python-scripts:latest'
+      strategy:
+        type: Docker
+        dockerStrategy: {}
+      postCommit: {}
+      source:
+        type: Git
+        git:
+          uri: "${GITHUB_REPOSITORY_URL}"
+          ref: "${BRANCH}"
+      triggers:
+        - type: GitHub
+          github:
+            secret: "${GITHUB_SECRET}"
+        - type: Generic
+          generic:
+            secret: "${GITHUB_SECRET}"
+      runPolicy: Serial
+
+  - kind: DeploymentConfig
+    apiVersion: apps.openshift.io/v1
+    metadata:
+      name: postgres
+      labels:
+        io.kompose.service: postgres
+        app: postgres
+    spec:
+      strategy:
+        type: Recreate
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - postgres
+            from:
+              kind: ImageStreamTag
+              name: 'postgres:latest'
+      replicas: 1
+      selector:
+        io.kompose.service: postgres
+      template:
+        metadata:
+          labels:
+            io.kompose.network/${APP}-default: 'true'
+            io.kompose.service: postgres
+        spec:
+          volumes:
+            - name: postgres-claim
+              persistentVolumeClaim:
+                claimName: postgres-claim
+          containers:
+            - name: postgres
+              env:
+                - name: POSTGRES_DB
+                  valueFrom:
+                    secretKeyRef:
+                      name: "${DB_SECRET}"
+                      key: POSTGRES_DB
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: "${DB_SECRET}"
+                      key: POSTGRES_PASSWORD
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: "${DB_SECRET}"
+                      key: POSTGRES_USER
+                - name: PGDATA
+                  value: /var/lib/postgresql/data/pgdata
+              ports:
+                - containerPort: ${{DB_PORT}}
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: postgres-claim
+                  mountPath: /pgdata
+              terminationMessagePolicy: File
+              image: 'postgis/postgis@sha256:bf36402dbbf24da8945ebb10750c0f35c30deeda8799f73a53548a2e4c6f92f9'
+                  
+  - kind: DeploymentConfig
+    apiVersion: apps.openshift.io/v1
+    metadata:
+      name: pygeoapi
+      labels:
+        io.kompose.service: pygeoapi
+        app: pygeoapi
+    spec:
+      strategy:
+        type: Recreate
+        recreateParams:
+          timeoutSeconds: 600
+        resources: {}
+        activeDeadlineSeconds: 21600
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - pygeoapi
+            from:
+              kind: ImageStreamTag
+              name: 'pygeoapi:latest'
+      replicas: 1
+      revisionHistoryLimit: 10
+      test: false
+      selector:
+        io.kompose.service: pygeoapi
+      template:
+        metadata:
+          labels:
+            io.kompose.service: pygeoapi
+        spec:
+          volumes:
+            - name: pygeoapi-config
+              configMap:
+                name: pygeoapi-config
+                defaultMode: 420
+          containers:
+            - resources: {}
+              terminationMessagePath: /dev/termination-log
+              name: pygeoapi
+              env:
+                - name: PYGEOAPI_CONFIG
+                  value: pygeoapi-config.yml
+                - name: PYGEOAPI_OPENAPI
+                  value: pygeoapi-openapi.yml
+                - name: CONTAINER_PORT
+                  value: '5000'
+              ports:
+                - containerPort: 5000
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: pygeoapi-config
+                  mountPath: /pygeoapi/local.config.yml
+                  subPath: pygeoapi-config.yml
+              terminationMessagePolicy: File
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: {}
+          schedulerName: default-scheduler
+          
+  - kind: CronJob
+    apiVersion: batch/v1
+    metadata:
+      name: python-scripts
+      labels:
+        app: python-scripts
+    spec:
+      schedule: 0 3 * * *
+      concurrencyPolicy: Forbid
+      suspend: false
+      jobTemplate:
+        metadata:
+          creationTimestamp: null
+        spec:
+          template:
+            metadata:
+              creationTimestamp: null
+            spec:
+              restartPolicy: OnFailure
+              serviceAccountName: configmap-update-sa
+              schedulerName: default-scheduler
+              terminationGracePeriodSeconds: 30
+              securityContext: {}
+              containers:
+                - name: python-scripts
+                  image: 'image-registry.openshift-image-registry.svc:5000/${APP}/python-scripts'
+                  env:
+                    - name: POSTGRES_DB
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${DB_SECRET}"
+                          key: POSTGRES_DB
+                    - name: POSTGRES_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${DB_SECRET}"
+                          key: POSTGRES_PASSWORD
+                    - name: POSTGRES_USER
+                      valueFrom:
+                        secretKeyRef:
+                          name: "${DB_SECRET}"
+                          key: POSTGRES_USER
+                  resources: {}
+                  volumeMounts:
+                    - name: pygeoapi-config
+                      mountPath: /app/pygeoapi-config.yml
+                      subPath: pygeoapi-config.yml
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+                  imagePullPolicy: Always
+              serviceAccount: configmap-update-sa
+              volumes:
+                - name: pygeoapi-config
+                  configMap:
+                    name: pygeoapi-config
+                    defaultMode: 420
+              dnsPolicy: ClusterFirst
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 1
+
+  - kind: CronJob
+    apiVersion: batch/v1
+    metadata:
+      name: prune-old-objects
+      app: meta
+    spec:
+      schedule: 0 0 * * *
+      concurrencyPolicy: Allow
+      suspend: false
+      jobTemplate:
+        metadata:
+          creationTimestamp: null
+        spec:
+          template:
+            metadata:
+              creationTimestamp: null
+            spec:
+              containers:
+                - name: prune
+                  image: openshift/origin-cli
+                  command:
+                    - /bin/bash
+                    - '-c'
+                    - |
+                      oc adm prune deployments --keep-complete=3 --keep-failed=3
+                      oc adm prune builds --keep-complete=3 --keep-failed=3
+                  resources: {}
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+                  imagePullPolicy: Always
+              restartPolicy: OnFailure
+              terminationGracePeriodSeconds: 30
+              dnsPolicy: ClusterFirst
+              securityContext: {}
+              schedulerName: default-scheduler
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 1
+    status: {}
+
+
+
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: postgres
+      labels:
+        io.kompose.service: postgres
+    spec:
+      ports:
+        - name: ${DB_PORT}
+          protocol: TCP
+          port: ${{DB_PORT}}
+          targetPort: ${{DB_PORT}}
+      selector:
+        io.kompose.service: postgres
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: pygeoapi
+      labels:
+        io.kompose.service: pygeoapi
+    spec:
+      ports:
+        - name: ${PYGEOAPI_PORT}
+          protocol: TCP
+          port: ${{PYGEOAPI_PORT}}
+          targetPort: ${{PYGEOAPI_PORT}}
+      selector:
+        io.kompose.service: pygeoapi
+
+
+
+  - kind: Route
+    apiVersion: route.openshift.io/v1
+    metadata:
+      name: pygeoapi-route
+      labels:
+        io.kompose.service: pygeoapi
+        app: pygeoapi
+      annotations:
+        openshift.io/host.generated: 'true'
+    spec:
+      host: "${HOST_URL}"
+      to:
+        kind: Service
+        name: pygeoapi
+        weight: 100
+      port:
+        targetPort: ${{PYGEOAPI_PORT}}
+      tls:
+        termination: edge
+      wildcardPolicy: None
