@@ -103,7 +103,11 @@ def main():
                 "<placeholder_table_name>": table_name,
                 "<placeholder_bbox>": str(bbox),
                 "<placeholder_min_date>": min_date,
-                "<placeholder_max_date>": max_date
+                "<placeholder_max_date>": max_date,
+                "<placeholder_postgres_host>": os.getenv('POSTGRES_HOST'),
+                "<placeholder_postgres_password>": os.getenv('POSTGRES_PASSWORD'),
+                "<placeholder_postgres_user>": os.getenv('POSTGRES_USER'),
+                "<placeholder_db_name>": os.getenv('POSTGRES_DB')
             }
             # Add database information into the config file
             edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)

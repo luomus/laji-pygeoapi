@@ -18,11 +18,11 @@
           - type: feature
             name: PostgreSQL
             data:
-                host: postgres
+                host: <placeholder_postgres_host>
                 port: 5432
-                dbname: my_geospatial_db
-                user: postgres
-                password: admin123
+                dbname: <placeholder_db_name>
+                user: <placeholder_postgres_user>
+                password: <placeholder_postgres_password>
             id_field: localID
             uri: occurrenceID
             table: <placeholder_table_name>
