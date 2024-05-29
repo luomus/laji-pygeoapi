@@ -5,14 +5,15 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 
-# Database connection parameters from the secret .env file
+# Load environment variables from .env file
 load_dotenv()
 db_params = {
     'dbname': os.getenv('POSTGRES_DB'),
-    'user': os.getenv('POSTGRES_USER') ,
-    'password': os.getenv('POSTGRES_PASSWORD') ,
-    'host': 'postgres',
-    'port': '5432'
+    'user': os.getenv('POSTGRES_USER'),
+    'password': os.getenv('POSTGRES_PASSWORD'),
+    'host': os.getenv('POSTGRES_HOST'),
+    'port': '5432',
+    'pages': os.getenv('PAGES')
 }
 
 # Connect to the PostGIS database
