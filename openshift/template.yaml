@@ -4,12 +4,12 @@ parameters:
   - name: DB_SECRET
     required: true
     value: db-secret
-  - name: APP
-    required:
-    value: laji-pygeoapitest
+  - name: NAMESPACE
+    required: true
+    value: laji-pygeoapi
   - name: BRANCH
     required:
-    value: dev
+    value: main
   - name: POSTGRES_PASSWORD
     required: true
   - name: POSTGRES_USER
@@ -36,17 +36,13 @@ parameters:
     required: true
     generate: expression
     from: "[a-zA-Z0-9]{20}"
-  - name: DOCKER_REGISTRY_AUTH
-    description: Base64 encoded Docker registry auth (username:password)
+  - name: PAGES
+    description: Defines the number of pages to download from the laji.fi occurrence API. Default is "all" but for testing purposes, use smaller number, for e.g. 2
     required: true
-    value: ewoiaGVsbG8iOiAiaGVsbG8gd29ybGQiCn0K
-  - name: REGISTRY_SECRET_NAME
-    description: Name of the Docker registry secret
-    required: true
-    value: my-secret
+    value: "3"
     
 metadata:
-  name: ${APP}
+  name: template
   annotations:
     openshift.io/display-name: "OGC API for laji.fi data"
     description: >-
@@ -57,10 +53,10 @@ objects:
   - kind: PersistentVolumeClaim
     apiVersion: v1
     metadata:
-      name: postgres-claim
+      name: postgres-claim-${BRANCH}
       labels:
-        io.kompose.service: postgres-claim
-        app: postgres
+        io.kompose.service: postgres-claim-${BRANCH}
+        app: postgres-${BRANCH}
     spec:
       accessModes:
         - ReadWriteOnce
@@ -73,45 +69,39 @@ objects:
   - kind: Secret
     apiVersion: v1
     metadata:
-      name: ${DB_SECRET}
+      name: ${DB_SECRET}-${BRANCH}
     data:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
     type: Opaque
 
-  - kind: Secret
-    apiVersion: v1
-    metadata:
-      name: ${REGISTRY_SECRET_NAME}
-    data:
-      .dockerconfigjson: ${DOCKER_REGISTRY_AUTH}
-    type: kubernetes.io/dockerconfigjson  
+
   
   
   - kind: ConfigMap
     apiVersion: v1
     metadata:
-      name: pygeoapi-openapi
+      name: pygeoapi-openapi-${BRANCH}
       labels:
-        app: pygeoapi
+        app: pygeoapi-${BRANCH}
     immutable: false
     data:
-      pygeoapi-openapi.yml: ''
+      pygeoapi-openapi-${BRANCH}.yml: ''
 
   - kind: ConfigMap
     apiVersion: v1
     metadata:
-      name: pygeoapi-config
+      name: pygeoapi-config-${BRANCH}
       labels:
-        app: pygeoapi
+        app: pygeoapi-${BRANCH}
     data:
       pygeoapi-config.yml: |-
         server:
             bind:
                 host: 0.0.0.0
-                port: {PYGEOAPI_PORT}
-            url: "${HOST_URL}"
+                port: ${PYGEOAPI_PORT}
+            url: https://${HOST_URL}
             mimetype: application/json; charset=UTF-8
             encoding: utf-8
             gzip: false
@@ -187,9 +177,9 @@ objects:
                     data:
                         host: postgres
                         port: ${DB_PORT}
-                        dbname: my_geospatial_db
-                        user: postgres
-                        password: admin123
+                        dbname: tmp
+                        user: tmp
+                        password: tmp
                     id_field: localID
                     uri: occurrenceID
                     table: Birds
@@ -205,126 +195,25 @@ objects:
   - kind: ServiceAccount
     apiVersion: v1
     metadata:
-      name: configmap-update-sa
+      name: configmap-update-sa-${BRANCH}
       labels:
-        app: python-scripts
+        app: python-scripts-${BRANCH}
     secrets:
-      - name: ${DB_SECRET}
-    imagePullSecrets:
-      - name: ${REGISTRY_SECRET_NAME}  
+      - name: ${DB_SECRET}-${BRANCH}
   
   
-
-
-  - kind: ImageStream
-    apiVersion: image.openshift.io/v1
-    metadata:
-      name: postgres
-      labels:
-        io.kompose.service: postgres
-        app: postgres
-    spec:
-      lookupPolicy:
-        local: false
-      tags:
-        - name: latest
-          from:
-            kind: DockerImage
-            name: postgis/postgis
-          generation: 1
-          importPolicy:
-            importMode: Legacy
-          referencePolicy:
-            type: Source
-            
-  - kind: ImageStream
-    apiVersion: image.openshift.io/v1
-    metadata:
-      name: pygeoapi
-      labels:
-        app: pygeoapi
-    spec:
-      lookupPolicy:
-        local: false
-      tags:
-        - name: latest
-          generation: 1
-          importPolicy:
-            importMode: Legacy
-          referencePolicy:
-            type: Source
-
-
-
-
-  - kind: ImageStream
-    apiVersion: image.openshift.io/v1
-    metadata:
-      name: python-scripts
-      labels:
-        io.kompose.service: python-scripts
-        app: python-scripts
-    spec:
-      lookupPolicy:
-        local: false
-      tags:
-        - name: latest
-          from:
-            kind: DockerImage
-            name: python-scripts
-          generation: 1
-          importPolicy:
-            importMode: Legacy
-          referencePolicy:
-            type: Source
-
-  - kind: Role
-    apiVersion: rbac.authorization.k8s.io/v1
-    metadata:
-      name: configmap-update-role
-      labels:
-        app: python-scripts
-    rules:
-      - verbs:
-          - patch
-        apiGroups:
-          - ''
-        resources:
-          - configmaps
-        resourceNames:
-          - pygeoapi-config
-      - verbs:
-          - delete
-          - list
-        apiGroups:
-          - ''
-        resources:
-          - pods
-  - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1
-    metadata:
-      name: configmap-update-binding
-    subjects:
-      - kind: ServiceAccount
-        name: configmap-update-sa
-        namespace: laji-pygeoapi
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: configmap-update-role
-
   - kind: BuildConfig
     apiVersion: build.openshift.io/v1
     metadata:
-      name: pygeoapi-build
+      name: pygeoapi-build-${BRANCH}
       labels:
-        app: pygeoapi
+        app: pygeoapi-${BRANCH}
     spec:
       nodeSelector: null
       output:
         to:
           kind: ImageStreamTag
-          name: 'pygeoapi:latest'
+          name: pygeoapi-${BRANCH}:latest
       resources: {}
       successfulBuildsHistoryLimit: 5
       failedBuildsHistoryLimit: 5
@@ -345,15 +234,15 @@ objects:
   - kind: BuildConfig
     apiVersion: build.openshift.io/v1
     metadata:
-      name: python-scripts-build
+      name: python-scripts-build-${BRANCH}
       labels:
-        app: python-scripts
+        app: python-scripts-${BRANCH}
     spec:
       nodeSelector: null
       output:
         to:
           kind: ImageStreamTag
-          name: 'python-scripts:latest'
+          name: 'python-scripts-${BRANCH}:latest'
       strategy:
         type: Docker
         dockerStrategy: {}
@@ -372,56 +261,142 @@ objects:
             secret: "${GITHUB_SECRET}"
       runPolicy: Serial
 
-  - kind: DeploymentConfig
-    apiVersion: apps.openshift.io/v1
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
     metadata:
-      name: postgres
+      name: postgres-${BRANCH}
       labels:
-        io.kompose.service: postgres
-        app: postgres
+        io.kompose.service: postgres-${BRANCH}
+        app: postgres-${BRANCH}
     spec:
-      strategy:
-        type: Recreate
-      triggers:
-        - type: ConfigChange
-        - type: ImageChange
-          imageChangeParams:
-            automatic: true
-            containerNames:
-              - postgres
-            from:
-              kind: ImageStreamTag
-              name: 'postgres:latest'
-      replicas: 1
+      lookupPolicy:
+        local: false
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: postgis/postgis
+          generation: 1
+          importPolicy:
+            importMode: Legacy
+          referencePolicy:
+            type: Source
+            
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
+    metadata:
+      name: pygeoapi-${BRANCH} 
+      labels:
+        app:
+    spec:
+      lookupPolicy:
+        local: true
+      tags:
+        - name: latest
+          generation: 1
+          importPolicy:
+            importMode: Legacy
+          referencePolicy:
+            type: Source
+
+
+
+
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
+    metadata:
+      name: python-scripts-${BRANCH}
+      labels:
+        io.kompose.service: ${NAMESPACE}-${BRANCH}
+        app: python-scripts-${BRANCH}
+    spec:
+      lookupPolicy:
+        local: true
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: python-scripts-${BRANCH}
+          generation: 1
+          importPolicy:
+            importMode: Legacy
+          referencePolicy:
+            type: Source
+
+  - kind: Role
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: configmap-update-role-${BRANCH}
+      labels:
+        app: python-scripts-${BRANCH}
+    rules:
+      - verbs:
+          - patch
+        apiGroups:
+          - ''
+        resources:
+          - configmaps
+        resourceNames:
+          - pygeoapi-config-${BRANCH}
+      - verbs:
+          - delete
+          - list
+        apiGroups:
+          - ''
+        resources:
+          - pods
+
+  - kind: RoleBinding
+    apiVersion: rbac.authorization.k8s.io/v1
+    metadata:
+      name: configmap-update-binding-${BRANCH}
+    subjects:
+      - kind: ServiceAccount
+        name: configmap-update-sa-${BRANCH}
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: configmap-update-role-${BRANCH}
+
+ 
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: postgres-${BRANCH}
+      labels:
+        io.kompose.service: postgres-${BRANCH}
+        app: postgres-${BRANCH}
+    spec:
       selector:
-        io.kompose.service: postgres
+        matchLabels:
+          io.kompose.service: postgres-${BRANCH}
       template:
         metadata:
           labels:
-            io.kompose.network/${APP}-default: 'true'
-            io.kompose.service: postgres
+            io.kompose.network/${NAMESPACE}-default-${BRANCH}: 'true'
+            io.kompose.service: postgres-${BRANCH}
         spec:
           volumes:
-            - name: postgres-claim
+            - name: postgres-claim-${BRANCH}
               persistentVolumeClaim:
-                claimName: postgres-claim
+                claimName: postgres-claim-${BRANCH}
           containers:
-            - name: postgres
+            - name: postgres-${BRANCH}
               env:
                 - name: POSTGRES_DB
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}"
+                      name: "${DB_SECRET}-${BRANCH}"
                       key: POSTGRES_DB
                 - name: POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}"
+                      name: "${DB_SECRET}-${BRANCH}"
                       key: POSTGRES_PASSWORD
                 - name: POSTGRES_USER
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}"
+                      name: "${DB_SECRET}-${BRANCH}"
                       key: POSTGRES_USER
                 - name: PGDATA
                   value: /var/lib/postgresql/data/pgdata
@@ -430,84 +405,78 @@ objects:
                   protocol: TCP
               imagePullPolicy: IfNotPresent
               volumeMounts:
-                - name: postgres-claim
+                - name: postgres-claim-${BRANCH}
                   mountPath: /pgdata
               terminationMessagePolicy: File
               image: 'postgis/postgis@sha256:bf36402dbbf24da8945ebb10750c0f35c30deeda8799f73a53548a2e4c6f92f9'
-                  
-  - kind: DeploymentConfig
-    apiVersion: apps.openshift.io/v1
+     
+  - kind: Deployment
+    apiVersion: apps/v1
     metadata:
-      name: pygeoapi
+      name: pygeoapi-${BRANCH}
+      # annotations:
+        # image.openshift.io/triggers: |-
+          # [
+            # {
+              # "from": {
+                # "kind": "ImageStreamTag",
+                # "name": "pygeoapi-${BRANCH}:latest"
+              # },
+              # "fieldPath": "spec.template.spec.containers[0].image"
+            # }
+          # ]
       labels:
-        io.kompose.service: pygeoapi
-        app: pygeoapi
+        io.kompose.service: pygeoapi-${BRANCH}
+        app: pygeoapi-${BRANCH}
     spec:
-      strategy:
-        type: Recreate
-        recreateParams:
-          timeoutSeconds: 600
-        resources: {}
-        activeDeadlineSeconds: 21600
-      triggers:
-        - type: ConfigChange
-        - type: ImageChange
-          imageChangeParams:
-            automatic: true
-            containerNames:
-              - pygeoapi
-            from:
-              kind: ImageStreamTag
-              name: 'pygeoapi:latest'
-      replicas: 1
-      revisionHistoryLimit: 10
-      test: false
       selector:
-        io.kompose.service: pygeoapi
+        matchLabels:
+          io.kompose.service: pygeoapi-${BRANCH}
       template:
         metadata:
           labels:
-            io.kompose.service: pygeoapi
+            io.kompose.service: pygeoapi-${BRANCH}
         spec:
           volumes:
-            - name: pygeoapi-config
+            - name: pygeoapi-config-${BRANCH}
               configMap:
-                name: pygeoapi-config
+                name: pygeoapi-config-${BRANCH}
                 defaultMode: 420
           containers:
             - resources: {}
               terminationMessagePath: /dev/termination-log
-              name: pygeoapi
+              name: pygeoapi-${BRANCH}
               env:
                 - name: PYGEOAPI_CONFIG
-                  value: pygeoapi-config.yml
+                  value: pygeoapi-config-${BRANCH}.yml
                 - name: PYGEOAPI_OPENAPI
-                  value: pygeoapi-openapi.yml
+                  value: pygeoapi-openapi-${BRANCH}.yml
                 - name: CONTAINER_PORT
                   value: '5000'
               ports:
                 - containerPort: 5000
                   protocol: TCP
-              imagePullPolicy: IfNotPresent
+              #imagePullPolicy: Always
               volumeMounts:
-                - name: pygeoapi-config
+                - name: pygeoapi-config-${BRANCH}
                   mountPath: /pygeoapi/local.config.yml
                   subPath: pygeoapi-config.yml
               terminationMessagePolicy: File
+              image: pygeoapi-${BRANCH}:latest
           restartPolicy: Always
           terminationGracePeriodSeconds: 30
           dnsPolicy: ClusterFirst
           securityContext: {}
           schedulerName: default-scheduler
-          
+
   - kind: CronJob
     apiVersion: batch/v1
     metadata:
-      name: python-scripts
+      name: python-scripts-${BRANCH}
       labels:
-        app: python-scripts
+        app: python-scripts-${BRANCH}
     spec:
-      schedule: 0 3 * * *
+      schedule: "*/1 * * * *"
       concurrencyPolicy: Forbid
       suspend: false
       jobTemplate:
@@ -519,42 +488,48 @@ objects:
               creationTimestamp: null
             spec:
               restartPolicy: OnFailure
-              serviceAccountName: configmap-update-sa
+              serviceAccountName: configmap-update-sa-${BRANCH}
               schedulerName: default-scheduler
               terminationGracePeriodSeconds: 30
               securityContext: {}
               containers:
                 - name: python-scripts
-                  image: 'image-registry.openshift-image-registry.svc:5000/${APP}/python-scripts'
+                  image: python-scripts-${BRANCH}:latest
                   env:
                     - name: POSTGRES_DB
                       valueFrom:
                         secretKeyRef:
-                          name: "${DB_SECRET}"
+                          name: "${DB_SECRET}-${BRANCH}"
                           key: POSTGRES_DB
                     - name: POSTGRES_PASSWORD
                       valueFrom:
                         secretKeyRef:
-                          name: "${DB_SECRET}"
+                          name: "${DB_SECRET}-${BRANCH}"
                           key: POSTGRES_PASSWORD
                     - name: POSTGRES_USER
                       valueFrom:
                         secretKeyRef:
-                          name: "${DB_SECRET}"
+                          name: "${DB_SECRET}-${BRANCH}"
                           key: POSTGRES_USER
+                    - name: POSTGRES_HOST
+                      value: postgres-${BRANCH}
+                    - name: PAGES
+                      value: ${PAGES}
+                    - name: BRANCH
+                      value: ${BRANCH}
                   resources: {}
                   volumeMounts:
-                    - name: pygeoapi-config
+                    - name: pygeoapi-config-${BRANCH}
                       mountPath: /app/pygeoapi-config.yml
                       subPath: pygeoapi-config.yml
                   terminationMessagePath: /dev/termination-log
                   terminationMessagePolicy: File
                   imagePullPolicy: Always
-              serviceAccount: configmap-update-sa
+              serviceAccount: configmap-update-sa-${BRANCH}
               volumes:
-                - name: pygeoapi-config
+                - name: pygeoapi-config-${BRANCH}
                   configMap:
-                    name: pygeoapi-config
+                    name: pygeoapi-config-${BRANCH}
                     defaultMode: 420
               dnsPolicy: ClusterFirst
       successfulJobsHistoryLimit: 3
@@ -563,7 +538,7 @@ objects:
   - kind: CronJob
     apiVersion: batch/v1
     metadata:
-      name: prune-old-objects
+      name: prune-old-objects-${BRANCH}
       app: meta
     spec:
       schedule: 0 0 * * *
@@ -578,14 +553,14 @@ objects:
               creationTimestamp: null
             spec:
               containers:
-                - name: prune
+                - name: prune-${BRANCH}
                   image: openshift/origin-cli
                   command:
                     - /bin/bash
                     - '-c'
                     - |
-                      oc adm prune deployments --keep-complete=3 --keep-failed=3
-                      oc adm prune builds --keep-complete=3 --keep-failed=3
+                      oc adm prune deployments --keep-complete=2 --keep-failed=3
+                      oc adm prune builds --keep-complete=2 --keep-failed=3
                   resources: {}
                   terminationMessagePath: /dev/termination-log
                   terminationMessagePolicy: File
@@ -605,9 +580,9 @@ objects:
   - kind: Service
     apiVersion: v1
     metadata:
-      name: postgres
+      name: postgres-${BRANCH}
       labels:
-        io.kompose.service: postgres
+        io.kompose.service: postgres-${BRANCH}
     spec:
       ports:
         - name: ${DB_PORT}
@@ -615,14 +590,14 @@ objects:
           port: ${{DB_PORT}}
           targetPort: ${{DB_PORT}}
       selector:
-        io.kompose.service: postgres
+        io.kompose.service: postgres-${BRANCH}
 
   - kind: Service
     apiVersion: v1
     metadata:
-      name: pygeoapi
+      name: pygeoapi-${BRANCH}
       labels:
-        io.kompose.service: pygeoapi
+        io.kompose.service: pygeoapi-${BRANCH}
     spec:
       ports:
         - name: ${PYGEOAPI_PORT}
@@ -630,24 +605,24 @@ objects:
           port: ${{PYGEOAPI_PORT}}
           targetPort: ${{PYGEOAPI_PORT}}
       selector:
-        io.kompose.service: pygeoapi
+        io.kompose.service: pygeoapi-${BRANCH}
 
 
 
   - kind: Route
     apiVersion: route.openshift.io/v1
     metadata:
-      name: pygeoapi-route
+      name: geoapi-laji-fi-${BRANCH}
       labels:
-        io.kompose.service: pygeoapi
-        app: pygeoapi
+        io.kompose.service: pygeoapi-${BRANCH}
+        app: pygeoapi-${BRANCH}
       annotations:
         openshift.io/host.generated: 'true'
     spec:
       host: "${HOST_URL}"
       to:
         kind: Service
-        name: pygeoapi
+        name: pygeoapi-${BRANCH}
         weight: 100
       port:
         targetPort: ${{PYGEOAPI_PORT}}
