@@ -27,8 +27,7 @@ db_params = {
     'user': os.getenv('POSTGRES_USER'),
     'password': os.getenv('POSTGRES_PASSWORD'),
     'host': os.getenv('POSTGRES_HOST'),
-    'port': '5432',
-    'pages': os.getenv('PAGES')
+    'port': '5432'
 }
 
 def main():
@@ -37,7 +36,8 @@ def main():
     """
 
     # Get the data sets
-    gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=True, pages=db_params['pages']) 
+    pages = pages=os.getenv('PAGES')
+    gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=True, pages=pages) 
     #gdf = load_data.get_occurrence_data(occurrence_file,  multiprocessing=True)  # If you want to test locally, use this and comment out the line above
     taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all') 
     #taxon_df = pd.read_csv('taxon-export.csv') # If you want to test locally, use this and comment out the line above

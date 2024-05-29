@@ -1,4 +1,5 @@
 import requests, os
+from dotenv import load_dotenv
 
 def get_kubernetes_info():
     with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace") as f:
@@ -36,7 +37,9 @@ def update_configmap(pygeoapi_config_out):
    
     # Update the config map
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
-    configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config"
+    load_dotenv()
+    branch = os.getenv('BRANCH')
+    configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config-{branch}"
     r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
 
     # find the pods we want to restart
