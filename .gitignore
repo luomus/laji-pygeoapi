@@ -1,6 +1,7 @@
 venv/
 .env
-rahti_files
+.env_prod
+.env_dev
 .vscode
 test/__pycache__
 src/__pycache__

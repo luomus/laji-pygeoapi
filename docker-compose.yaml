@@ -41,3 +41,4 @@ services:
         condition: service_healthy
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
+      - ./.env:/.env
