@@ -1,6 +1,5 @@
 import geopandas as gpd
 import pandas as pd
-from tqdm import tqdm
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
@@ -25,7 +24,7 @@ def get_last_page(data_url):
         return 1
         
 
-def download_page(data_url, page_no):
+def download_page(data_url, page_no, last_page):
     """
     Download data from a specific page of the API. This is in separate function to speed up multiprocessing.
 
@@ -36,8 +35,22 @@ def download_page(data_url, page_no):
     Returns:
     geopandas.GeoDataFrame: The downloaded data as a GeoDataFrame.
     """
+    # Load data
     data_url = data_url.replace('page=1', f'page={page_no}')
     gdf = gpd.read_file(data_url)
+    print(f"Progress: {page_no}/{last_page} pages retrieved")
+
+    # Clean it by selecting columns
+    gdf = gdf[['unit.linkings.taxon.id',
+               'unit.linkings.taxon.scientificName',
+               'unit.linkings.taxon.vernacularName.en',
+               'unit.linkings.taxon.vernacularName.fi',
+               'unit.unitId',
+               'gathering.displayDateTime',
+               'gathering.gatheringId',
+               'document.collectionId',
+               'document.documentId',
+               'geometry']]
     return gdf
 
 def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
@@ -63,16 +76,15 @@ def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
     if multiprocessing==True:
         # Use multiprocessing to retrieve page by page. Finally merge all pages into one geodataframe
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(download_page, data_url, page_no) for page_no in range(1, last_page + 1)]
-            progress_bar = tqdm(total=last_page)
-            for future in tqdm(concurrent.futures.as_completed(futures)):
-                progress_bar.update(1)
+            futures = [executor.submit(download_page, data_url, page_no, last_page) for page_no in range(1, last_page + 1)]
+            for future in concurrent.futures.as_completed(futures):
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
-            progress_bar.close()
+
 
     else:
         # Retrieve data page by page without multiprocessing 
-        for page_no in tqdm(range(1,last_page+1)):
+        for page_no in range(1,last_page+1):
+            print(f"Retrieving page {page_no}/{last_page}")
             next_gdf = download_page(data_url, page_no)
             gdf = pd.concat([gdf, next_gdf])
 
@@ -97,7 +109,7 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
         
     print(f"Retrieving {last_page} pages of taxon data from the API...")
     id_df = pd.DataFrame()
-    for page_no in tqdm(range(1, last_page + 1)):
+    for page_no in range(1, last_page + 1):
         next_page = taxon_id_url.replace('page=1', f'page={page_no}')
         response = requests.get(next_page)
         if response.status_code == 200:
@@ -126,6 +138,9 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
     name_df = pd.json_normalize(json_data_results)
 
     # Join both taxon data sets together
-    df = pd.merge(id_df, name_df, left_on='mainTaxon', right_on='id')
+    df = pd.merge(id_df, name_df, left_on='mainTaxon', right_on='id', suffixes=('MainTaxon', 'TaxonName'))
+
+    # Drop some columns
+    df = df.drop(['intellectualRights'], axis=1)
 
     return df

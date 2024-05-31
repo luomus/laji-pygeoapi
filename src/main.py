@@ -3,7 +3,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import pyogrio, psycopg2, geoalchemy2, os
-import process_data, edit_config, edit_db, load_data, edit_configmaps
+import process_data, edit_config, load_data, edit_configmaps, edit_db
 
 # Set options for pandas and geopandas
 pd.options.mode.copy_on_write = True
@@ -11,14 +11,14 @@ gpd.options.io_engine = "pyogrio" # Faster way to read data
 
 # URLs and file paths
 occurrence_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE'
-occurrence_file = r'10000_virva_data.json'
 taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic'
-taxon_id_file = r'test_data/taxon-export.tsv'
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 template_resource = r'template_resource.txt'
 pygeoapi_config_in = r'pygeoapi-config.yml'
 pygeoapi_config_out = r'pygeoapi-config_out.yml' #r'pygeoapi/local.config.yml' ??
 lookup_table = r'lookup_table_columns.csv'
+# taxon_id_file = r'test_data/taxon-export.tsv' # For local testing
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -36,31 +36,13 @@ def main():
     """
 
     # Get the data sets
-    pages = pages=os.getenv('PAGES')
+    pages = os.getenv('PAGES')
     gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=True, pages=pages) 
-    #gdf = load_data.get_occurrence_data(occurrence_file,  multiprocessing=True)  # If you want to test locally, use this and comment out the line above
     taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all') 
-    #taxon_df = pd.read_csv('taxon-export.csv') # If you want to test locally, use this and comment out the line above
+    #taxon_df = pd.read_csv('taxon-export.csv') # For local testing
 
     # Merge taxonomy information to the occurrence data
-    print("Joining data sets together...")
-    gdf['unit.linkings.taxon.id'] = gdf['unit.linkings.taxon.id'].str.extract('(MX\.\d+)')
-    gdf = gdf.merge(taxon_df, left_on='unit.linkings.taxon.id', right_on='id_x', how='left')
-
-    # Select only specific columns
-    gdf = gdf[['unit.linkings.taxon.id',
-               'unit.linkings.taxon.scientificName',
-               'unit.linkings.taxon.vernacularName.en',
-               'unit.linkings.taxon.vernacularName.fi',
-               'unit.unitId',
-               'gathering.displayDateTime',
-               'gathering.gatheringId',
-               'document.collectionId',
-               'document.documentId',
-               'mainTaxon',
-               'hasSubGroup',
-               'name',
-               'geometry']]
+    gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
 
     # Translate column names to comply with the darwin core standard
     gdf = process_data.column_names_to_dwc(gdf, lookup_table)
@@ -122,8 +104,9 @@ def main():
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
 
     # And finally replace configmap in openshift with the local config file
-    edit_configmaps.update_configmap(pygeoapi_config_out)
-    print("API is ready to use.")
+    edit_configmaps.update_configmap(pygeoapi_config_out) # Only when in kubernetes / openshift
+        
+    print("API is ready to use. ")
 
 if __name__ == '__main__':
     main()

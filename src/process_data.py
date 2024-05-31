@@ -1,6 +1,22 @@
 import pandas as pd
 import re
 
+def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
+    """
+    Merge taxonomy information to the occurrence data.
+
+    Parameters:
+    occurrence_gdf (geopandas.GeoDataFrame): The occurrence data GeoDataFrame.
+    taxonomy_df (pandas.DataFrame): The taxonomy data DataFrame.
+
+    Returns:
+    geopandas.GeoDataFrame: The merged GeoDataFrame.
+    """
+    print("Joining data sets together...")
+    occurrence_gdf['unit.linkings.taxon.id'] = occurrence_gdf['unit.linkings.taxon.id'].str.extract('(MX\.\d+)')
+    merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.id', right_on='idMainTaxon', how='left')
+    return merged_gdf
+
 def get_bbox(sub_gdf):
     """
     Calculates the bounding box for geometries in a GeoDataFrame.
