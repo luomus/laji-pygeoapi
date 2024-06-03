@@ -14,8 +14,13 @@ occurrence_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeS
 taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic'
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 template_resource = r'template_resource.txt'
-pygeoapi_config = r'pygeoapi-config.yml'
 lookup_table = r'lookup_table_columns.csv'
+
+if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+    pygeoapi_config = r'app/pygeoapi-config.yml'
+else:
+    pygeoapi_config = r'pygeoapi-config.yml'
+
 # taxon_id_file = r'test_data/taxon-export.tsv' # For local testing
 
 
@@ -105,7 +110,7 @@ def main():
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
         edit_configmaps.update_configmap(pygeoapi_config) 
-        
+
     print("API is ready to use. ")
 
 if __name__ == '__main__':
