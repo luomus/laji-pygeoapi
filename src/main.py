@@ -14,8 +14,7 @@ occurrence_url = r'https://laji.fi/api/warehouse/query/unit/list?administrativeS
 taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic'
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 template_resource = r'template_resource.txt'
-pygeoapi_config_in = r'pygeoapi-config.yml'
-pygeoapi_config_out = r'pygeoapi-config_out.yml' #r'pygeoapi/local.config.yml' ??
+pygeoapi_config = r'pygeoapi-config.yml'
 lookup_table = r'lookup_table_columns.csv'
 # taxon_id_file = r'test_data/taxon-export.tsv' # For local testing
 
@@ -34,7 +33,6 @@ def main():
     """
     Main function to do everything. Loads and process data, insert it to database and prepare API configuration.
     """
-
     # Get the data sets
     pages = os.getenv('PAGES')
     multiprocessing = os.getenv('MULTIPROCESSING')
@@ -57,7 +55,7 @@ def main():
 
 
     # Clear config file and database to make space for new data sets. 
-    edit_config.clear_collections_from_config(pygeoapi_config_in, pygeoapi_config_out)
+    edit_config.clear_collections_from_config(pygeoapi_config)
     edit_db.drop_all_tables(engine)
 
     tot_rows = 0 
@@ -93,7 +91,7 @@ def main():
                 "<placeholder_db_name>": os.getenv('POSTGRES_DB')
             }
             # Add database information into the config file
-            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
+            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
 
             # Add data to the database
             sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
@@ -104,8 +102,9 @@ def main():
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
 
-    # And finally replace configmap in openshift with the local config file
-    edit_configmaps.update_configmap(pygeoapi_config_out) # Only when in kubernetes / openshift
+    # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
+    if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+        edit_configmaps.update_configmap(pygeoapi_config) 
         
     print("API is ready to use. ")
 

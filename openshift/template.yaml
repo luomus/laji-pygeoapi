@@ -43,6 +43,9 @@ parameters:
   - name: MULTIPROCESSING
     required: true
     value: false
+  - name: RUNNING_IN_OPENSHIFT
+    required: true
+    value: True
     
 metadata:
   name: template
@@ -490,7 +493,7 @@ objects:
             metadata:
               creationTimestamp: null
             spec:
-              restartPolicy: OnFailure
+              restartPolicy: Never
               serviceAccountName: configmap-update-sa-${BRANCH}
               schedulerName: default-scheduler
               terminationGracePeriodSeconds: 30
@@ -522,6 +525,8 @@ objects:
                       value: ${BRANCH}
                     - name: MULTIPROCESSING
                       value: ${MULTIPROCESSING}
+                    - name: RUNNING_IN_OPENSHIFT
+                      value: ${RUNNING_IN_OPENSHIFT}
                   resources: {}
                   volumeMounts:
                     - name: pygeoapi-config-${BRANCH}
