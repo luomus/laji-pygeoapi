@@ -84,8 +84,7 @@ def get_occurrence_data(data_url, multiprocessing, pages="all"):
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(1,last_page+1):
-            print(f"Retrieving page {page_no}/{last_page}")
-            next_gdf = download_page(data_url, page_no)
+            next_gdf = download_page(data_url, page_no, last_page)
             gdf = pd.concat([gdf, next_gdf])
 
     return gdf
