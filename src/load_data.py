@@ -53,7 +53,7 @@ def download_page(data_url, page_no, last_page):
                'geometry']]
     return gdf
 
-def get_occurrence_data(data_url, multiprocessing=True, pages="all"):
+def get_occurrence_data(data_url, multiprocessing, pages="all"):
     """
     Retrieve occurrence data from the API.
 

@@ -37,7 +37,8 @@ def main():
 
     # Get the data sets
     pages = os.getenv('PAGES')
-    gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=True, pages=pages) 
+    multiprocessing = os.getenv('MULTIPROCESSING')
+    gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, pages=pages) 
     taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all') 
     #taxon_df = pd.read_csv('taxon-export.csv') # For local testing
 

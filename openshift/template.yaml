@@ -8,8 +8,8 @@ parameters:
     required: true
     value: laji-pygeoapi
   - name: BRANCH
-    required:
-    value: main
+    required: true
+    value: dev
   - name: POSTGRES_PASSWORD
     required: true
   - name: POSTGRES_USER
@@ -40,6 +40,9 @@ parameters:
     description: Defines the number of pages to download from the laji.fi occurrence API. Default is "all" but for testing purposes, use smaller number, for e.g. 2
     required: true
     value: "3"
+  - name: MULTIPROCESSING
+    required: true
+    value: false
     
 metadata:
   name: template
@@ -517,6 +520,8 @@ objects:
                       value: ${PAGES}
                     - name: BRANCH
                       value: ${BRANCH}
+                    - name: MULTIPROCESSING
+                      value: ${MULTIPROCESSING}
                   resources: {}
                   volumeMounts:
                     - name: pygeoapi-config-${BRANCH}
