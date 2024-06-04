@@ -15,6 +15,7 @@ taxon_id_url= r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selec
 taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
+pygeoapi_config_out = r'pygeoapi-config_out.yml'
 lookup_table = r'lookup_table_columns.csv'
 # taxon_id_file = r'test_data/taxon-export.tsv' # For local testing
 
@@ -55,7 +56,7 @@ def main():
 
 
     # Clear config file and database to make space for new data sets. 
-    edit_config.clear_collections_from_config(pygeoapi_config)
+    edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
     edit_db.drop_all_tables(engine)
 
     tot_rows = 0 
@@ -91,7 +92,7 @@ def main():
                 "<placeholder_db_name>": os.getenv('POSTGRES_DB')
             }
             # Add database information into the config file
-            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config)
+            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
 
             # Add data to the database
             sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)

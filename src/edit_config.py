@@ -1,4 +1,4 @@
-def clear_collections_from_config(pygeoapi_config):
+def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     """
     Deletes collection information from the pygeoapi configuration file.
 
@@ -21,13 +21,13 @@ def clear_collections_from_config(pygeoapi_config):
         lines = lines[:keyword_index+1]
 
         # Write the modified contents back to the file
-        with open(pygeoapi_config, 'w') as file:
+        with open(pygeoapi_config_out, 'w') as file:
             file.writelines(lines)
     else:
         print("Warning: Didn't remove any collections as the pygeoapi configuration file does not have resources section")
 
 
-def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
+def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out):
     """
     Adds information of the PostGIS tables to the pygeoapi configuration file. See https://docs.pygeoapi.io/en/latest/configuration.html#resources
 
@@ -46,5 +46,5 @@ def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config):
         template = template.replace(key, value)
 
     # Append the filled template to the output config file
-    with open(pygeoapi_config, "a") as file:
+    with open(pygeoapi_config_out, "a") as file:
         file.write(template)
