@@ -46,6 +46,9 @@ parameters:
   - name: RUNNING_IN_OPENSHIFT
     required: true
     value: True
+  - name: ACCESS_TOKEN
+    description: API Access token for the source API. See https://api.laji.fi/explorer/.
+    required: True
     
 metadata:
   name: template
@@ -113,6 +116,7 @@ objects:
             gzip: false
             languages:
                 - en-US
+                - fi-FI
             # cors: true
             pretty_print: true
             limit: 10
@@ -131,13 +135,19 @@ objects:
             identification:
                 title:
                     en: FinBIF occurrence data OGC API
+                    fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
                 description:
                     en: This portal allows you to query and fetch occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Currently, this portal includes data specified by virva-authority filters. 
+                    fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja.
                 keywords:
                     en:
                         - occurrence
                         - geospatial data
                         - api
+                    fi:
+                        - lajitieto
+                        - paikkatieto
+                        - rajapinta
                 keywords_type: theme
                 terms_of_service: https://creativecommons.org/licenses/by/4.0/
                 url: https://example.org
@@ -149,17 +159,21 @@ objects:
                 url: https://laji.fi/
             contact:
                 name: Alpo, Turunen
-                position: Spatial Data Specialist
+                position: 
+                    en: Spatial Data Specialist
+                    fi: Paikkatietoasiantuntija
                 address: Pohjoinen Rautatiekatu 13 
                 city: Helsinki
                 stateorprovince: Uusimaa
                 postalcode: FI-00100
-                country: Finland
+                country: 
+                    en: Finland
+                    fi: Suomi
                 phone: +358 29 412 8819
                 email: alpo.turunen@helsinki.fi
-                url: https://laji.fi/
-                hours: Mo-Fr 08:00-17:00
-                instructions: During hours of service. Off on weekends.
+                url: 
+                    en: https://laji.fi/en
+                    fi: https://laji.fi/
                 role: pointOfContact
         resources:
             Birds:

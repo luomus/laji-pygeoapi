@@ -35,12 +35,13 @@ oc process -f template.yaml -p |
  POSTGRES_PASSWORD=<encoded yourpostgrespassword>
  POSTGRES_USER=<encoded yourpostgresuser>
  POSTGRES_DB=<encoded yourpostgresdb>
- HOST_URL="yourhosturl" 
+ HOST_URL=<yourhosturl>
+ ACCESS_TOKEN=<yourapikey>
  > processed-template.yaml
 ```
 For example:
 ```
-oc process -f template.yaml -p POSTGRES_PASSWORD=YWRtaW4xMjM= POSTGRES_USER=cG9zdGdyZXM= POSTGRES_DB=bXlfZ2Vvc3BhdGlhbF9kYg== HOST_URL="pygeoapi-route-laji-pygeoapi-main.2.rahtiapp.fi" > processed-template.yaml
+oc process -f template.yaml -p POSTGRES_PASSWORD=YWRtaW4xMjM= POSTGRES_USER=cG9zdGdyZXM= POSTGRES_DB=bXlfZ2Vvc3BhdGlhbF9kYg== HOST_URL="pygeoapi-route-laji-pygeoapi-main.2.rahtiapp.fi" ACCESS_TOKEN=ftmCFaEjHNgCUWgW8rPriwDQOxuUr > processed-template.yaml
 ```
 
 

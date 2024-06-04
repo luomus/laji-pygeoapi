@@ -26,6 +26,7 @@ PAGES=2
 BRANCH=dev
 MULTIPROCESSING=False
 RUNNING_IN_OPENSHIFT=False
+ACCESS_TOKEN=loremipsum12456789
 ```
 Where
 | Variable name | Definition | Default value |
@@ -34,10 +35,11 @@ Where
 | POSTGRES_USER| The database user|postgres |
 | POSTGRES_PASSWORD| The password associated with the default user | *not set*|
 | POSTGRES_HOST| The host running the database| postgres |
-| PAGES| Number of pages to download from source APIs. Either an integer or *"all"*| 10|
+| PAGES| Number of pages to download from the source APIs. Either an integer or *"all"*| 10|
 | BRANCH| The GitHub branch|dev|
 | MULTIPROCESSING| Enables (*"True"*) or disables (*"False"*) multiprocessing when downloading data from the source APIs| False               |
 | RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in a Docker.| False |
+| ACCESS_TOKEN| API Access token needed for using the source APIs. See instruction: https://api.laji.fi/explorer/ | loremipsum12456789 |
 
 
 
