@@ -36,7 +36,7 @@ oc process -f template.yaml -p |
  POSTGRES_USER=<encoded yourpostgresuser>
  POSTGRES_DB=<encoded yourpostgresdb>
  HOST_URL=<yourhosturl>
- ACCESS_TOKEN=<yourapikey>
+ ACCESS_TOKEN=<yourapitoken>
  > processed-template.yaml
 ```
 For example:
