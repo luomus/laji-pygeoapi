@@ -17,30 +17,17 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.id', right_on='idMainTaxon', how='left')
     return merged_gdf
 
-def get_bbox(sub_gdf):
-    """
-    Calculates the bounding box for geometries in a GeoDataFrame.
-
-    Parameters:
-    sub_gdf (geopandas.GeoDataFrame): The GeoDataFrame containing geometries.
-
-    Returns:
-    list: A list containing the minimum and maximum coordinates of the bounding box.
-    """
-    minx, miny, maxx, maxy = sub_gdf.geometry.total_bounds
-    return [minx, miny, maxx, maxy]
-
-def get_min_and_max_dates(sub_gdf):
+def convert_dates(gdf):
     """
     Extracts and formats event dates from a GeoDataFrame.
 
     Parameters:
-    sub_gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay.
+    gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay.
 
     Returns:
-    tuple: A tuple containing the minimum and maximum event dates in RFC3339 format, and the dates as pandas Series.
+    tuple: A tuple containing the dates as pandas Series.
     """
-    dates = sub_gdf['eventDateTimeDisplay']
+    dates = gdf['eventDateTimeDisplay']
 
     # Define the regex patterns to find days and times
     date_regex = '[0-9]{4}-[0-9]{2}-[0-9]{2}'
@@ -68,18 +55,34 @@ def get_min_and_max_dates(sub_gdf):
             dates.iloc[i] = None
             print(f"{date} is not a valid date format (e.g. YYYY-MM-DD or YYYY-MM-DD [HH-MM])")
 
+
     # Convert dates to datetime format
     dates = pd.to_datetime(dates)
+    return dates
+
+def get_min_max_dates(gdf):
+    """
+    Finds the minimum and maximum event dates and returns them in RFC3339 format
+
+    Parameters:
+    gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay.
+
+    Returns:
+    first_date: the first datestamp of the GeoDataframe in RFC3399 format
+    end_date: the last datestamp of the Geodataframe in RFC3399 format
+    """
     # Filter out NaT (Not a Time) values
+    dates = gdf['eventDateTimeDisplay']
+    dates = pd.to_datetime(dates)
     dates_without_na = dates.dropna()
 
     # Get the minimum and maximum dates in RFC3339 format
     if len(dates_without_na) > 0:
-        start_date = str(dates_without_na.min().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        first_date = str(dates_without_na.min().strftime('%Y-%m-%dT%H:%M:%SZ'))
         end_date = str(dates_without_na.max().strftime('%Y-%m-%dT%H:%M:%SZ'))
-        return start_date, end_date, dates
+        return first_date, end_date
     else:
-        return None, None, dates    
+        return None, None
     
 def column_names_to_dwc(gdf, lookup_table):
     """

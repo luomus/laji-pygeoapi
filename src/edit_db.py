@@ -4,25 +4,30 @@ import geopandas as gpd
 import pandas as pd
 import os
 from dotenv import load_dotenv
+from process_data import get_bbox, get_min_max_dates
 
-# Load environment variables from .env file
-load_dotenv()
-db_params = {
-    'dbname': os.getenv('POSTGRES_DB'),
-    'user': os.getenv('POSTGRES_USER'),
-    'password': os.getenv('POSTGRES_PASSWORD'),
-    'host': os.getenv('POSTGRES_HOST'),
-    'port': '5432',
-    'pages': os.getenv('PAGES')
-}
 
-# Connect to the PostGIS database
-engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
-with engine.connect() as connection:
-    connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
-    connection.commit()
+def connect_to_db():
+    # Load environment variables from .env file
+    load_dotenv()
+    db_params = {
+        'dbname': os.getenv('POSTGRES_DB'),
+        'user': os.getenv('POSTGRES_USER'),
+        'password': os.getenv('POSTGRES_PASSWORD'),
+        'host': os.getenv('POSTGRES_HOST'),
+        'port': '5432'
+    }
 
-def drop_all_tables(engine=engine):
+    # Connect to the PostGIS database
+    print("Creating database connection...")
+    engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
+    with engine.connect() as connection:
+        connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
+        connection.commit()
+
+    return engine
+
+def drop_all_tables(engine):
     """
     Drops all tables in the database except default PostGIS tables.
 
@@ -95,36 +100,41 @@ def get_all_tables(engine):
     for table in tables:
         print(table)
 
-
-def main():
+def get_table_bbox(engine, table_name):
     """
-    Main function for managing the PostGIS database.
-    Provides a user interface to list tables or drop all tables in the database.
-    Not used normally
+    Retrieve the bounding box (bbox) of all features in a PostGIS table.
+
+    Parameters:
+    engine (sqlalchemy.engine.Engine): SQLAlchemy engine connected to the PostGIS database.
+    table_name (str): Name of the table.
+
+    Returns:
+    tuple: Bounding box coordinates in the form [min_x, min_y, max_x, max_y].
     """
-    while True:
-        # Prompt user for input
-        choice = input("\nEnter the number of the function you want to use:\n"
-                       "1. List all tables\n"
-                       "2. Drop all tables\n"
-                       "Enter 'q' to quit\n")
+    sql = text(f'SELECT ST_Extent("geometry") FROM "{table_name}"')
+    with engine.connect() as connection:
+        result = connection.execute(sql)
+        extent = result.scalar()
 
-        # Check if user wants to quit
-        if choice.lower() == 'q':
-            print("Exiting...")
-            break
+    if extent:
+        extent = extent.replace('BOX(', '').replace(')', '')
+        min_x, min_y, max_x, max_y = map(float, extent.split(',')[0].split(' ') + extent.split(',')[1].split(' '))
+        return [min_x, min_y, max_x, max_y]
+    else:
+        return None
 
-        # Call the corresponding function based on user's choice
-        if choice == '1':
-            get_all_tables(engine)
-        elif choice == '2':
-            drop_all_tables(engine)
-        else:
-            print("Invalid choice. Please enter a valid number and press Enter.")
+def get_table_dates(engine, table_name):
+    """
+    Retrieve the earliest and latest event dates from a specified table.
 
-    connection.close()
-    engine.dispose()
-    print("Done.")
+    Parameters:
+    engine (sqlalchemy.engine.Engine): The SQLAlchemy engine connected to the database.
+    table_name (str): The name of the table to query.
 
-if __name__ == "__main__":
-    main()
+    Returns:
+    tuple: A tuple containing the minimum and maximum dates.
+    """
+    sql = f'SELECT "eventDateTimeDisplay", "geometry" FROM "{table_name}"'
+    gdf = gpd.read_postgis(sql, engine, geom_col='geometry')
+    min_date, max_date = get_min_max_dates(gdf)
+    return min_date, max_date
