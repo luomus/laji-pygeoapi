@@ -8,6 +8,12 @@ from process_data import get_min_max_dates
 
 
 def connect_to_db():
+    """
+    Creates connection to the PostGIS database using credentials store in .env file or parameters/secrets in openshift
+
+    Returns:
+    engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine for database connection
+    """
     # Load environment variables from .env file
     load_dotenv()
     db_params = {
