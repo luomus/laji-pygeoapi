@@ -2,7 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text, inspect
-import pyogrio, psycopg2, geoalchemy2, os
+import psycopg2, geoalchemy2, os
 import process_data, edit_config, load_data, edit_configmaps, edit_db #, compute_variables
 from psycopg2 import sql
 import math
