@@ -3,37 +3,54 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text, inspect
 import pyogrio, psycopg2, geoalchemy2, os
-import process_data, edit_config, load_data, edit_configmaps, edit_db
+import process_data, edit_config, load_data, edit_configmaps, edit_db, compute_variables
 from psycopg2 import sql
+import math
+import numpy as np
 
 # Set options for pandas and geopandas
 pd.options.mode.copy_on_write = True
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
-
 # URLs and file paths
 load_dotenv()
-API_access_token =  os.getenv('ACCESS_TOKEN')
-taxon_id_url= f'https://api.laji.fi/v0/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic&access_token={API_access_token}'
-taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&access_token={API_access_token}'
-occurrence_url = f'https://api.laji.fi/v0/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE&access_token={API_access_token}'
+access_token = os.getenv('ACCESS_TOKEN')
+taxon_id_url= f'https://api.laji.fi/v0/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic&access_token={access_token}'
+taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&access_token={access_token}'
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 lookup_table = r'lookup_table_columns.csv'
-# taxon_id_file = r'test_data/taxon-export.tsv' # For local testing
 
+# Create an URL for Virva filtered occurrence data
+base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
+selected_fields = "unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.taxonomicOrder,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
+administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
+red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
+country_id = "ML.206"
+time_range = "1990-01-01/"
+aggregate_by = "gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon"
+only_count = "false"
+individual_count_min = "0"
+coordinate_accuracy_max = "1000"
+page = "1"
+page_size = "10000"
+taxon_admin_filters_operator = "OR"
+collection_and_record_quality = "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;"
+geo_json = "true"
+feature_type = "ORIGINAL_FEATURE"
+occurrence_url = f"{base_url}selected={selected_fields}&administrativeStatusId={administrative_status_ids}&redListStatusId={red_list_status_ids}&countryId={country_id}&time={time_range}&aggregateBy={aggregate_by}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
+
+# Pygeoapi output file
 if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
     pygeoapi_config_out = r'pygeoapi-config_out.yml'
 else:
     pygeoapi_config_out = r'pygeoapi-config.yml'
 
-
-
 def main():
     """
     Main function to load, process data, insert it into the database, and prepare the API configuration.
     """
-    print("Start")
+    #print(f"URL: n\ {occurrence_url}")
 
     tot_rows = 0 
     no_family_name = gpd.GeoDataFrame()
@@ -48,6 +65,7 @@ def main():
     # Get taxon data
     taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all')
     #taxon_df = pd.read_csv('taxon-export.csv') # For local testing
+    #taxon_df = taxon_df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','id_y','hasSubGroup'], axis=1)
 
 
     table_names = []
@@ -66,61 +84,63 @@ def main():
 
         # Get 10 pages of occurrence data
         gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
+        #gdf = load_data.get_occurrence_data('10000_virva_data.json', multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
 
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
 
-        # Translate column names to comply with the Darwin Core standard
-        gdf = process_data.column_names_to_dwc(gdf, lookup_table)
+        # Remove some columns
+        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva') 
+
+        #gdf = compute_variables.compute_coordinate_uncertainty(gdf)
 
         # Extract entries without family names
-        no_family_name = gdf[gdf['InformalGroupName'].isnull()]
+        no_family_name = gdf[gdf['elioryhma'].isnull()]
 
-        print("Looping over all species classes...")
+        print("Iterating over species classes...")
 
         # Process each unique species group (e.g. Birds, Mammals etc.)
-        for group_name in gdf['InformalGroupName'].unique():
-            sub_gdf = gdf[gdf['InformalGroupName'] == group_name]
+        for group_name in gdf['elioryhma'].unique():
+            sub_gdf = gdf[gdf['elioryhma'] == group_name]
 
             # Get cleaned table name
             table_name = process_data.clean_table_name(group_name)
-            table_names.append(table_name)
+            if table_name != 'nan' and table_name != 'unclassified':
+                table_names.append(table_name)
 
             # Skip nans and unclassified
-            if table_name != 'unclassified' and table_name != 'nan':
+            if isinstance(table_name, str) and table_name != 'unclassified':
 
                 # Create evenDateTimeDisplay column and local ID
-                sub_gdf['eventDateTimeDisplay'] = process_data.convert_dates(sub_gdf).astype(str)
-                sub_gdf['localID'] = sub_gdf.index
+                sub_gdf['Aika'] = process_data.convert_dates(sub_gdf['Keruu_aloitus_pvm']).astype(str)
+                sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
                 n_rows = len(sub_gdf)
                 tot_rows += n_rows
 
-                # Add data to the database
+                # Translate column names
                 sub_gdf.rename_geometry("geom")
-                sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
+                sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
                 
                 print(f"In total {n_rows} rows of {table_name} inserted to the database")
 
-
     # Update pygeoapi configuration
     for table_name in table_names:
-        if table_name != 'unclassified' and table_name != 'nan':
-            bbox = edit_db.get_table_bbox(engine, table_name)
-            min_date, max_date = edit_db.get_table_dates(engine, table_name)
+        bbox = edit_db.get_table_bbox(engine, table_name)
+        min_date, max_date = edit_db.get_table_dates(engine, table_name)
 
-            # Create parameters dictionary to fill the template for pygeoapi config file
-            template_params = {
-                "<placeholder_table_name>": table_name,
-                "<placeholder_bbox>": str(bbox),
-                "<placeholder_min_date>": min_date,
-                "<placeholder_max_date>": max_date,
-                "<placeholder_postgres_host>": os.getenv('POSTGRES_HOST'),
-                "<placeholder_postgres_password>": os.getenv('POSTGRES_PASSWORD'),
-                "<placeholder_postgres_user>": os.getenv('POSTGRES_USER'),
-                "<placeholder_db_name>": os.getenv('POSTGRES_DB')
-            }
-            # Add database information into the config file
-            edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
+        # Create parameters dictionary to fill the template for pygeoapi config file
+        template_params = {
+            "<placeholder_table_name>": table_name,
+            "<placeholder_bbox>": str(bbox),
+            "<placeholder_min_date>": min_date,
+            "<placeholder_max_date>": max_date,
+            "<placeholder_postgres_host>": os.getenv('POSTGRES_HOST'),
+            "<placeholder_postgres_password>": os.getenv('POSTGRES_PASSWORD'),
+            "<placeholder_postgres_user>": os.getenv('POSTGRES_USER'),
+            "<placeholder_db_name>": os.getenv('POSTGRES_DB')
+        }
+        # Add database information into the config file
+        edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
 
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")

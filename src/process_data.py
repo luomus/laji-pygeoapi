@@ -17,17 +17,16 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.id', right_on='idMainTaxon', how='left')
     return merged_gdf
 
-def convert_dates(gdf):
+def convert_dates(dates):
     """
     Extracts and formats event dates from a GeoDataFrame.
 
     Parameters:
-    gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay.
+    dates (Pandas Dataframe): The (Geo)Series containing date information.
 
     Returns:
     tuple: A tuple containing the dates as pandas Series.
     """
-    dates = gdf['eventDateTimeDisplay']
 
     # Define the regex patterns to find days and times
     date_regex = '[0-9]{4}-[0-9]{2}-[0-9]{2}'
@@ -37,6 +36,7 @@ def convert_dates(gdf):
     # Loop over dates and translate into the correct form
     for i, date in enumerate(dates):
         try:
+            date = str(date)
             day = re.search(date_regex, date)
             time1 = re.search(time_regex, date)
             time2 = re.search(time2_regex, date)
@@ -65,14 +65,14 @@ def get_min_max_dates(gdf):
     Finds the minimum and maximum event dates and returns them in RFC3339 format
 
     Parameters:
-    gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay.
+    gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay (or Aika).
 
     Returns:
     first_date: the first datestamp of the GeoDataframe in RFC3399 format
     end_date: the last datestamp of the Geodataframe in RFC3399 format
     """
     # Filter out NaT (Not a Time) values
-    dates = gdf['eventDateTimeDisplay']
+    dates = gdf['Aika']
     dates = pd.to_datetime(dates)
     dates_without_na = dates.dropna()
 
@@ -84,13 +84,46 @@ def get_min_max_dates(gdf):
     else:
         return None, None
     
-def column_names_to_dwc(gdf, lookup_table):
+def combine_similar_columns(gdf):
+    """
+    Finds similar columns (e.g. keyword[0], keyword[1], keyword[2]) and combines them
+
+    Parameters:
+    gdf (geopandas.GeoDataFrame): The GeoDataFrame similar columns with their names ending with [n]
+
+    Returns:
+    gdf (geopandas.GeoDataFrame): The geodataframe with combined columns
+    """
+    # Use regex to find columns with a pattern ending with [n]
+    pattern = re.compile(r'^(.*)\[\d+\]$')
+    
+    # Dictionary to store the groups of columns
+    columns_dict = {}
+
+    for col in gdf.columns:
+        match = pattern.match(col)
+        if match:
+            base_name = match.group(1)
+            if base_name not in columns_dict:
+                columns_dict[base_name] = []
+            columns_dict[base_name].append(col)
+    
+    # Combine columns in each group
+    for base_name, cols in columns_dict.items():
+        gdf[base_name] = gdf[cols].apply(lambda row: ', '.join(row.dropna()), axis=1)
+        gdf.drop(columns=cols, inplace=True)
+    
+    return gdf
+
+
+def translate_column_names(gdf, lookup_table, style='virva'):
     """
     Maps column names in a GeoDataFrame to Darwin Core names using a lookup table.
 
     Parameters:
     gdf (geopandas.GeoDataFrame): The GeoDataFrame to be mapped.
     lookup_table (str): The path to the CSV lookup table.
+    style (str): Format to column names tranlate to. Options: 'translated_var', 'dwc' and 'virva'. Defaults to 'virva'.
 
     Returns:
     geopandas.GeoDataFrame: The GeoDataFrame with columns renamed according to the lookup table.
@@ -98,13 +131,38 @@ def column_names_to_dwc(gdf, lookup_table):
     # Load the lookup table CSV into a DataFrame
     lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
 
-    # Map all column names according to the Darwin Core names in the lookup table
     column_mapping = {}
+    columns_to_remove = []
+
+    # Iterate through the lookup table
     for _, row in lookup_df.iterrows():
-        column_mapping[row['finbif_api_var']] = row['dwc']
+        if len(str(row[style])) > 3:
+            # Map columns if the given format exists
+            column_mapping[row['finbif_api_var']] = row[style]
+        else:
+            # If there is nothing to map, add column to removable list
+            columns_to_remove.append(row['finbif_api_var'])
+
+    # Identify additional columns to drop (nan columns, columns with brackets)
+    #for col in gdf.columns:
+    #    if  '[' in str(col) and ']' in str(col):
+            # TOOD: Combine all similar fields with brakcets 
+
+
+    #    if (isinstance(col, float) or isinstance(col, int) or 
+    #        (isinstance(col, str) and col.lower() == 'nan') or
+    #        ('[' in str(col) and ']' in str(col)) or 
+    #        (len(str(col)) < 4)):
+    #        columns_to_remove.append(col)
+
+    # Remove columns from gdf that do not have a corresponding variable in lookup_df
+    gdf.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+
+    gdf = combine_similar_columns(gdf)
 
     # Rename columns based on the mapping
     gdf.rename(columns=column_mapping, inplace=True)
+
     return gdf
 
 def clean_table_name(group_name):

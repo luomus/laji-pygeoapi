@@ -23,12 +23,12 @@
                 dbname: <placeholder_db_name>
                 user: <placeholder_postgres_user>
                 password: <placeholder_postgres_password>
-            id_field: localID
-            uri: occurrenceID
+            id_field: Paikallinen_tunniste
+            uri: Havainnon_tunniste
             table: <placeholder_table_name>
             geom_field: geometry
-            time_field: datetimestamp
-            title_field: scientificNameInterpreted
+            time_field: Aika
+            title_field: Tulkittu_tieteellinen_nimi
             crs:
                 - https://www.opengis.net/def/crs/EPSG/0/4326
                 - https://www.opengis.net/def/crs/EPSG/0/3067

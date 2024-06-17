@@ -40,18 +40,7 @@ def download_page(data_url, page_no, endpage):
     data_url = data_url.replace('page=1', f'page={page_no}')
     gdf = gpd.read_file(data_url)
     print(f"Progress: {page_no}/{endpage} pages retrieved")
-
-    # Clean it by selecting columns
-    gdf = gdf[['unit.linkings.taxon.id',
-               'unit.linkings.taxon.scientificName',
-               'unit.linkings.taxon.vernacularName.en',
-               'unit.linkings.taxon.vernacularName.fi',
-               'unit.unitId',
-               'gathering.displayDateTime',
-               'gathering.gatheringId',
-               'document.collectionId',
-               'document.documentId',
-               'geometry']]
+    
     return gdf
 
 def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="all"):
@@ -142,6 +131,6 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
     df = pd.merge(id_df, name_df, left_on='mainTaxon', right_on='id', suffixes=('MainTaxon', 'TaxonName'))
 
     # Drop some columns
-    df = df.drop(['intellectualRights'], axis=1)
+    df = df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','hasSubGroup'], axis=1)
 
     return df

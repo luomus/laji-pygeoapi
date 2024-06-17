@@ -18,5 +18,8 @@ COPY src/process_data.py .
 COPY src/edit_config.py .
 COPY src/load_data.py .
 COPY src/edit_configmaps.py .
+COPY src/compute_variables.py .
+COPY test_data/taxon-export.csv .
+COPY test_data/10000_virva_data.json .
 
 ENTRYPOINT ["python", "main.py"]

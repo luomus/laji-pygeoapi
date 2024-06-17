@@ -42,10 +42,10 @@ parameters:
     value: "3"
   - name: MULTIPROCESSING
     required: true
-    value: false
+    value: "False"
   - name: RUNNING_IN_OPENSHIFT
     required: true
-    value: True
+    value: "True"
   - name: ACCESS_TOKEN
     description: API Access token for the source API. See https://api.laji.fi/explorer/.
     required: True
@@ -497,7 +497,7 @@ objects:
         app: python-scripts-${BRANCH}
     spec:
       schedule: "*/1 * * * *"
-      concurrencyPolicy: Forbid
+      concurrencyPolicy: Allow
       suspend: false
       jobTemplate:
         metadata:
