@@ -1,6 +1,6 @@
 GeoAlchemy2==0.14.7
 geopandas==0.14.3
-numpy==2.0.0
+numpy<2.0.0
 pandas==2.2.2
 psycopg2==2.9.9
 pyogrio==0.7.2

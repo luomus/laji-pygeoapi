@@ -3,10 +3,10 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text, inspect
 import pyogrio, psycopg2, geoalchemy2, os
-import process_data, edit_config, load_data, edit_configmaps, edit_db, compute_variables
+import process_data, edit_config, load_data, edit_configmaps, edit_db #, compute_variables
 from psycopg2 import sql
 import math
-import numpy as np
+#import numpy as np
 
 # Set options for pandas and geopandas
 pd.options.mode.copy_on_write = True
