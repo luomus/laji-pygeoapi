@@ -1,11 +1,8 @@
 import geopandas as gpd
 import pandas as pd
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text, inspect
-import psycopg2, geoalchemy2, os
-import process_data, edit_config, load_data, edit_configmaps, edit_db #, compute_variables
-from psycopg2 import sql
-import math
+import os
+import process_data, edit_config, load_data, edit_configmaps, edit_db, compute_variables
 #import numpy as np
 
 # Set options for pandas and geopandas
@@ -41,7 +38,7 @@ feature_type = "ORIGINAL_FEATURE"
 occurrence_url = f"{base_url}selected={selected_fields}&administrativeStatusId={administrative_status_ids}&redListStatusId={red_list_status_ids}&countryId={country_id}&time={time_range}&aggregateBy={aggregate_by}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
 
 # Pygeoapi output file
-if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+if os.getenv('RUNNING_IN_OPENSHIFT') == True:
     pygeoapi_config_out = r'pygeoapi-config_out.yml'
 else:
     pygeoapi_config_out = r'pygeoapi-config.yml'
@@ -92,7 +89,7 @@ def main():
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva') 
 
-        #gdf = compute_variables.compute_coordinate_uncertainty(gdf)
+        gdf = compute_variables.compute_coordinate_uncertainty(gdf)
 
         # Extract entries without family names
         no_family_name = gdf[gdf['elioryhma'].isnull()]
@@ -146,7 +143,7 @@ def main():
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
-    if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+    if os.getenv('RUNNING_IN_OPENSHIFT') == True:
         edit_configmaps.update_configmap(pygeoapi_config) 
         
     print("API is ready to use. ")

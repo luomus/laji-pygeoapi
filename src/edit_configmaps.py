@@ -56,3 +56,5 @@ def update_configmap(pygeoapi_config_out):
         pod_url = f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}"
         a = requests.delete(pod_url, headers=headers, verify=ca_cert)
         a.raise_for_status()
+
+    print("Pods updated")

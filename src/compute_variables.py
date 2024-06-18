@@ -1,31 +1,50 @@
 import pandas as pd
 import numpy as np
 
-def compute_coordinate_uncertainty(fb_occurrence_df):
-    # Assuming the attributes are stored in a dictionary attached to the DataFrame
-    dwc = fb_occurrence_df.attrs.get("dwc", True)
-    vtype = col_type_string(dwc)
+def compute_coordinate_uncertainty(gdf):
+    # computed_coordinate_uncertainty
+    return gdf
 
-    vnms = sysdata("var_names")
+def compute_var_from_id_threatened_status(gdf):
+    #computed_var_from_id_threatened_status
+    return gdf
 
-    uncert_var = vnms.get(("computed_var_coordinates_uncertainty", vtype))
+def compute_var_red_list_status(gdf):
+    #computed_var_red_list_status
+    return gdf
 
-    add = fb_occurrence_df.attrs.get("include_new_cols", True)
+def compute_var_occurrence_status(gdf):
+    #computed_var_occurrence_status
+    return gdf
 
-    if add and uncert_var in fb_occurrence_df.columns:
-        interp_var = vnms.get(("gathering.interpretations.coordinateAccuracy", vtype))
-        interp = fb_occurrence_df[interp_var]
+def compute_var_from_id_regulatory_status(gdf):
+    #computed_var_from_id_regulatory_status
+    return gdf
 
-        source_var = vnms.get(("document.sourceId", vtype))
-        source = fb_occurrence_df[source_var]
+def compute_var_from_id_primary_habitat(gdf):
+    #computed_var_from_id_primary_habitat
+    return gdf
 
-        na = (source == "http://tun.fi/KE.3") & (interp == 1)
+def compute_var_from_id_municipality(gdf):
+    #computed_var_from_id_municipality
+    return gdf
 
-        coord_uncert = np.where(na, np.nan, interp)
+def compute_var_from_id_collection(gdf):
+    #computedd_var_from_id_collection
+    return gdf
 
-        fb_occurrence_df[uncert_var] = pd.to_numeric(coord_uncert, errors='coerce')
+def compute_var_from_id_atlas_code(gdf):
+    #computed_var_from_id_atlas_code
+    return gdf
 
-    return fb_occurrence_df
+def compute_var_from_id_municipality(gdf):
+    #computed_var_from_id_municipality
+    return gdf
+
+def compute_var_from_id_atlas_class(gdf):
+    #computed_var_from_id_atlas_class
+    return gdf
+
 
 # Helper functions to mimic the R code behavior
 def col_type_string(dwc):

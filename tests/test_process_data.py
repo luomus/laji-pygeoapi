@@ -6,7 +6,7 @@ import sys
 
 sys.path.append('src/')
 
-from process_data import convert_dates, merge_taxonomy_data, get_min_max_dates, clean_table_name, column_names_to_dwc, get_bbox
+from process_data import convert_dates, merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names
 
 class TestMergeTaxonomyData(unittest.TestCase):
 
@@ -110,7 +110,7 @@ class TestConvertDates(unittest.TestCase):
                 "2019-01-01 - 2023-31-12"
             ]
         }
-        self.sub_gdf = pd.DataFrame(self.data_all_formats)
+        self.sub_gdf = pd.DataFrame(self.data_all_formats['eventDateTimeDisplay'])
 
     def test_convert_dates(self):
         # Call the function
