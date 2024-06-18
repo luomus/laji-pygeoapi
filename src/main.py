@@ -62,9 +62,9 @@ def main():
     edit_db.drop_all_tables(engine)
 
     # Get taxon data
-    taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all')
-    #taxon_df = pd.read_csv('taxon-export.csv') # For local testing
-    #taxon_df = taxon_df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','id_y','hasSubGroup'], axis=1)
+    #taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all')
+    taxon_df = pd.read_csv('taxon-export.csv') # For local testing
+    taxon_df = taxon_df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','id_y','hasSubGroup'], axis=1)
 
 
     table_names = []
@@ -87,11 +87,11 @@ def main():
 
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-
         # Remove some columns
-        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva') 
+        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
 
-        #gdf = compute_variables.compute_coordinate_uncertainty(gdf)
+        # Compute variables that can not be directly accessed from the source API
+        gdf = compute_variables.compute_variables(gdf)
 
         # Extract entries without family names
         no_family_name = gdf[gdf['elioryhma'].isnull()]
