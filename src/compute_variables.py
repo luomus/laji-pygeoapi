@@ -21,9 +21,107 @@ def compute_var_from_id_regulatory_status(gdf):
     #computed_var_from_id_regulatory_status
     return gdf
 
-def compute_var_from_id_primary_habitat(gdf):
-    #computed_var_from_id_primary_habitat
-    return gdf
+def compute_var_from_id_primary_habitat(habitat_column):
+    # Mapping data
+    habitat_dict = {
+        'http://tun.fi/MKV.habitatM': 'M - Metsät',
+        'http://tun.fi/MKV.habitatMk': 'Mk - kangasmetsät',
+        'http://tun.fi/MKV.habitatMkk': 'Mkk - kuivahkot ja sitä karummat kankaat',
+        'http://tun.fi/MKV.habitatMkt': 'Mkt - tuoreet ja lehtomaiset kankaat',
+        'http://tun.fi/MKV.habitatMl': 'Ml - lehdot (myös kuusivaltaiset)',
+        'http://tun.fi/MKV.habitatMlt': 'Mlt - tuoreet ja kuivat lehdot',
+        'http://tun.fi/MKV.habitatMlk': 'Mlk - kosteat lehdot',
+        'http://tun.fi/MKV.habitatMt': 'Mt - tunturikoivikot (pois lukien tunturikoivulehdot)',
+        'http://tun.fi/MKV.habitatMtl': 'Mtl - tunturikoivulehdot',
+        'http://tun.fi/MKV.habitatS': 'S - Suot',
+        'http://tun.fi/MKV.habitatSl': 'Sl - letot',
+        'http://tun.fi/MKV.habitatSla': 'Sla - avoletot',
+        'http://tun.fi/MKV.habitatSlr': 'Slr - lettorämeet',
+        'http://tun.fi/MKV.habitatSlk': 'Slk - lettokorvet',
+        'http://tun.fi/MKV.habitatSn': 'Sn - nevat',
+        'http://tun.fi/MKV.habitatSnk': 'Snk - karut nevat',
+        'http://tun.fi/MKV.habitatSnr': 'Snr - rehevät nevat',
+        'http://tun.fi/MKV.habitatSr': 'Sr - rämeet',
+        'http://tun.fi/MKV.habitatSrk': 'Srk - karut rämeet',
+        'http://tun.fi/MKV.habitatSrr': 'Srr - rehevät rämeet',
+        'http://tun.fi/MKV.habitatSk': 'Sk - korvet',
+        'http://tun.fi/MKV.habitatSkk': 'Skk - karut korvet',
+        'http://tun.fi/MKV.habitatSkr': 'Skr - rehevät korvet',
+        'http://tun.fi/MKV.habitatV': 'V - Vedet',
+        'http://tun.fi/MKV.habitatVi': 'Vi - Itämeri',
+        'http://tun.fi/MKV.habitatVik': 'Vik - kallio- ja lohkarepohjat',
+        'http://tun.fi/MKV.habitatVim': 'Vim - muta- ja liejupohjat',
+        'http://tun.fi/MKV.habitatVis': 'Vis - sorapohjat',
+        'http://tun.fi/MKV.habitatVih': 'Vih - hiekkapohjat',
+        'http://tun.fi/MKV.habitatVie': 'Vie - sekapohjat',
+        'http://tun.fi/MKV.habitatVip': 'Vip - pelagiaali',
+        'http://tun.fi/MKV.habitatVs': 'Vs - järvet ja lammet',
+        'http://tun.fi/MKV.habitatVsk': 'Vsk - karut järvet ja lammet',
+        'http://tun.fi/MKV.habitatVsr': 'Vsr - rehevät järvet ja lammet',
+        'http://tun.fi/MKV.habitatVa': 'Va - lampareet ja allikot (myös rimmet)',
+        'http://tun.fi/MKV.habitatVj': 'Vj - joet',
+        'http://tun.fi/MKV.habitatVp': 'Vp - purot ja norot',
+        'http://tun.fi/MKV.habitatVk': 'Vk - kosket',
+        'http://tun.fi/MKV.habitatVl': 'Vl - lähteiköt',
+        'http://tun.fi/MKV.habitatR': 'R - Rannat',
+        'http://tun.fi/MKV.habitatRi': 'Ri - Itämeren rannat',
+        'http://tun.fi/MKV.habitatRim': 'Rim - rantametsät',
+        'http://tun.fi/MKV.habitatRimt': 'Rimt - tulvametsät',
+        'http://tun.fi/MKV.habitatRiml': 'Riml - metsäluhdat',
+        'http://tun.fi/MKV.habitatRip': 'Rip - rantapensaikot',
+        'http://tun.fi/MKV.habitatRin': 'Rin - niittyrannat',
+        'http://tun.fi/MKV.habitatRil': 'Ril - luhtarannat',
+        'http://tun.fi/MKV.habitatRir': 'Rir - ruovikot',
+        'http://tun.fi/MKV.habitatRis': 'Ris - sora-, somerikko- ja kivikkorannat',
+        'http://tun.fi/MKV.habitatRih': 'Rih - hietikkorannat',
+        'http://tun.fi/MKV.habitatRit': 'Rit - avoimet tulvarannat',
+        'http://tun.fi/MKV.habitatRj': 'Rj - järven- ja joenrannat',
+        'http://tun.fi/MKV.habitatRjm': 'Rjm - rantametsät',
+        'http://tun.fi/MKV.habitatRjmt': 'Rjmt - tulvametsät',
+        'http://tun.fi/MKV.habitatRjml': 'Rjml - metsäluhdat',
+        'http://tun.fi/MKV.habitatRjp': 'Rjp - rantapensaikot',
+        'http://tun.fi/MKV.habitatRjn': 'Rjn - niittyrannat',
+        'http://tun.fi/MKV.habitatRjl': 'Rjl - luhtarannat',
+        'http://tun.fi/MKV.habitatRjr': 'Rjr - ruovikot',
+        'http://tun.fi/MKV.habitatRjs': 'Rjs - sora-, somerikko- ja kivikkorannat',
+        'http://tun.fi/MKV.habitatRjh': 'Rjh - hietikkorannat',
+        'http://tun.fi/MKV.habitatRjt': 'Rjt - avoimet tulvarannat',
+        'http://tun.fi/MKV.habitatK': 'K - Kalliot ja kivikot',
+        'http://tun.fi/MKV.habitatKk': 'Kk - kalkkikalliot ja -louhokset, myös paljas kalkkimaa',
+        'http://tun.fi/MKV.habitatKs': 'Ks - serpentiinikalliot ja -maa',
+        'http://tun.fi/MKV.habitatKr': 'Kr - kalliorotkot, rotkolaaksot ja kurut',
+        'http://tun.fi/MKV.habitatKl': 'Kl - luolat ja halkeamat',
+        'http://tun.fi/MKV.habitatKm': 'Km - karut ja keskiravinteiset kalliot',
+        'http://tun.fi/MKV.habitatT': 'T - Tunturipaljakat',
+        'http://tun.fi/MKV.habitatTk': 'Tk - tunturikankaat',
+        'http://tun.fi/MKV.habitatTn': 'Tn - tunturiniityt',
+        'http://tun.fi/MKV.habitatTu': 'Tu - lumenviipymät',
+        'http://tun.fi/MKV.habitatTp': 'Tp - tunturikangaspensaikot',
+        'http://tun.fi/MKV.habitatTl': 'Tl - paljakan kalliot ja kivikot',
+        'http://tun.fi/MKV.habitatTll': 'Tll - paljakan karut ja keskiravinteiset kalliot ja kivikot',
+        'http://tun.fi/MKV.habitatTlk': 'Tlk - paljakan kalkkikalliot ja -kivikot',
+        'http://tun.fi/MKV.habitatTls': 'Tls - paljakan serpentiinikalliot ja -kivikot',
+        'http://tun.fi/MKV.habitatTlr': 'Tlr - paljakan kalliorotkot, rotkolaaksot ja kurut',
+        'http://tun.fi/MKV.habitatTlä': 'Tlä - paljakan lähteiköt ja tihkupinnat',
+        'http://tun.fi/MKV.habitatTs': 'Ts - paljakan suot',
+        'http://tun.fi/MKV.habitatTj': 'Tj - paljakan järvet ja lammet (sis. rannat)',
+        'http://tun.fi/MKV.habitatTv': 'Tv - paljakan virtavedet (sis. rannat)',
+        'http://tun.fi/MKV.habitatTa': 'Ta - paljakan lampareet ja allikot',
+        'http://tun.fi/MKV.habitatI': 'I - Perinneympäristöt ja muut ihmisen muuttamat ympäristöt',
+        'http://tun.fi/MKV.habitatIn': 'In - kuivat niityt, kedot ja nummet',
+        'http://tun.fi/MKV.habitatIt': 'It - tuoreet niityt',
+        'http://tun.fi/MKV.habitatIh': 'Ih - hakamaat, lehdesniityt ja metsälaitumet',
+        'http://tun.fi/MKV.habitatIk': 'Ik - kosteat niityt (muut kuin rantaniityt)',
+        'http://tun.fi/MKV.habitatIo': 'Io - ojat ja muut kaivannot',
+        'http://tun.fi/MKV.habitatIv': 'Iv - viljelymaat',
+        'http://tun.fi/MKV.habitatIp': 'Ip - puistot, pihamaat ja puutarhat',
+        'http://tun.fi/MKV.habitatIu': 'Iu - uuselinympäristöt',
+        'http://tun.fi/MKV.habitatIr': 'Ir - rakennukset ja rakenteet',
+        'http://tun.fi/MKV.habitatU': '? - Elinympäristö tuntematon'
+    }
+
+    habitat_column = habitat_column.map(habitat_dict)
+    return habitat_column
 
 def compute_var_from_id_municipality(gdf):
     #computed_var_from_id_municipality
@@ -81,4 +179,5 @@ def compute_var_from_id_atlas_code(atlas_code_col):
 def compute_variables(gdf):
     gdf['Atlasluokka'] = compute_var_from_id_atlas_class(gdf['Atlasluokka'])
     gdf['Atlaskoodi'] = compute_var_from_id_atlas_code(gdf['Atlaskoodi'])
+    gdf['Ensisijainen_habitaatti'] = compute_var_from_id_primary_habitat(gdf['Ensisijainen_habitaatti'])
     return gdf
