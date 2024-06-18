@@ -17,49 +17,6 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.id', right_on='idMainTaxon', how='left')
     return merged_gdf
 
-def convert_dates(dates):
-    """
-    Extracts and formats event dates from a GeoDataFrame.
-
-    Parameters:
-    dates (Pandas Dataframe): The (Geo)Series containing date information.
-
-    Returns:
-    tuple: A tuple containing the dates as pandas Series.
-    """
-
-    # Define the regex patterns to find days and times
-    date_regex = '[0-9]{4}-[0-9]{2}-[0-9]{2}'
-    time_regex = '[0-9]{2}:[0-9]{2}'
-    time2_regex = '[0-9]{1}:[0-9]{2}'
-
-    # Loop over dates and translate into the correct form
-    for i, date in enumerate(dates):
-        try:
-            date = str(date)
-            day = re.search(date_regex, date)
-            time1 = re.search(time_regex, date)
-            time2 = re.search(time2_regex, date)
-            if day and time1:
-                datetime = day.group(0) + 'T' + time1.group(0) + 'Z'
-                dates.iloc[i] = datetime
-            elif day and time2:
-                datetime = day.group(0) + 'T0' + time2.group(0) + 'Z'
-                dates.iloc[i] = datetime
-            elif day: 
-                datetime = day.group(0) + 'T00:00Z'
-                dates.iloc[i] = datetime
-            else:
-                dates.iloc[i] = None
-        except TypeError:
-            dates.iloc[i] = None
-            print(f"{date} is not a valid date format (e.g. YYYY-MM-DD or YYYY-MM-DD [HH-MM])")
-
-
-    # Convert dates to datetime format
-    dates = pd.to_datetime(dates)
-    return dates
-
 def get_min_max_dates(gdf):
     """
     Finds the minimum and maximum event dates and returns them in RFC3339 format
@@ -72,17 +29,23 @@ def get_min_max_dates(gdf):
     end_date: the last datestamp of the Geodataframe in RFC3399 format
     """
     # Filter out NaT (Not a Time) values
-    dates = gdf['Aika']
-    dates = pd.to_datetime(dates)
-    dates_without_na = dates.dropna()
+    start_dates = pd.to_datetime(gdf['Keruu_aloitus_pvm']).dropna()
+    end_dates = pd.to_datetime(gdf['Keruu_lopetus_pvm']).dropna()
 
-    # Get the minimum and maximum dates in RFC3339 format
-    if len(dates_without_na) > 0:
-        first_date = str(dates_without_na.min().strftime('%Y-%m-%dT%H:%M:%SZ'))
-        end_date = str(dates_without_na.max().strftime('%Y-%m-%dT%H:%M:%SZ'))
-        return first_date, end_date
+
+    # Get the first date in RFC3339 format
+    if len(start_dates) > 0:
+        first_date = str(start_dates.min().strftime('%Y-%m-%dT%H:%M:%SZ'))
     else:
-        return None, None
+        first_date = None
+
+    # Get the last date in RFC3399 format
+    if len(end_dates) > 0:
+        end_date = str(end_dates.max().strftime('%Y-%m-%dT%H:%M:%SZ'))
+    else:
+        end_date = None
+
+    return first_date, end_date
     
 def combine_similar_columns(gdf):
     """

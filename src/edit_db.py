@@ -140,7 +140,7 @@ def get_table_dates(engine, table_name):
     Returns:
     tuple: A tuple containing the minimum and maximum dates.
     """
-    sql = f'SELECT "Aika", "geometry" FROM "{table_name}"'
+    sql = f'SELECT "Keruu_aloitus_pvm", "Keruu_lopetus_pvm", "geometry" FROM "{table_name}"'
     gdf = gpd.read_postgis(sql, engine, geom_col='geometry')
     min_date, max_date = get_min_max_dates(gdf)
     return min_date, max_date

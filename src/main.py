@@ -38,10 +38,12 @@ feature_type = "ORIGINAL_FEATURE"
 occurrence_url = f"{base_url}selected={selected_fields}&administrativeStatusId={administrative_status_ids}&redListStatusId={red_list_status_ids}&countryId={country_id}&time={time_range}&aggregateBy={aggregate_by}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
 
 # Pygeoapi output file
-if os.getenv('RUNNING_IN_OPENSHIFT') == True:
+if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
     pygeoapi_config_out = r'pygeoapi-config_out.yml'
+    print("Starting in Openshift / Kubernetes...")
 else:
     pygeoapi_config_out = r'pygeoapi-config.yml'
+    print("Starting in Docker...")
 
 def main():
     """
@@ -89,7 +91,7 @@ def main():
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva') 
 
-        gdf = compute_variables.compute_coordinate_uncertainty(gdf)
+        #gdf = compute_variables.compute_coordinate_uncertainty(gdf)
 
         # Extract entries without family names
         no_family_name = gdf[gdf['elioryhma'].isnull()]
@@ -107,15 +109,17 @@ def main():
 
             # Skip nans and unclassified
             if isinstance(table_name, str) and table_name != 'unclassified':
-
-                # Create evenDateTimeDisplay column and local ID
-                sub_gdf['Aika'] = process_data.convert_dates(sub_gdf['Keruu_aloitus_pvm']).astype(str)
-                sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
                 n_rows = len(sub_gdf)
                 tot_rows += n_rows
 
-                # Translate column names
-                sub_gdf.rename_geometry("geom")
+                # Create local ID
+                sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
+
+                # Change column types
+                gdf['Keruu_aloitus_pvm'] = gdf['Keruu_aloitus_pvm'].astype('str')
+                gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
+
+                # Add to PostGIS database
                 sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
                 
                 print(f"In total {n_rows} rows of {table_name} inserted to the database")
@@ -143,7 +147,7 @@ def main():
     print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
-    if os.getenv('RUNNING_IN_OPENSHIFT') == True:
+    if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
         edit_configmaps.update_configmap(pygeoapi_config) 
         
     print("API is ready to use. ")

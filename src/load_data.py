@@ -64,14 +64,12 @@ def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="a
     print(f"Retrieving data from page {startpage} to {endpage} of occurrence data from the API...")
     gdf = gpd.GeoDataFrame()
 
-    if multiprocessing==True:
+    if multiprocessing==True or multiprocessing=="True":
         # Use multiprocessing to retrieve page by page. Finally merge all pages into one geodataframe
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = [executor.submit(download_page, data_url, page_no, endpage) for page_no in range(startpage, endpage + 1)]
             for future in concurrent.futures.as_completed(futures):
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
-
-
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(startpage,endpage+1):
