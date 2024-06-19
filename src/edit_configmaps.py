@@ -33,6 +33,9 @@ def update_configmap(pygeoapi_config_out):
     6. Retrieves the list of pods and identifies the ones related to the deployment.
     7. Deletes the identified pods to trigger a restart with the updated ConfigMap.
     '''
+
+    print("Updating configmap...")
+    
     api_url, namespace = get_kubernetes_info()
 
     # Get branch
@@ -63,6 +66,7 @@ def update_configmap(pygeoapi_config_out):
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
     configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config-{branch}"
     r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
+    print(r.text)
 
     # Print possible errors
     if r.status_code != 200:
