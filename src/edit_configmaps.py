@@ -2,6 +2,16 @@ import requests, os
 from dotenv import load_dotenv
 
 def get_kubernetes_info():
+    '''
+    This function retrieves the Kubernetes API URL and the current namespace.
+    It reads the namespace from the Kubernetes service account token file,
+    constructs the API URL using the Kubernetes service host and port from environment variables,
+    and returns both the API URL and namespace.
+
+    Returns:
+    api_url (string)
+    namespace (string)
+    '''
     with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace") as f:
         namespace = f.read().strip()
 
@@ -13,9 +23,24 @@ def get_kubernetes_info():
     return api_url, namespace
 
 def update_configmap(pygeoapi_config_out):
-
+    '''
+    This function updates a Kubernetes ConfigMap with new data from a given file and restarts the related pods.
+    1. Retrieves the Kubernetes API URL and namespace.
+    2. Reads the CA certificate and service account token.
+    3. Reads the content of the pygeoapi config file.
+    4. Prepares a JSON patch request to update the ConfigMap.
+    5. Sends a PATCH request to the Kubernetes API to update the ConfigMap.
+    6. Retrieves the list of pods and identifies the ones related to the deployment.
+    7. Deletes the identified pods to trigger a restart with the updated ConfigMap.
+    '''
     api_url, namespace = get_kubernetes_info()
 
+    # Get branch
+    load_dotenv()
+    branch = os.getenv('BRANCH')
+    if branch is None:
+        raise ValueError("BRANCH environment variable is not set")
+    
     # Read the CA certificate
     ca_cert = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 
@@ -34,13 +59,15 @@ def update_configmap(pygeoapi_config_out):
         "value": file_content
     }]
 
-   
     # Update the config map
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
-    load_dotenv()
-    branch = os.getenv('BRANCH')
     configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config-{branch}"
     r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
+
+    # Print possible errors
+    if r.status_code != 200:
+        print(f"Failed to update configmap: {r.status_code} - {r.text}")
+        r.raise_for_status()
 
     # find the pods we want to restart
     headers = {"Authorization": "Bearer {}".format(token)}
@@ -49,7 +76,12 @@ def update_configmap(pygeoapi_config_out):
     items = data["items"]
 
     deploymentconfig_name = "pygeoapi"
-    target_pods = [i["metadata"]["name"] for i in items if "labels" in i["metadata"] and "deploymentconfig" in i["metadata"]["labels"] and i["metadata"]["labels"]["deploymentconfig"] == deploymentconfig_name]
+    target_pods = [
+        i["metadata"]["name"] for i in items
+        if "labels" in i["metadata"] 
+        and "deploymentconfig" in i["metadata"]["labels"] 
+        and i["metadata"]["labels"]["deploymentconfig"] == deploymentconfig_name
+        ]
 
     # restart the pods by deleting them
     for pod in target_pods:
