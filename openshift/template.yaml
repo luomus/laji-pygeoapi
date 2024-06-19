@@ -554,7 +554,13 @@ objects:
                       value: ${RUNNING_IN_OPENSHIFT}
                     - name: ACCESS_TOKEN
                       value: ${ACCESS_TOKEN}
-                  resources: {}
+                    - name: PYTHONUNBUFFERED
+                      value: '1'
+                  resources: 
+                    limits:
+                      memory: 2Gi
+                    requests:
+                      memory: 1Gi
                   volumeMounts:
                     - name: pygeoapi-config-${BRANCH}
                       mountPath: /app/pygeoapi-config.yml
