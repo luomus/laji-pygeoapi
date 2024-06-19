@@ -149,7 +149,7 @@ def main():
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
-        edit_configmaps.update_configmap(pygeoapi_config) 
+        edit_configmaps.update_configmap(pygeoapi_config_out) 
         
     print("API is ready to use. ")
 
