@@ -38,9 +38,7 @@ def download_page(data_url, page_no, endpage):
     """
     # Load data
     data_url = data_url.replace('page=1', f'page={page_no}')
-    gdf = gpd.read_file(data_url)
-    print(f"Progress: {page_no}/{endpage} pages retrieved")
-    
+    gdf = gpd.read_file(data_url)    
     return gdf
 
 def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="all"):
@@ -61,7 +59,7 @@ def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="a
     else:
         endpage = int(pages)
     
-    print(f"Retrieving data from page {startpage} to {endpage} of occurrence data from the API...")
+    print(f"Retrieving occurrence data pages {startpage} - {endpage}...")
     gdf = gpd.GeoDataFrame()
 
     if multiprocessing==True or multiprocessing=="True":

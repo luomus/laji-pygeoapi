@@ -51,8 +51,7 @@ def main():
     """
     #print(f"URL: n\ {occurrence_url}")
 
-    tot_rows = 0 
-    no_family_name = gpd.GeoDataFrame()
+    tot_rows = 0
     multiprocessing = os.getenv('MULTIPROCESSING')
     pages = os.getenv('PAGES')
     engine = edit_db.connect_to_db()
@@ -68,11 +67,14 @@ def main():
 
 
     table_names = []
+    no_occurrences_without_group = 0
+    index_no = 1
 
     # Determine the number of pages to process 
     if pages.lower() == "all":
         pages = load_data.get_last_page(occurrence_url)
     pages = int(pages)
+    print(f"Retrieving in total {pages} of occurrence data from the API...")
 
     # Load and process data in batches of 10 pages. Store to the database
     for startpage in range(1, pages+1, 10):
@@ -98,8 +100,11 @@ def main():
         gdf['Keruu_aloitus_pvm'] = gdf['Keruu_aloitus_pvm'].astype('str')
         gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
 
-        # Extract entries without family names
-        no_family_name = gdf[gdf['elioryhma'].isnull()]
+        # Extract entries without family names and add their count
+        no_occurrences_without_group += len(gdf[gdf['elioryhma'].isnull()])
+        
+        # Drop nulls
+        gdf = gdf[~gdf['elioryhma'].isnull()]
 
         print("Iterating over species classes...")
 
@@ -109,7 +114,7 @@ def main():
 
             # Get cleaned table name
             table_name = process_data.clean_table_name(group_name)
-            if table_name != 'nan' and table_name != 'unclassified':
+            if table_name != 'nan' and table_name != 'unclassified' and table_name not in table_names:
                 table_names.append(table_name)
 
             # Skip nans and unclassified
@@ -121,9 +126,13 @@ def main():
                 sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
 
                 # Add to PostGIS database
-                sub_gdf.to_postgis(table_name, engine, if_exists='replace', schema='public', index=False)
+                sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
                 
                 print(f"In total {n_rows} rows of {table_name} inserted to the database")
+            del sub_gdf
+        del gdf
+    del taxon_df
+
 
     # Update pygeoapi configuration
     for table_name in table_names:
@@ -145,7 +154,7 @@ def main():
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
 
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
-    print(f"Warning: in total {len(no_family_name)} species without scientific family name were discarded")
+    print(f"Warning: in total {no_occurrences_without_group} species without scientific family name were discarded")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
