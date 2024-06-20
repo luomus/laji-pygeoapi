@@ -144,3 +144,26 @@ def get_table_dates(engine, table_name):
     gdf = gpd.read_postgis(sql, engine, geom_col='geometry')
     min_date, max_date = get_min_max_dates(gdf)
     return min_date, max_date
+
+
+def get_amount_of_occurrences(engine, table_name):
+    """
+    Retrieve the number of occurrences in a given table
+
+    Parameters:
+    engine (sqlalchemy.engine.Engine): The SQLAlchemy engine connected to the database.
+    table_name (str): The name of the table to query.
+
+    Returns:
+    int: number of occurrences.
+    """
+    # Specify the column that contains the occurrences. Replace 'occurrences_column' with the actual column name.
+    sql = f'SELECT COUNT(*) as total_occurrences FROM "{table_name}"'
+    
+    # Read the result into a DataFrame
+    result_df = pd.read_sql_query(sql, engine)
+    
+    # Get the total occurrences from the DataFrame
+    total_occurrences = result_df['total_occurrences'].iloc[0]
+
+    return total_occurrences

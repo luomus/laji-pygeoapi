@@ -2,7 +2,7 @@
     <placeholder_table_name>:
         type: collection
         title: <placeholder_table_name> 
-        description: occurrences from laji.fi
+        description: This collection contains <placeholder_amount_of_occurrences> <placeholder_table_name> occurrences. Last update <placeholder_date>
         keywords:
             en:
                 - <placeholder_table_name>

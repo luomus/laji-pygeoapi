@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import process_data, edit_config, load_data, edit_configmaps, edit_db, compute_variables
 #import numpy as np
+from datetime import date
 
 # Set options for pandas and geopandas
 pd.options.mode.copy_on_write = True
@@ -55,6 +56,9 @@ def main():
     multiprocessing = os.getenv('MULTIPROCESSING')
     pages = os.getenv('PAGES')
     engine = edit_db.connect_to_db()
+    table_names = []
+    no_occurrences_without_group = 0
+    today = date.today()
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
@@ -65,16 +69,11 @@ def main():
     #taxon_df = pd.read_csv('taxon-export.csv') # For local testing
     #taxon_df = taxon_df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','id_y','hasSubGroup'], axis=1)
 
-
-    table_names = []
-    no_occurrences_without_group = 0
-    index_no = 1
-
     # Determine the number of pages to process 
     if pages.lower() == "all":
         pages = load_data.get_last_page(occurrence_url)
     pages = int(pages)
-    print(f"Retrieving in total {pages} of occurrence data from the API...")
+    print(f"Retrieving {pages} of occurrence data from the API...")
 
     # Load and process data in batches of 10 pages. Store to the database
     for startpage in range(1, pages+1, 10):
@@ -119,16 +118,12 @@ def main():
 
             # Skip nans and unclassified
             if isinstance(table_name, str) and table_name != 'unclassified':
-                n_rows = len(sub_gdf)
-                tot_rows += n_rows
-
+                
                 # Create local ID
                 sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
 
                 # Add to PostGIS database
                 sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
-                
-                print(f"In total {n_rows} rows of {table_name} inserted to the database")
             del sub_gdf
         del gdf
     del taxon_df
@@ -138,10 +133,14 @@ def main():
     for table_name in table_names:
         bbox = edit_db.get_table_bbox(engine, table_name)
         min_date, max_date = edit_db.get_table_dates(engine, table_name)
+        amount_of_occurrences = edit_db.get_amount_of_occurrences(engine, table_name)
+        tot_rows += amount_of_occurrences
 
         # Create parameters dictionary to fill the template for pygeoapi config file
         template_params = {
             "<placeholder_table_name>": table_name,
+            "<placeholder_amount_of_occurrences>": str(amount_of_occurrences),
+            "<placeholder_date>": str(today),
             "<placeholder_bbox>": str(bbox),
             "<placeholder_min_date>": min_date,
             "<placeholder_max_date>": max_date,
@@ -152,6 +151,7 @@ def main():
         }
         # Add database information into the config file
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
+        print(f"In total {amount_of_occurrences} occurrences of {table_name} inserted to the database")
 
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"Warning: in total {no_occurrences_without_group} species without scientific family name were discarded")
