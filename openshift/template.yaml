@@ -434,17 +434,17 @@ objects:
     apiVersion: apps/v1
     metadata:
       name: pygeoapi-${BRANCH}
-      # annotations:
-        # image.openshift.io/triggers: |-
-          # [
-            # {
-              # "from": {
-                # "kind": "ImageStreamTag",
-                # "name": "pygeoapi-${BRANCH}:latest"
-              # },
-              # "fieldPath": "spec.template.spec.containers[0].image"
-            # }
-          # ]
+      annotations:
+        image.openshift.io/triggers: |-
+          [
+            {
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "pygeoapi-${BRANCH}:latest"
+              },
+              "fieldPath": "spec.template.spec.containers[0].image"
+            }
+          ]
       labels:
         io.kompose.service: pygeoapi-${BRANCH}
         app: pygeoapi-${BRANCH}
