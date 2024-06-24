@@ -1,16 +1,16 @@
-name: Build and Push Image
+name: Build and Deploy Image
 
 on:
   push:
     branches: ['main', 'dev']
-    
+
 env:
   IMAGE_NAME: ${{ github.repository }}
   OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
   OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
   OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
   OPENSHIFT_REGISTRY: ${{ secrets.OPENSHIFT_REGISTRY }}
-  
+
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -50,12 +50,13 @@ jobs:
         openshift_token: ${{ env.OPENSHIFT_TOKEN }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
-  
 
     - name: Tag Docker image for OpenShift
       run: |
-        docker tag ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }} ${{ env.OPENSHIFT_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+        TAG=$(echo ${{ steps.meta.outputs.tags }} | cut -d',' -f1)
+        docker tag ${{ env.IMAGE_NAME }}:$TAG ${{ env.OPENSHIFT_REGISTRY }}/${{ env.OPENSHIFT_NAMESPACE }}/${{ env.IMAGE_NAME }}:$TAG
 
     - name: Push Docker image to OpenShift
       run: |
-        docker push ${{ env.OPENSHIFT_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+        TAG=$(echo ${{ steps.meta.outputs.tags }} | cut -d',' -f1)
+        docker push ${{ env.OPENSHIFT_REGISTRY }}/${{ env.OPENSHIFT_NAMESPACE }}/${{ env.IMAGE_NAME }}:$TAG
