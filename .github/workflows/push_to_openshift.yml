@@ -1,0 +1,61 @@
+name: Build and Push Image
+
+on:
+  push:
+    branches: ['main', 'dev']
+    
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+  OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+  OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+  OPENSHIFT_REGISTRY: ${{ secrets.OPENSHIFT_REGISTRY }}
+  
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.IMAGE_NAME }}
+          
+    - name: Buildah Action
+      id: build_image
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.meta.outputs.tags }}
+        oci: true
+        containerfiles: |
+          ./Dockerfile
+
+    - name: Install oc
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        oc: 4
+
+    - name: Log in to OpenShift
+      uses: redhat-actions/oc-login@v1
+      with:
+        openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
+        openshift_token: ${{ env.OPENSHIFT_TOKEN }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+  
+
+    - name: Tag Docker image for OpenShift
+      run: |
+        docker tag ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }} ${{ env.OPENSHIFT_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+
+    - name: Push Docker image to OpenShift
+      run: |
+        docker push ${{ env.OPENSHIFT_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
