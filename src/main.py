@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import os
 import process_data, edit_config, load_data, edit_configmaps, edit_db, compute_variables
 #import numpy as np
-from datetime import date
 
 # Set options for pandas and geopandas
 pd.options.mode.copy_on_write = True
@@ -58,7 +57,6 @@ def main():
     engine = edit_db.connect_to_db()
     table_names = []
     no_occurrences_without_group = 0
-    today = date.today()
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
@@ -98,6 +96,7 @@ def main():
         # Change column types
         gdf['Keruu_aloitus_pvm'] = gdf['Keruu_aloitus_pvm'].astype('str')
         gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
+        gdf['Sensitiivinen_laji'] = gdf['Sensitiivinen_laji'].astype('bool')
 
         # Extract entries without family names and add their count
         no_occurrences_without_group += len(gdf[gdf['elioryhma'].isnull()])
@@ -140,7 +139,6 @@ def main():
         template_params = {
             "<placeholder_table_name>": table_name,
             "<placeholder_amount_of_occurrences>": str(amount_of_occurrences),
-            "<placeholder_date>": str(today),
             "<placeholder_bbox>": str(bbox),
             "<placeholder_min_date>": min_date,
             "<placeholder_max_date>": max_date,

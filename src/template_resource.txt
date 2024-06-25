@@ -2,7 +2,7 @@
     <placeholder_table_name>:
         type: collection
         title: <placeholder_table_name> 
-        description: This collection contains <placeholder_amount_of_occurrences> <placeholder_table_name> occurrences. Last update <placeholder_date>
+        description: This collection contains <placeholder_amount_of_occurrences> occurrences of <placeholder_table_name>. 
         keywords:
             en:
                 - <placeholder_table_name>

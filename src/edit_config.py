@@ -1,6 +1,8 @@
+from datetime import date
+
 def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     """
-    Deletes collection information from the pygeoapi configuration file.
+    Deletes collection information from the pygeoapi configuration file and adds latest update date.
 
     Parameters:
     pygeoapi_config (str): The path to the pygeoapi configuration file.
@@ -12,6 +14,12 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     # Find the index of the line containing the keyword "resources"
     keyword_index = None
     for i, line in enumerate(lines):
+
+        # Add latest update timestamp to pygeoapi description
+        if "<latest_update_placeholder>" in line:
+            lines[i] = line.replace('<latest_update_placeholder>', str(date.today()))
+
+        # Find the point where resources section starts
         if "resources" in line:
             keyword_index = i
             break

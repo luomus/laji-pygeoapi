@@ -134,8 +134,8 @@ objects:
                     en: FinBIF occurrence data OGC API
                     fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
                 description:
-                    en: This portal allows you to query and fetch occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Currently, this portal includes data specified by virva-authority filters. 
-                    fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja.
+                    en: This portal allows you to query and fetch virva-filtered occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Latest update <latest_update_placeholder>.
+                    fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja. Viimeisin päivitys <latest_update_placeholder>.
                 keywords:
                     en:
                         - occurrence
