@@ -3,10 +3,11 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 import sys
+from pandas.testing import assert_frame_equal
 
 sys.path.append('src/')
 
-from process_data import convert_dates, merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names
+from process_data import merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names, combine_similar_columns
 
 class TestMergeTaxonomyData(unittest.TestCase):
 
@@ -95,86 +96,113 @@ class TestMergeTaxonomyData(unittest.TestCase):
         # Check that the returned GeoDataFrame is still empty
         self.assertTrue(merged_gdf.empty)
 
-class TestConvertDates(unittest.TestCase):
 
+class TestCombineSimilarColumns(unittest.TestCase):
+    
     def setUp(self):
-        # Create sample data
-        self.data_all_formats = {
-            'eventDateTimeDisplay': [
-                "2024-02-01",
-                "2024-05-02 5:11",
-                "2021-05-03 05:24",
-                "2025-05-04 [12:00]",
-                "2024-05-05 12:00:00",
-                "2020-02-02 [15:01-15:04]",
-                "2019-01-01 - 2023-31-12"
-            ]
+        # Create sample data for testing
+        data = {
+            'keyword[0]': ['a', 'b', 'c'],
+            'keyword[1]': ['d', 'e', 'f'],
+            'other_col': [7, 8, 9],
+            'keyword2[0]': ['g', 'h', 'i'],
+            'keyword2[1]': ['j', 'k', 'l']
         }
-        self.sub_gdf = pd.DataFrame(self.data_all_formats['eventDateTimeDisplay'])
+        self.gdf = gpd.GeoDataFrame(data)
 
-    def test_convert_dates(self):
-        # Call the function
-        dates = convert_dates(self.sub_gdf)
+    def test_combine_similar_columns(self):
+        expected_data = {
+            'other_col': [7, 8, 9],
+            'keyword': ['a, d', 'b, e', 'c, f'],
+            'keyword2': ['g, j', 'h, k', 'i, l']
+        }
+        expected_gdf = gpd.GeoDataFrame(expected_data)
+        result_gdf = combine_similar_columns(self.gdf)
+        assert_frame_equal(result_gdf, expected_gdf)
 
-        # Check if dates is a pandas Series
-        self.assertIsInstance(dates, pd.Series)
+    def test_no_similar_columns(self):
+        data = {
+            'col1': [1, 2, 3],
+            'col2': [4, 5, 6],
+            'col3': [7, 8, 9]
+        }
+        gdf = gpd.GeoDataFrame(data)
+        result_gdf = combine_similar_columns(gdf)
+        assert_frame_equal(result_gdf, gdf)
+
+    def test_mixed_columns(self):
+        data = {
+            'keyword[0]': ['a', 'b', 'c'],
+            'keyword[1]': ['d', 'e', 'f'],
+            'col1': [7, 8, 9],
+            'col2': [10, 11, 12]
+        }
+        gdf = gpd.GeoDataFrame(data)
+        expected_data = {
+            'col1': [7, 8, 9],
+            'col2': [10, 11, 12],
+            'keyword': ['a, d', 'b, e', 'c, f']
+        }
+        expected_gdf = gpd.GeoDataFrame(expected_data)
+        result_gdf = combine_similar_columns(gdf)
+        assert_frame_equal(result_gdf, expected_gdf)
 
     def test_empty_dataframe(self):
-        # Test scenario where the input DataFrame is empty
-        empty_df = pd.DataFrame({'eventDateTimeDisplay': []})
-        dates = convert_dates(empty_df)
-        self.assertTrue(dates.empty)
+        gdf = gpd.GeoDataFrame()
+        result_gdf = combine_similar_columns(gdf)
+        assert_frame_equal(result_gdf, gdf)
 
-    def test_dataframe_with_invalid_format(self):
-        # Test scenario where the input DataFrame contains invalid date range format
-        invalid_df = pd.DataFrame({'eventDateTimeDisplay': ["2024/05/01", "1.1.2023", "1999.24.12"]})
-        dates = convert_dates(invalid_df)
-        self.assertTrue(dates.isnull)
 
 class TestGetMinMaxDates(unittest.TestCase):
-
+    
     def setUp(self):
-        # Create sample data
-        self.data_all_formats = {
-            'eventDateTimeDisplay': [
-                "2024-02-01T00:00Z",
-                "2024-05-02T05:11Z",
-                "2021-05-03T05:24Z",
-                "2025-05-04T12:00Z",
-                "2024-05-05T12:00Z",
-                "2020-02-02T15:01Z",
-                "2019-01-01T00:00Z"
-            ]
+        # Create sample data for testing
+        data = {
+            'Keruu_aloitus_pvm': ['2023-01-01', '2023-02-11', '2023-03-25'],
+            'Keruu_lopetus_pvm': ['2023-04-01', '2023-05-01', '2025-06-01']
         }
-        self.sub_gdf = pd.DataFrame(self.data_all_formats)
+        self.gdf = gpd.GeoDataFrame(data)
 
     def test_get_min_max_dates(self):
-        # Call the function
-        start_date, end_date = get_min_max_dates(self.sub_gdf)
+        first_date, end_date = get_min_max_dates(self.gdf)
+        self.assertEqual(first_date, '2023-01-01T00:00:00Z')
+        self.assertEqual(end_date, '2025-06-01T00:00:00Z')
 
-        # Check if start_date and end_date are strings
-        self.assertIsInstance(start_date, str)
-        self.assertIsInstance(end_date, str)
+    def test_with_missing_start_dates(self):
+        data = {
+            'Keruu_aloitus_pvm': [pd.NaT, '2023-02-01', '2023-03-01'],
+            'Keruu_lopetus_pvm': ['2023-04-01', '2023-05-01', '2023-06-01']
+        }
+        gdf = gpd.GeoDataFrame(data)
+        first_date, end_date = get_min_max_dates(gdf)
+        self.assertEqual(first_date, '2023-02-01T00:00:00Z')
+        self.assertEqual(end_date, '2023-06-01T00:00:00Z')
 
-        if start_date and end_date:
-            # Check if start_date is earlier than or equal to end_date
-            self.assertLessEqual(start_date, end_date)
+    def test_with_all_missing_dates(self):
+        data = {
+            'Keruu_aloitus_pvm': [pd.NaT, pd.NaT, pd.NaT],
+            'Keruu_lopetus_pvm': [pd.NaT, pd.NaT, pd.NaT]
+        }
+        gdf = gpd.GeoDataFrame(data)
+        first_date, end_date = get_min_max_dates(gdf)
+        self.assertIsNone(first_date)
+        self.assertIsNone(end_date)
 
-            # Check if start_date and end_date get correct values
-            self.assertEqual(start_date, "2019-01-01T00:00:00Z")
-            self.assertEqual(end_date, "2025-05-04T12:00:00Z")
+    def test_with_empty_dataframe(self):
+        gdf = gpd.GeoDataFrame(columns=['Keruu_aloitus_pvm', 'Keruu_lopetus_pvm'])
+        first_date, end_date = get_min_max_dates(gdf)
+        self.assertIsNone(first_date)
+        self.assertIsNone(end_date)
 
-    def test_empty_dataframe(self):
-        # Test scenario where the input DataFrame is empty
-        empty_df = pd.DataFrame({'eventDateTimeDisplay': []})
-        dates = convert_dates(empty_df)
-        self.assertTrue(dates.empty)
+    def test_with_invalid_dates(self):
+        data = {
+            'Keruu_aloitus_pvm': ['invalid_date', '2023-02-01', '2023-03-01'],
+            'Keruu_lopetus_pvm': ['2023-04-01', 'invalid_date', '2023-06-01']
+        }
+        gdf = gpd.GeoDataFrame(data)
+        with self.assertRaises(ValueError):
+            get_min_max_dates(gdf)
 
-    def test_dataframe_with_invalid_format(self):
-        # Test scenario where the input DataFrame contains invalid date range format
-        invalid_df = pd.DataFrame({'eventDateTimeDisplay': ["2024/05/01", "1.1.2023", "1999.24.12"]})
-        dates = convert_dates(invalid_df)
-        self.assertTrue(dates.isnull)
 
 class TestCleanTableName(unittest.TestCase):
 
@@ -203,16 +231,16 @@ class TestCleanTableName(unittest.TestCase):
         group_name = "a" * 50
         self.assertEqual(len(clean_table_name(group_name)), 40)
 
-class TestColumnNamesToDwc(unittest.TestCase):
+class TestTranslateColumnNames(unittest.TestCase):
 
     def setUp(self):
         # Create a sample GeoDataFrame
-        data = {'gathering.gatheringId': [1, 2, 3], 'unit.reportedTaxonId': [4, 5, 6]}
+        data = {'gathering.gatheringId': [1, 2, 3], 'unit.sex': [4, 5, 6]}
         self.gdf = pd.DataFrame(data)
 
         # Create a sample lookup table DataFrame and save it to a CSV file
-        lookup_data = {'finbif_api_var': ['gathering.gatheringId', 'unit.reportedTaxonId'], 
-                       'dwc': ['eventID', 'verbatimTaxonID']}
+        lookup_data = {'finbif_api_var': ['gathering.gatheringId', 'unit.sex'], 
+                       'virva': ['Keruutapahtuman_tunniste', 'Sukupuoli']}
         self.lookup_table = pd.DataFrame(lookup_data)
         self.lookup_table_path = 'test_lookup_table.csv'
         self.lookup_table.to_csv(self.lookup_table_path, sep=';', index=False)
@@ -223,16 +251,16 @@ class TestColumnNamesToDwc(unittest.TestCase):
         if os.path.exists(self.lookup_table_path):
             os.remove(self.lookup_table_path)
 
-    def test_column_names_to_dwc_with_valid_input(self):
+    def test_translate_column_names_with_valid_input(self):
         # Test with valid input
-        expected_result = pd.DataFrame({'eventID': [1, 2, 3], 'verbatimTaxonID': [4, 5, 6]})
-        self.assertTrue(column_names_to_dwc(self.gdf, self.lookup_table_path).equals(expected_result))
+        expected_result = pd.DataFrame({'Keruutapahtuman_tunniste': [1, 2, 3], 'Sukupuoli': [4, 5, 6]})
+        self.assertTrue(translate_column_names(self.gdf, self.lookup_table_path).equals(expected_result))
 
-    def test_column_names_to_dwc_with_empty_lookup_table(self):
+    def test_translate_column_names_with_empty_lookup_table(self):
         # Test with an empty lookup table
-        empty_lookup_table = pd.DataFrame(columns=['finbif_api_var', 'dwc'])
+        empty_lookup_table = pd.DataFrame(columns=['finbif_api_var', 'virva'])
         with self.assertRaises(Exception):
-            column_names_to_dwc(self.gdf, empty_lookup_table)
+            translate_column_names(self.gdf, empty_lookup_table)
 
 if __name__ == '__main__':
     unittest.main()

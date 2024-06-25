@@ -1,6 +1,7 @@
 import unittest
 import os, sys
 from tempfile import TemporaryDirectory
+from datetime import date
 
 sys.path.append('src/')
 
@@ -46,10 +47,13 @@ class TestClearCollectionsFromConfig(unittest.TestCase):
         # Create temporary directory for testing
         self.temp_dir = TemporaryDirectory()
         self.pygeoapi_config = os.path.join(self.temp_dir.name, "pygeoapi_config.txt")
+        self.pygeoapi_config_out = os.path.join(self.temp_dir.name, "pygeoapi_config_out.txt")
+        self.date = str(date.today())
 
         # Create input configuration file with collections
         with open(self.pygeoapi_config, "w") as config_file:
             config_file.write("blabla metadata and server info blabla \n")
+            config_file.write("blabla updated <latest_update_placeholder> yes yes \n")
             config_file.write("resources:\n")
             config_file.write("  - name: collection1\n")
             config_file.write("    type: feature\n")
@@ -60,16 +64,17 @@ class TestClearCollectionsFromConfig(unittest.TestCase):
 
     def test_clear_collections_from_config(self):
         # Call the function being tested
-        clear_collections_from_config(self.pygeoapi_config)
+        clear_collections_from_config(self.pygeoapi_config, self.pygeoapi_config_out)
 
         # Assert that output config file exists
         self.assertTrue(os.path.exists(self.pygeoapi_config))
 
         # Assert content of the output config file
-        with open(self.pygeoapi_config, "r") as output_file:
+        with open(self.pygeoapi_config_out, "r") as output_file:
             output_content = output_file.read()
             self.assertNotIn("collection1", output_content)
             self.assertNotIn("collection2", output_content)
+            self.assertIn(self.date, output_content)
 
     def tearDown(self):
         # Cleanup: Close temporary directory

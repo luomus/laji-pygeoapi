@@ -2,10 +2,12 @@ import unittest, sys
 import geopandas as gpd
 from geopandas.testing import assert_geodataframe_equal
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
 sys.path.append('src/')
 
-from load_data import get_last_page, download_page, get_occurrence_data, get_taxon_data
+from load_data import get_last_page, download_page, get_occurrence_data, get_taxon_data, find_main_taxon
 
 class TestGetLastPage(unittest.TestCase):
 
@@ -28,7 +30,7 @@ class TestDownloadPage(unittest.TestCase):
     def test_download_page(self):
         # Test with a valid data_url and page_no
         data_url = "https://laji.fi/api/warehouse/query/unit/list?administrativeStatusId=MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds&redListStatusId=MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT&countryId=ML.206&time=1990-01-01/&aggregateBy=gathering.conversions.wgs84Grid05.lat,gathering.conversions.wgs84Grid1.lon&onlyCount=false&individualCountMin=0&coordinateAccuracyMax=1000&page=1&pageSize=10000&taxonAdminFiltersOperator=OR&collectionAndRecordQuality=PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;&geoJSON=true&featureType=ORIGINAL_FEATURE"
-        gdf = download_page(data_url, page_no=1, last_page=2)
+        gdf = download_page(data_url, page_no=1)
         self.assertTrue(isinstance(gdf, gpd.GeoDataFrame))
         self.assertFalse(gdf.empty)
         # more assertions?
@@ -60,13 +62,47 @@ class TestGetTaxonData(unittest.TestCase):
 
     def test_get_taxon_data(self):
         # Test with valid taxon_id_url and taxon_name_url
-        taxon_id_url = r'https://laji.fi/api/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic'
-        taxon_name_url = r'https://laji.fi/api/informal-taxon-groups?pageSize=1000'
+        load_dotenv()
+        access_token = os.getenv('ACCESS_TOKEN')
+        taxon_id_url= f'https://api.laji.fi/v0/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic&access_token={access_token}'
+        taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&access_token={access_token}'
 
         # Test with 2 pages
         df = get_taxon_data(taxon_id_url, taxon_name_url, pages = 2)
         self.assertTrue(isinstance(df, pd.DataFrame))
         self.assertFalse(df.empty)
+
+class TestFindMainTaxon(unittest.TestCase):
+    
+    def test_with_list(self):
+        row = ['MVL.1', 'MVL.2', 'MVL.3']
+        result = find_main_taxon(row)
+        self.assertEqual(result, 'MVL.1')
+
+    def test_with_empty_list(self):
+        row = []
+        with self.assertRaises(ValueError): 
+            find_main_taxon(row)
+
+    def test_with_non_list(self):
+        row = 'NonListString'
+        result = find_main_taxon(row)
+        self.assertEqual(result, 'NonListString')
+
+    def test_with_single_element_list(self):
+        row = ['MVL.10']
+        result = find_main_taxon(row)
+        self.assertEqual(result, 'MVL.10')
+
+    def test_with_mixed_numbers(self):
+        row = ['MVL.5', 'MVL.10', 'MVL.3', 'MVL.7']
+        result = find_main_taxon(row)
+        self.assertEqual(result, 'MVL.3')
+
+    def test_with_non_numeric_parts(self):
+        row = ['MVL.5a', 'MVL.10b', 'MVL.3c']
+        with self.assertRaises(ValueError):
+            find_main_taxon(row)
 
 if __name__ == "__main__":
     unittest.main()

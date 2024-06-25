@@ -25,7 +25,7 @@ def get_last_page(data_url):
         return 1
         
 
-def download_page(data_url, page_no, endpage):
+def download_page(data_url, page_no):
     """
     Download data from a specific page of the API. This is in separate function to speed up multiprocessing.
 
@@ -65,16 +65,34 @@ def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="a
     if multiprocessing==True or multiprocessing=="True":
         # Use multiprocessing to retrieve page by page. Finally merge all pages into one geodataframe
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(download_page, data_url, page_no, endpage) for page_no in range(startpage, endpage + 1)]
+            futures = [executor.submit(download_page, data_url, page_no) for page_no in range(startpage, endpage + 1)]
             for future in concurrent.futures.as_completed(futures):
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(startpage,endpage+1):
-            next_gdf = download_page(data_url, page_no, endpage)
+            next_gdf = download_page(data_url, page_no)
             gdf = pd.concat([gdf, next_gdf], ignore_index=True)
 
     return gdf
+
+def find_main_taxon(row):
+    """
+    Find main taxon (taxon with the smallest number)
+
+    Parameters:
+    row (list): Pandas dataframe row
+
+    Returns:
+    min_value (str): Smallest taxon value from the list
+    """
+    if type(row) is list:
+        numeric_values = [int(value.split('.')[1]) for value in row]
+        min_value = 'MVL.' + str(min(numeric_values))
+    else:
+        min_value = str(row)
+
+    return min_value
 
 def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
     """
@@ -105,16 +123,6 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
         else:
             print(f"Failed to fetch data from page {page_no}. Status code: {response.status_code}")
 
-    def find_main_taxon(row):
-        # Find main taxon from the taxon group list
-        if type(row) is list:
-            numeric_values = [int(value.split('.')[1]) for value in row]
-            min_value = 'MVL.' + str(min(numeric_values))
-        else:
-            min_value = str(row)
-
-        return min_value
-
     # Apply the find_main_taxon function to each row and store the main taxon in a new column
     id_df['mainTaxon'] = id_df['informalTaxonGroups'].apply(find_main_taxon)
 
@@ -127,6 +135,11 @@ def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
     df = pd.merge(id_df, name_df, left_on='mainTaxon', right_on='id', suffixes=('MainTaxon', 'TaxonName'))
 
     # Drop some columns
-    df = df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','hasSubGroup'], axis=1)
+    columns_to_drop = ['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','hasSubGroup']
+    for column in columns_to_drop:
+        try:
+            df = df.drop(column, axis=1)
+        except:
+            print(f"Column {column} not exists")
 
     return df
