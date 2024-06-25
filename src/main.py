@@ -73,7 +73,7 @@ def main():
     if pages.lower() == "all":
         pages = load_data.get_last_page(occurrence_url)
     pages = int(pages)
-    print(f"Retrieving {pages} of occurrence data from the API...")
+    print(f"Retrieving {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches of 10 pages. Store to the database
     for startpage in range(1, pages+1, 10):

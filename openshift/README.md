@@ -51,26 +51,17 @@ oc process -f template.yaml -p POSTGRES_PASSWORD=YWRtaW4xMjM= POSTGRES_USER=cG9z
 oc apply -f processed-template.yaml
 ```
 
-## 6. Run the Build
-
-Start a build and wait approximately 5 minutes for it to complete.
-
-```
-oc start-build python-scripts-build-<yourbranch>
-```
-
-## 7. Verify CronJob
-
+## 6. Verify CronJob
 
 As a default, the CronJob tries to start the ```python-script-<branch>``` pod every minute. Wait for it to start the pod and once it has started, change the CronJob schedule to run at a more appropriate interval (e.g., daily at 3 AM).
 Edit the schedule from the YAML-file from
 ```schedule:  "*/1 * * * *"``` to  ```schedule: "0 3 * * *"``` or similar.
 
-## 8. Wait for Pod Completion
+## 7. Wait for Pod Completion
 
 Wait for the pod to complete its tasks.
 
-## 9. (Optional) Add GitHub Webhook
+## 8. (Optional) Add GitHub Webhook
 
 Add a webhook to GitHub and connect it to the python-scripts-build build configuration. This step is optional but recommended for automated builds.
 
