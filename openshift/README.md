@@ -59,14 +59,9 @@ Edit the schedule from the YAML-file from
 
 ## 7. Wait for Pod Completion
 
-Wait for the pod to complete its tasks.
-
-## 8. (Optional) Add GitHub Webhook
-
-Add a webhook to GitHub and connect it to the python-scripts-build build configuration. This step is optional but recommended for automated builds.
-
+Wait for the pod ```python-scripts-<BRANCH>-xxxx``` to complete its tasks. If ```"PAGES"``` environmental variable is a big number or ```"all"```, it can take some time. You can check the logs to see it's progressing. 
 
 
 ## Done!
 
-Your pygeoapi server and postgis database should now be set up and running.
+Your pygeoapi server and postgis database should now be set up and running. Go to the URL you gave and enjoy.
