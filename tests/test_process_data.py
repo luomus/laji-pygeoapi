@@ -4,10 +4,12 @@ import geopandas as gpd
 from shapely.geometry import Point
 import sys
 from pandas.testing import assert_frame_equal
+from shapely.geometry import GeometryCollection, Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
+from shapely.ops import transform
 
 sys.path.append('src/')
 
-from process_data import merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names, combine_similar_columns
+from process_data import merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names, combine_similar_columns, convert_geometry_collection_to_multipolygon
 
 class TestMergeTaxonomyData(unittest.TestCase):
 
@@ -261,6 +263,59 @@ class TestTranslateColumnNames(unittest.TestCase):
         empty_lookup_table = pd.DataFrame(columns=['finbif_api_var', 'virva'])
         with self.assertRaises(Exception):
             translate_column_names(self.gdf, empty_lookup_table)
+
+
+class TestConvertGeometryCollectionToMultiPolygon(unittest.TestCase):
+    def setUp(self):
+        self.buffer_distance = 0.5
+
+    def test_empty_geometry_collection(self):
+        geometry = GeometryCollection()
+        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
+        self.assertIsNone(result)
+
+    def test_geometry_collection_with_point(self):
+        point = Point(0, 0)
+        geometry = GeometryCollection([point])
+        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
+        expected = point.buffer(self.buffer_distance)
+        self.assertTrue(result.equals(MultiPolygon([expected])))
+
+    def test_geometry_collection_with_linestring(self):
+        line = LineString([(0, 0), (1, 1)])
+        geometry = GeometryCollection([line])
+        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
+        expected = line.buffer(self.buffer_distance)
+        self.assertTrue(result.equals(MultiPolygon([expected])))
+
+    def test_geometry_collection_with_polygon(self):
+        polygon = Polygon([(0, 0), (1, 1), (1, 0)])
+        geometry = GeometryCollection([polygon])
+        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
+        self.assertTrue(result.equals(MultiPolygon([polygon])))
+
+    def test_geometry_collection_with_multipolygon(self):
+        polygon1 = Polygon([(0, 0), (1, 1), (1, 0)])
+        polygon2 = Polygon([(2, 2), (3, 3), (3, 2)])
+        multipolygon = MultiPolygon([polygon1, polygon2])
+        geometry = GeometryCollection([multipolygon])
+        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
+        self.assertTrue(result.equals(multipolygon))
+
+    def test_geometry_collection_with_mixed_geometries(self):
+        point = Point(0, 0)
+        line = LineString([(1, 1), (2, 2)])
+        polygon = Polygon([(3, 3), (4, 4), (4, 3)])
+        geometry = GeometryCollection([point, line, polygon])
+        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
+        expected = MultiPolygon([point.buffer(self.buffer_distance), line.buffer(self.buffer_distance), polygon])
+        self.assertTrue(result.equals(expected))
+
+    def test_non_geometry_collection(self):
+        polygon = Polygon([(0, 0), (1, 1), (1, 0)])
+        result = convert_geometry_collection_to_multipolygon(polygon, self.buffer_distance)
+        self.assertEqual(result, polygon)
+
 
 if __name__ == '__main__':
     unittest.main()

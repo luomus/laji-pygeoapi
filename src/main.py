@@ -93,6 +93,9 @@ def main():
         # Compute variables that can not be directly accessed from the source API
         gdf = compute_variables.compute_variables(gdf)
 
+        # Convert GeometryCollections to MultiPolygons if they exist
+        gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
+
         # Change column types
         gdf['Keruu_aloitus_pvm'] = gdf['Keruu_aloitus_pvm'].astype('str')
         gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
@@ -123,6 +126,7 @@ def main():
 
                 # Add to PostGIS database
                 sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
+                
             del sub_gdf
         del gdf
     del taxon_df

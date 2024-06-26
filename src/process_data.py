@@ -1,5 +1,7 @@
 import pandas as pd
 import re
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
+from shapely.ops import unary_union
 
 def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     """
@@ -106,18 +108,6 @@ def translate_column_names(gdf, lookup_table, style='virva'):
             # If there is nothing to map, add column to removable list
             columns_to_remove.append(row['finbif_api_var'])
 
-    # Identify additional columns to drop (nan columns, columns with brackets)
-    #for col in gdf.columns:
-    #    if  '[' in str(col) and ']' in str(col):
-            # TOOD: Combine all similar fields with brakcets 
-
-
-    #    if (isinstance(col, float) or isinstance(col, int) or 
-    #        (isinstance(col, str) and col.lower() == 'nan') or
-    #        ('[' in str(col) and ']' in str(col)) or 
-    #        (len(str(col)) < 4)):
-    #        columns_to_remove.append(col)
-
     # Remove columns from gdf that do not have a corresponding variable in lookup_df
     gdf.drop(columns=columns_to_remove, inplace=True, errors='ignore')
 
@@ -150,3 +140,28 @@ def clean_table_name(group_name):
         cleaned_name = cleaned_name[:40]
 
     return f'{cleaned_name}'
+
+
+def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
+    """Convert GeometryCollection to MultiPolygon, buffering points and lines if necessary."""
+    if isinstance(geometry, GeometryCollection):
+        polygons = []
+
+        # Extract Point, LineString, Polygon, MultiPoint, MultiLineString, and MultiPolygon geometries from GeometryCollections
+        for geom in geometry.geoms:
+            if isinstance(geom, (Polygon, MultiPolygon)):
+                polygons.append(geom)
+            elif isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)):
+                polygons.append(geom.buffer(buffer_distance))
+
+        # Convert polygons to MultiPolygon
+        if len(polygons) == 1:
+            if isinstance(polygons[0], Polygon):
+                return MultiPolygon(polygons) # Return Multipygon created from the only Polygon
+            else:
+                return polygons[0] # Return MultiPolygon
+        elif len(polygons) > 1: 
+            return MultiPolygon(polygons) # Return MultiPolygon created from multiple Polygons
+        else:
+            return None  # Return None if no valid geometries are found
+    return geometry  # Return the original geometry if it is not a GeometryCollection
