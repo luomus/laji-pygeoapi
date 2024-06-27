@@ -15,9 +15,8 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     Returns:
     geopandas.GeoDataFrame: The merged GeoDataFrame.
     """
-    print("Joining data sets together...")
-    occurrence_gdf['unit.linkings.taxon.id'] = occurrence_gdf['unit.linkings.taxon.id'].str.extract('(MX\.\d+)')
-    merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.taxon.id', right_on='idMainTaxon', how='left')
+    occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'].str.extract('(MVL\.\d+)')
+    merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.originalTaxon.informalTaxonGroups[0]', right_on='id', how='left')
     return merged_gdf
 
 def get_min_max_dates(gdf):

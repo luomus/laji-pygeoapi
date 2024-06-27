@@ -12,7 +12,6 @@ gpd.options.io_engine = "pyogrio" # Faster way to read data
 # URLs and file paths
 load_dotenv()
 access_token = os.getenv('ACCESS_TOKEN')
-taxon_id_url= f'https://api.laji.fi/v0/taxa/MX.37600/species?onlyFinnish=true&selectedFields=id,vernacularName,scientificName,informalTaxonGroups&lang=multi&page=1&pageSize=1000&sortOrder=taxonomic&access_token={access_token}'
 taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&access_token={access_token}'
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
@@ -49,7 +48,7 @@ def main():
     """
     Main function to load, process data, insert it into the database, and prepare the API configuration.
     """
-    #print(f"URL: n\ {occurrence_url}")
+    print(f"URL: n\ {occurrence_url}")
 
     tot_rows = 0
     multiprocessing = os.getenv('MULTIPROCESSING')
@@ -64,9 +63,7 @@ def main():
     edit_db.drop_all_tables(engine)
 
     # Get taxon data
-    taxon_df = load_data.get_taxon_data(taxon_id_url, taxon_name_url, pages='all')
-    #taxon_df = pd.read_csv('taxon-export.csv') # For local testing
-    #taxon_df = taxon_df.drop(['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','id_y','hasSubGroup'], axis=1)
+    taxon_df = load_data.get_taxon_data(taxon_name_url, pages='all')
 
     # Determine the number of pages to process 
     if pages.lower() == "all":
@@ -83,11 +80,10 @@ def main():
         
         # Get 10 pages of occurrence data
         gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
-        #gdf = load_data.get_occurrence_data('10000_virva_data.json', multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
-
+        
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-                
+
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
 

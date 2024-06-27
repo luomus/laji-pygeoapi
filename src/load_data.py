@@ -94,52 +94,21 @@ def find_main_taxon(row):
 
     return min_value
 
-def get_taxon_data(taxon_id_url, taxon_name_url, pages='all'):
+def get_taxon_data(taxon_name_url, pages='all'):
     """
     Retrieve taxon data from the API. Will be merged to occurrence data later.
 
     Parameters:
-    taxon_id_url (str): The URL of the taxon ID API endpoint.
     taxon_name_url (str): The URL of the taxon name API endpoint.
     pages (str or int, optional): Number of pages to retrieve. Defaults to "all".
 
     Returns:
     pandas.DataFrame: The retrieved taxon data.
     """
-    if pages == 'all':
-        endpage = get_last_page(taxon_id_url)
-    else:
-        endpage = int(pages)
-        
-    print(f"Retrieving {endpage} pages of taxon data from the API...")
-    id_df = pd.DataFrame()
-    for page_no in range(1, endpage + 1):
-        next_page = taxon_id_url.replace('page=1', f'page={page_no}')
-        response = requests.get(next_page)
-        if response.status_code == 200:
-            json_data_results = response.json().get('results', [])
-            next_df = pd.json_normalize(json_data_results)
-            id_df = pd.concat([id_df, next_df], ignore_index=True)
-        else:
-            print(f"Failed to fetch data from page {page_no}. Status code: {response.status_code}")
-
-    # Apply the find_main_taxon function to each row and store the main taxon in a new column
-    id_df['mainTaxon'] = id_df['informalTaxonGroups'].apply(find_main_taxon)
 
     # Get the another taxon data
     response = requests.get(taxon_name_url)
     json_data_results = response.json().get('results', [])
-    name_df = pd.json_normalize(json_data_results)
-
-    # Join both taxon data sets together
-    df = pd.merge(id_df, name_df, left_on='mainTaxon', right_on='id', suffixes=('MainTaxon', 'TaxonName'))
-
-    # Drop some columns
-    columns_to_drop = ['intellectualRights','vernacularName.fi','vernacularName.en','vernacularName.sv','vernacularName.se','informalTaxonGroups','hasSubGroup']
-    for column in columns_to_drop:
-        try:
-            df = df.drop(column, axis=1)
-        except:
-            print(f"Column {column} not exists")
+    df = pd.json_normalize(json_data_results)
 
     return df
