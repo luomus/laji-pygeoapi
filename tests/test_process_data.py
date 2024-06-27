@@ -9,7 +9,7 @@ from shapely.ops import transform
 
 sys.path.append('src/')
 
-from process_data import merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names, combine_similar_columns, convert_geometry_collection_to_multipolygon
+from process_data import merge_taxonomy_data, get_min_max_dates, clean_table_name, translate_column_names, combine_similar_columns, convert_geometry_collection_to_multipolygon, merge_duplicates
 
 class TestMergeTaxonomyData(unittest.TestCase):
 
@@ -315,6 +315,36 @@ class TestConvertGeometryCollectionToMultiPolygon(unittest.TestCase):
         polygon = Polygon([(0, 0), (1, 1), (1, 0)])
         result = convert_geometry_collection_to_multipolygon(polygon, self.buffer_distance)
         self.assertEqual(result, polygon)
+
+class TestMergeDuplicates(unittest.TestCase):
+
+    def setUp(self):
+        # Create a sample GeoDataFrame
+        data = {
+            'Keruu_aloitus_pvm': ['2020-01-01', '2020-01-01', '2020-01-01', '2020-02-01'],
+            'Keruu_lopetus_pvm': ['2020-01-02', '2020-01-02', '2020-01-02', '2020-02-02'],
+            'ETRS_TM35FIN_WKT': ['POINT (1 1)', 'POINT (1 1)', 'POINT (1 1)', 'POINT (2 2)'],
+            'Havainnoijat': ['A K', 'A K', 'A K', 'B D'],
+            'Taksonin_tunniste': ['T1', 'T1', 'T1', 'T2'],
+            'Yksilomaara_tulkittu': [5, 2, 20, 10],
+            'Keruutapahtuman_tunniste': ['K1', 'K2', 'K4', 'K3'],
+            'Havainnon_tunniste': ['H1', 'H2', 'H4', 'H3'],
+            'geometry': [Point(1, 1), Point(1, 1), Point(1, 1), Point(2, 2)]
+        }
+        self.gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+    def test_merge_duplicates(self):
+        # Call the function to merge duplicates
+        merged_gdf, amount_of_merged_occurrences = merge_duplicates(self.gdf)
+        print(merged_gdf)
+        
+        # Check the resulting GeoDataFrame
+        self.assertEqual(len(merged_gdf), 2)  # Expect 2 unique rows
+        self.assertEqual(merged_gdf.loc[0, 'Yksilomaara_tulkittu'], 27)  # Check updated value
+        self.assertEqual(merged_gdf.loc[0, 'Keruutapahtuman_tunniste'], ['K1', 'K2', 'K4'])  # Check aggregated list
+        self.assertEqual(merged_gdf.loc[0, 'Havainnon_tunniste'], ['H1', 'H2', 'H4'])  # Check aggregated list
+        self.assertEqual(merged_gdf.loc[1, 'Keruutapahtuman_tunniste'], 'K3')  # Check non-duplicate value
+        self.assertEqual(merged_gdf.loc[1, 'Havainnon_tunniste'], 'H3')  # Check non-duplicate value
 
 
 if __name__ == '__main__':

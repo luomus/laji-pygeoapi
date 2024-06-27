@@ -1,4 +1,5 @@
 import pandas as pd
+import geopandas as gpd
 import re
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
 from shapely.ops import unary_union
@@ -165,3 +166,38 @@ def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
         else:
             return None  # Return None if no valid geometries are found
     return geometry  # Return the original geometry if it is not a GeometryCollection
+
+
+def merge_duplicates(gdf):
+    """
+    Merge duplicates in a GeoDataFrame based on specified subset of columns and geometry.
+
+    Parameters:
+    gdf (GeoDataFrame): The input GeoDataFrame.
+
+    Returns:
+    GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
+    """
+
+    # Columns to consider for duplicates
+    columns_to_check = ['Keruu_aloitus_pvm', 'Keruu_lopetus_pvm', 'ETRS_TM35FIN_WKT', 'Havainnoijat', 'Taksonin_tunniste', 'geometry']
+
+    # Define how each column should be aggregated
+    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu']} # Select the first value for almost all columns
+    aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: list(x) if len(x) > 1 else x.iloc[0] # Create a list of the values if more than 1 items
+    aggregation_dict['Havainnon_tunniste'] = lambda x: list(x) if len(x) > 1 else x.iloc[0] # Create a list of the values if more than 1 items
+    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum the values
+
+    # Group by the columns to check for duplicates
+    grouped = gdf.groupby(columns_to_check).agg(aggregation_dict)
+
+    # TODO: Add 'Yhdistetty' column
+
+    # Reset index for clarity
+    grouped = grouped.reset_index(drop=True)
+
+    # Calculate merged features
+    amount_of_merged_occurrences = len(gdf) - len(grouped)
+
+    return gpd.GeoDataFrame(grouped, geometry='geometry', crs=gdf.crs), amount_of_merged_occurrences
+

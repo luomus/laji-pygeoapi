@@ -57,6 +57,7 @@ def main():
     engine = edit_db.connect_to_db()
     table_names = []
     no_occurrences_without_group = 0
+    no_merged_occurrences = 0
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
@@ -79,14 +80,14 @@ def main():
             endpage = startpage + 9
         else:
             endpage = pages
-
+        
         # Get 10 pages of occurrence data
         gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
         #gdf = load_data.get_occurrence_data('10000_virva_data.json', multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
 
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-
+                
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
 
@@ -101,11 +102,13 @@ def main():
         gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
         gdf['Sensitiivinen_laji'] = gdf['Sensitiivinen_laji'].astype('bool')
 
-        # Extract entries without family names and add their count
+        # Extract entries without family names and drop them
         no_occurrences_without_group += len(gdf[gdf['elioryhma'].isnull()])
-        
-        # Drop nulls
         gdf = gdf[~gdf['elioryhma'].isnull()]
+
+        # Merge duplicates
+        gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
+        no_merged_occurrences += amount_of_merged_occurrences
 
         print("Iterating over species classes...")
 
@@ -156,6 +159,7 @@ def main():
         print(f"In total {amount_of_occurrences} occurrences of {table_name} inserted to the database")
 
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
+    print(f"In total {no_merged_occurrences} duplicate occurrences where merged")
     print(f"Warning: in total {no_occurrences_without_group} species without scientific family name were discarded")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
