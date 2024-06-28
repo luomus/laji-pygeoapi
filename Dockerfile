@@ -22,4 +22,4 @@ COPY src/edit_db.py .
 COPY test_data/taxon-export.csv .
 COPY test_data/10000_virva_data.json .
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "-u", "main.py"]
