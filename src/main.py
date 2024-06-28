@@ -121,11 +121,9 @@ def main():
 
             # Get cleaned table name
             table_name = process_data.clean_table_name(group_name)
-            if table_name != 'nan' and table_name != 'unclassified' and table_name not in table_names:
-                table_names.append(table_name)
 
             # Skip nans and unclassified
-            if isinstance(table_name, str) and table_name != 'unclassified':
+            if isinstance(table_name, str) and table_name != 'unclassified' and table_name != 'nan':
                 
                 # Create local ID
                 sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
@@ -133,7 +131,8 @@ def main():
                 # Add to PostGIS database
                 try:
                     sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
-                    print(f"{table_name} added to the database")
+                    if table_name not in table_names:
+                         table_names.append(table_name)
                 except Exception as e:
                     print(f"\n\Error occurred: {e}")
             del sub_gdf

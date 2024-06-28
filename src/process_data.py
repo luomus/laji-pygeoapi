@@ -99,6 +99,8 @@ def translate_column_names(gdf, lookup_table, style='virva'):
     column_mapping = {}
     columns_to_remove = []
 
+    gdf = combine_similar_columns(gdf)
+
     # Iterate through the lookup table
     for _, row in lookup_df.iterrows():
         if len(str(row[style])) > 3:
@@ -110,8 +112,6 @@ def translate_column_names(gdf, lookup_table, style='virva'):
 
     # Remove columns from gdf that do not have a corresponding variable in lookup_df
     gdf.drop(columns=columns_to_remove, inplace=True, errors='ignore')
-
-    gdf = combine_similar_columns(gdf)
 
     # Rename columns based on the mapping
     gdf.rename(columns=column_mapping, inplace=True)
