@@ -55,8 +55,9 @@ def main():
     pages = os.getenv('PAGES')
     engine = edit_db.connect_to_db()
     table_names = []
-    no_occurrences_without_group = 0
-    no_merged_occurrences = 0
+    occurrences_without_group_count = 0
+    merged_occurrences_count = 0
+    edited_features_count = 0
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
@@ -72,26 +73,31 @@ def main():
     
     print(f"Retrieving {pages} pages of occurrence data from the API...")
 
-    # Load and process data in batches of 10 pages. Store to the database
-    for startpage in range(1, pages+1, 10):
-        if startpage < pages-9:
-            endpage = startpage + 9
+    # Load and process data in batches. Store to the database
+    batch_size=5
+    for startpage in range(1, pages+1, batch_size):
+        if startpage < pages-batch_size-1:
+            endpage = startpage + batch_size-1
         else:
             endpage = pages
         
         # Get 10 pages of occurrence data
         gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
 
-        print("Prosessing data...")
-
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
+
+        print("Prosessing data...")
 
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
 
         # Compute variables that can not be directly accessed from the source API
         gdf = compute_variables.compute_variables(gdf)
+
+        # Fix invalid geometries
+        gdf['geometry'], edited_features = process_data.validate_geometry(gdf['geometry'])
+        edited_features_count += edited_features
 
         # Convert GeometryCollections to MultiPolygons if they exist
         gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
@@ -102,14 +108,12 @@ def main():
         gdf['Sensitiivinen_laji'] = gdf['Sensitiivinen_laji'].astype('bool')
 
         # Extract entries without family names and drop them
-        no_occurrences_without_group += len(gdf[gdf['elioryhma'].isnull()])
+        occurrences_without_group_count += len(gdf[gdf['elioryhma'].isnull()])
         gdf = gdf[~gdf['elioryhma'].isnull()]
 
         # Merge duplicates
         gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
-        no_merged_occurrences += amount_of_merged_occurrences
-
-        print("Iterating over species classes...")
+        merged_occurrences_count += amount_of_merged_occurrences
 
         # Process each unique species group (e.g. Birds, Mammals etc.)
         for group_name in gdf['elioryhma'].unique():
@@ -129,9 +133,9 @@ def main():
                 # Add to PostGIS database
                 try:
                     sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
+                    print(f"{table_name} added to the database")
                 except Exception as e:
-                    print(f"Error occurred: {e}")
-                    print(f"Error: can't add {table_name} to PostGIS")
+                    print(f"\n\Error occurred: {e}")
             del sub_gdf
         del gdf
     del taxon_df
@@ -161,8 +165,9 @@ def main():
         print(f"In total {amount_of_occurrences} occurrences of {table_name} inserted to the database")
 
     print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
-    print(f"In total {no_merged_occurrences} duplicate occurrences where merged")
-    print(f"Warning: in total {no_occurrences_without_group} species without scientific family name were discarded")
+    print(f"In total {merged_occurrences_count} duplicate occurrences were merged")
+    print(f"In total {edited_features_count} invalid geometries were fixed")
+    print(f"Warning: in total {occurrences_without_group_count} species without scientific family name were discarded")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":

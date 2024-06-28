@@ -40,7 +40,7 @@ def drop_all_tables(engine):
     Parameters:
     engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine for database connection
     """
-    print("Clearing the database for new data...")
+    print("Initializing the database...")
     
     postgis_default_tables = ['spatial_ref_sys',
                                'topology',

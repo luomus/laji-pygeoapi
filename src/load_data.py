@@ -59,7 +59,7 @@ def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="a
     else:
         endpage = int(pages)
     
-    print(f"Retrieving occurrence data pages {startpage} - {endpage}...")
+    print(f"Retrieving occurrence data from page {startpage} to {endpage}...")
     gdf = gpd.GeoDataFrame()
 
     if multiprocessing==True or multiprocessing=="True":

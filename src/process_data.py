@@ -200,3 +200,19 @@ def merge_duplicates(gdf):
 
     return gpd.GeoDataFrame(grouped, geometry='geometry', crs=gdf.crs), amount_of_merged_occurrences
 
+def validate_geometry(geom):
+    """
+    Repairs invalid geometries.
+
+    Parameters:
+    geom (GeoSeries): GeoSeries with geometry information
+
+    Returns:
+    geom (GeoSeries): GeoSeries with valid geometries
+    edited_features_count (int): number of fixed geometries
+    """
+    # Use make_valid to ensure all geometries are valid
+    original_geometry = geom.copy()        
+    geom = geom.make_valid()
+    edited_features_count = (geom != original_geometry).sum()
+    return geom, edited_features_count
