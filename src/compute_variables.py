@@ -177,7 +177,18 @@ def compute_var_from_id_atlas_code(atlas_code_col):
     return atlas_code_col.map(id_to_finnish)
 
 def compute_variables(gdf):
-    gdf['Atlasluokka'] = compute_var_from_id_atlas_class(gdf['Atlasluokka'])
-    gdf['Atlaskoodi'] = compute_var_from_id_atlas_code(gdf['Atlaskoodi'])
-    gdf['Ensisijainen_habitaatti'] = compute_var_from_id_primary_habitat(gdf['Ensisijainen_habitaatti'])
+    if 'Atlasluokka' in gdf.columns:
+        gdf['Atlasluokka'] = compute_var_from_id_atlas_class(gdf['Atlasluokka'])
+    else:
+        gdf['Atlasluokka'] = None
+
+    if 'Atlaskoodi' in gdf.columns:
+        gdf['Atlaskoodi'] = compute_var_from_id_atlas_code(gdf['Atlaskoodi'])
+    else:
+        gdf['Atlaskoodi'] = None
+
+    if 'Ensisijainen_habitaatti' in gdf.columns:
+        gdf['Ensisijainen_habitaatti'] = compute_var_from_id_primary_habitat(gdf['Ensisijainen_habitaatti'])
+    else:
+        gdf['Ensisijainen_habitaatti'] = None
     return gdf

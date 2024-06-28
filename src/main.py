@@ -48,7 +48,7 @@ def main():
     """
     Main function to load, process data, insert it into the database, and prepare the API configuration.
     """
-    print(f"URL: n\ {occurrence_url}")
+    #print(f"URL: n\ {occurrence_url}")
 
     tot_rows = 0
     multiprocessing = os.getenv('MULTIPROCESSING')
@@ -69,6 +69,7 @@ def main():
     if pages.lower() == "all":
         pages = load_data.get_last_page(occurrence_url)
     pages = int(pages)
+    
     print(f"Retrieving {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches of 10 pages. Store to the database
@@ -80,7 +81,9 @@ def main():
         
         # Get 10 pages of occurrence data
         gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
-        
+
+        print("Prosessing data...")
+
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
 
@@ -124,8 +127,11 @@ def main():
                 sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
 
                 # Add to PostGIS database
-                sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
-                
+                try:
+                    sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
+                except Exception as e:
+                    print(f"Error occurred: {e}")
+                    print(f"Error: can't add {table_name} to PostGIS")
             del sub_gdf
         del gdf
     del taxon_df
