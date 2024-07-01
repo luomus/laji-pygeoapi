@@ -107,6 +107,9 @@ def main():
         gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
         gdf['Sensitiivinen_laji'] = gdf['Sensitiivinen_laji'].astype('bool')
 
+        if 'Aineistolahde' not in gdf.columns:
+            gdf['Aineistolahde'] = None
+
         # Extract entries without family names and drop them
         occurrences_without_group_count += len(gdf[gdf['elioryhma'].isnull()])
         gdf = gdf[~gdf['elioryhma'].isnull()]
@@ -134,7 +137,7 @@ def main():
                     if table_name not in table_names:
                          table_names.append(table_name)
                 except Exception as e:
-                    print(f"\n\Error occurred: {e}")
+                    print(f"Error occurred: {e}")
             del sub_gdf
         del gdf
     del taxon_df
