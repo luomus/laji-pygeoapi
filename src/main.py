@@ -19,7 +19,7 @@ lookup_table = r'lookup_table_columns.csv'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
-selected_fields = "unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.taxonomicOrder,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
+selected_fields = "unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.municipality,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,unit.linkings.taxon.taxonomicOrder,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
 administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
 red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
 country_id = "ML.206"
@@ -58,6 +58,7 @@ def main():
     occurrences_without_group_count = 0
     merged_occurrences_count = 0
     edited_features_count = 0
+    failed_features_count = 0
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
@@ -138,6 +139,7 @@ def main():
                          table_names.append(table_name)
                 except Exception as e:
                     print(f"Error occurred: {e}")
+                    failed_features_count += len(sub_gdf) 
             del sub_gdf
         del gdf
     del taxon_df
@@ -170,6 +172,7 @@ def main():
     print(f"In total {merged_occurrences_count} duplicate occurrences were merged")
     print(f"In total {edited_features_count} invalid geometries were fixed")
     print(f"Warning: in total {occurrences_without_group_count} species without scientific family name were discarded")
+    print(f"Warning: in total {failed_features_count} features failed to add to the database")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":

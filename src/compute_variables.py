@@ -5,13 +5,33 @@ def compute_coordinate_uncertainty(gdf):
     # computed_coordinate_uncertainty
     return gdf
 
-def compute_var_from_id_threatened_status(gdf):
-    #computed_var_from_id_threatened_status
-    return gdf
+def compute_var_from_id_threatened_status(threatened_status_column):
+    threatened_statuses = {
+    "http://tun.fi/MX.threatenedStatusStatutoryProtected": "Lakisääteinen",
+    "http://tun.fi/MX.threatenedStatusThreatened": "Uhanalainen",
+    "http://tun.fi/MX.threatenedStatusNearThreatened": "Silmälläpidettävä",
+    "http://tun.fi/MX.threatenedStatusOther": "Muu"
+    }
+    threatened_status_column = threatened_status_column.map(threatened_statuses)
+    return threatened_status_column
 
-def compute_var_red_list_status(gdf):
-    #computed_var_red_list_status
-    return gdf
+def compute_var_red_list_status(red_list_column):
+    red_list_statuses = {
+    "http://tun.fi/MX.iucnEX": "EX - Sukupuuttoon kuolleet",
+    "http://tun.fi/MX.iucnEW": "EW - Luonnosta hävinneet",
+    "http://tun.fi/MX.iucnRE": "RE - Suomesta hävinneet",
+    "http://tun.fi/MX.iucnCR": "CR - Äärimmäisen uhanalaiset",
+    "http://tun.fi/MX.iucnEN": "EN - Erittäin uhanalaiset",
+    "http://tun.fi/MX.iucnVU": "VU - Vaarantuneet",
+    "http://tun.fi/MX.iucnNT": "NT - Silmälläpidettävät",
+    "http://tun.fi/MX.iucnLC": "LC - Elinvoimaiset",
+    "http://tun.fi/MX.iucnDD": "DD - Puutteellisesti tunnetut",
+    "http://tun.fi/MX.iucnNA": "NA - Arviointiin soveltumattomat",
+    "http://tun.fi/MX.iucnNE": "NE - Arvioimatta jätetyt"
+    }
+
+    red_list_column = red_list_column.map(red_list_statuses)
+    return red_list_column
 
 def compute_var_occurrence_status(gdf):
     #computed_var_occurrence_status
@@ -123,16 +143,8 @@ def compute_var_from_id_primary_habitat(habitat_column):
     habitat_column = habitat_column.map(habitat_dict)
     return habitat_column
 
-def compute_var_from_id_municipality(gdf):
-    #computed_var_from_id_municipality
-    return gdf
-
 def compute_var_from_id_collection(gdf):
     #computedd_var_from_id_collection
-    return gdf
-
-def compute_var_from_id_municipality(gdf):
-    #computed_var_from_id_municipality
     return gdf
     
 def compute_var_from_id_atlas_class(atlas_class_col):
@@ -191,4 +203,15 @@ def compute_variables(gdf):
         gdf['Ensisijainen_habitaatti'] = compute_var_from_id_primary_habitat(gdf['Ensisijainen_habitaatti'])
     else:
         gdf['Ensisijainen_habitaatti'] = None
+    
+    if 'Uhanalaisuusluokka' in gdf.columns:
+        gdf['Uhanalaisuusluokka'] = compute_var_red_list_status(gdf['Uhanalaisuusluokka'])
+    else:
+        gdf['Uhanalaisuusluokka'] = None
+
+    if 'Lajiturva' in gdf.columns:
+        gdf['Lajiturva'] = compute_var_from_id_threatened_status(gdf['Lajiturva'])
+    else:
+        gdf['Lajiturva'] = None
+
     return gdf
