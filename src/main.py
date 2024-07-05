@@ -19,7 +19,7 @@ lookup_table = r'lookup_table_columns.csv'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
-selected_fields = "unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.municipality,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,unit.linkings.taxon.taxonomicOrder,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
+selected_fields = "unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.municipality,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
 administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
 red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
 country_id = "ML.206"
@@ -29,7 +29,7 @@ only_count = "false"
 individual_count_min = "0"
 coordinate_accuracy_max = "1000"
 page = "1"
-page_size = "10000"
+page_size = "1000"
 taxon_admin_filters_operator = "OR"
 collection_and_record_quality = "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;"
 geo_json = "true"
@@ -85,16 +85,19 @@ def main():
         # Get 10 pages of occurrence data
         gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
 
+        print("Prosessing data...")
+
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
 
-        print("Prosessing data...")
-
-        # Remove some columns
-        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+        # Combine similar columns (e.g. 'column[0]' and 'column[1]' to 'column')
+        gdf = process_data.combine_similar_columns(gdf)
 
         # Compute variables that can not be directly accessed from the source API
         gdf = compute_variables.compute_variables(gdf)
+
+        # Remove some columns
+        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
 
         # Fix invalid geometries
         gdf['geometry'], edited_features = process_data.validate_geometry(gdf['geometry'])
@@ -168,7 +171,7 @@ def main():
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
         print(f"In total {amount_of_occurrences} occurrences of {table_name} inserted to the database")
 
-    print(f"\nIn total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
+    print(f"In total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"In total {merged_occurrences_count} duplicate occurrences were merged")
     print(f"In total {edited_features_count} invalid geometries were fixed")
     print(f"Warning: in total {occurrences_without_group_count} species without scientific family name were discarded")

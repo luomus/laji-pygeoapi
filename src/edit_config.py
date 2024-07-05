@@ -1,4 +1,5 @@
 from datetime import date
+import re
 
 def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     """
@@ -16,8 +17,9 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     for i, line in enumerate(lines):
 
         # Add latest update timestamp to pygeoapi description
-        if "<latest_update_placeholder>" in line:
-            lines[i] = line.replace('<latest_update_placeholder>', str(date.today()))
+        match = re.search(r'\d{4}-\d{2}-\d{2}', line)
+        if match:
+            lines[i] = line.replace(match.group(), str(date.today()))
 
         # Find the point where resources section starts
         if "resources" in line:

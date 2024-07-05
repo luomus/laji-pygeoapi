@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
-
-def compute_coordinate_uncertainty(gdf):
-    # computed_coordinate_uncertainty
-    return gdf
+from dotenv import load_dotenv
+import requests, json, os
 
 def compute_var_from_id_threatened_status(threatened_status_column):
     threatened_statuses = {
@@ -33,13 +31,85 @@ def compute_var_red_list_status(red_list_column):
     red_list_column = red_list_column.map(red_list_statuses)
     return red_list_column
 
-def compute_var_occurrence_status(gdf):
-    #computed_var_occurrence_status
-    return gdf
+def compute_var_from_id_regulatory_status(regulatory_status_column):
 
-def compute_var_from_id_regulatory_status(gdf):
-    #computed_var_from_id_regulatory_status
-    return gdf
+    regulatory_statuses = {
+        "http://tun.fi/MX.finlex160_1997_appendix4_2021": "Uhanalaiset lajit (LSA 2023/1066, liite 6)",
+        "http://tun.fi/MX.finlex160_1997_appendix4_specialInterest_2021": "Erityisesti suojeltavat lajit (LSA 2023/1066, liite 6)",
+        "http://tun.fi/MX.finlex160_1997_appendix2a": "Koko maassa rauhoitetut eläinlajit (LSA 2023/1066, liite 1)",
+        "http://tun.fi/MX.finlex160_1997_appendix2b": "Pohjois-Pohjanmaan ja Kainuun maakuntien eteläpuolella rauhoitetut eläinlajit (LSA 2023/1066, liite 2)",
+        "http://tun.fi/MX.finlex160_1997_appendix3a": "Koko maassa rauhoitetut kasvilajit (LSA 2023/1066, liite 3)",
+        "http://tun.fi/MX.finlex160_1997_appendix3b": "Pohjois-Pohjanmaan ja Kainuun maakuntien eteläpuolella rauhoitetut putkilokasvit (LSA 2023/1066, liite 4)",
+        "http://tun.fi/MX.finlex160_1997_appendix3c": "Pohjois-Pohjanmaan, Kainuun ja Lapin maakunnissa rauhoitetut putkilokasvit (LSA 2023/1066, liite 5)",
+        "http://tun.fi/MX.finlex160_1997_largeBirdsOfPrey": "Suuret petolinnut (LSL 2023/9, 73 §)",
+        "http://tun.fi/MX.finlex1066_2023_appendix7": "Suomessa esiintyvät Euroopan unionin tiukkaa suojelua edellyttävät eliölajit  (LSA 2023/1066, liite 7)",
+        "http://tun.fi/MX.habitatsDirectiveAnnexII": "EU:n luontodirektiivin II-liite",
+        "http://tun.fi/MX.habitatsDirectiveAnnexIV": "EU:n luontodirektiivin IV-liite",
+        "http://tun.fi/MX.habitatsDirectiveAnnexV": "EU:n luontodirektiivin V-liite",
+        "http://tun.fi/MX.primaryInterestInEU": "EU:n ensisijaisesti suojeltavat lajit (luontodirektiivin II-liite)",
+        "http://tun.fi/MX.habitatsDirectiveAnnexIIExceptionGranted": "EU:n luontodirektiivin II-liite, Suomi saanut varauman koskien tätä lajia",
+        "http://tun.fi/MX.habitatsDirectiveAnnexII_FinlandNaturaSpecies": "EU:n luontodirektiivin liite II, Suomen Natura-lajit",
+        "http://tun.fi/MX.habitatsDirectiveAnnexIVExceptionGranted": "EU:n luontodirektiivin IV-liite, Suomi saanut varauman koskien tätä lajia",
+        "http://tun.fi/MX.habitatsDirectiveAnnexVExceptionGranted": "EU:n luontodirektiivin V-liite, Suomi saanut varauman koskien tätä lajia",
+        "http://tun.fi/MX.birdsDirectiveStatusAppendix1": "EU:n lintudirektiivin I-liite",
+        "http://tun.fi/MX.birdsDirectiveStatusAppendix2A": "EU:n lintudirektiivin II/A-liite",
+        "http://tun.fi/MX.birdsDirectiveStatusAppendix2B": "EU:n lintudirektiivin II/B-liite",
+        "http://tun.fi/MX.birdsDirectiveStatusAppendix3A": "EU:n lintudirektiivin III/A-liite",
+        "http://tun.fi/MX.birdsDirectiveStatusAppendix3B": "EU:n lintudirektiivin III/B-liite",
+        "http://tun.fi/MX.birdsDirectiveStatusMigratoryBirds": "EU:n lintudirektiivin muuttolinnut",
+        "http://tun.fi/MX.cites_appendixI": "CITES-sopimus, liite I",
+        "http://tun.fi/MX.cites_appendixII": "CITES-sopimus, liite II",
+        "http://tun.fi/MX.cites_appendixIII": "CITES-sopimus, liite III",
+        "http://tun.fi/MX.euRegulation_cites_appendixA": "EU-lainsäädäntö koskien CITES-sopimusta, liite A",
+        "http://tun.fi/MX.euRegulation_cites_appendixB": "EU-lainsäädäntö koskien CITES-sopimusta, liite B",
+        "http://tun.fi/MX.euRegulation_cites_appendixD": "EU-lainsäädäntö koskien CITES-sopimusta, liite D",
+        "http://tun.fi/MX.finnishEnvironmentInstitute2020protectionPrioritySpecies": "Kiireellisesti suojeltavat lajit (SYKE 2020)",
+        "http://tun.fi/MX.finnishEnvironmentInstitute2010protectionPrioritySpecies": "VANHA Kiireellisesti suojeltavat lajit (SYKE 2010-2011)",
+        "http://tun.fi/MX.gameBird": "Riistalintu (Metsästyslaki 1993/615)",
+        "http://tun.fi/MX.gameMammal": "Riistanisäkäs (Metsästyslaki 1993/615; 2019/683)",
+        "http://tun.fi/MX.unprotectedSpecies": "Rauhoittamaton eläin (Metsästyslaki 1993/615)",
+        "http://tun.fi/MX.nationallySignificantInvasiveSpecies": "Haitallinen vieraslaji (Kansallinen luettelo) (VN 1725/2015)",
+        "http://tun.fi/MX.euInvasiveSpeciesList": "EU:ssa haitalliseksi säädetty vieraslaji (EU:n vieraslajiluettelo) (EU 2016/1141; 2017/1263; 2019/1262; 2022/1203)",
+        "http://tun.fi/MX.quarantinePlantPest": "Karanteenituhooja",
+        "http://tun.fi/MX.qualityPlantPest": "Laatutuhooja",
+        "http://tun.fi/MX.otherPlantPest": "Muu kasvintuhooja",
+        "http://tun.fi/MX.nationalInvasiveSpeciesStrategy": "Kansallinen vieraslajistrategia (VN 2012)",
+        "http://tun.fi/MX.otherInvasiveSpeciesList": "Muu vieraslaji",
+        "http://tun.fi/MX.controllingRisksOfInvasiveAlienSpecies": "Kansallisesti haitalliseksi säädetty vieraslaji (Kansallinen vieraslajiluettelo) (VN 704/2019, VN 912/2023)",
+        "http://tun.fi/MX.finnishEnvironmentInstitute20072010forestSpecies": "VANHA Uhanalaisten lajien turvaaminen metsätaloudessa -hankkeessa 2007-2010 laadittu metsälajiluettelo",
+        "http://tun.fi/MX.finnishEnvironmentInstitute2020conservationProjectSpecies": "Metsäisten suojelualueiden konnektiviteetti - SUMI-hankkeessa 2020 laadittu metsälajiluettelo",
+        "http://tun.fi/MX.finnishEnvironmentInstitute2020conservationProjectAapamireSpecies": "Aapasuolajit - SUMI-hankkeessa 2020 laadittu uhanalaisten tai silmälläpidettävien aapasuolajien luettelo",
+        "http://tun.fi/MX.finnishEnvironmentInstitute2020conservationProjectVascularSpecies": "Putkilokasvien toiminnallinen monimuotoisuus - SUMI-hankkeessa 2022 laadittu luettelo",
+        "http://tun.fi/MX.cropWildRelative": "Viljelykasvien luonnonvarainen sukulainen (CWR Prioriteettilaji)",
+        "http://tun.fi/MX.finnishEnvironmentInstitute20192021forestSpecies": "Uhanalaisten lajien esiintymien turvaaminen metsätaloudessa - Lajiturva-hankkeessa 2019-2021 laadittu lajiluettelo",
+        "http://tun.fi/MX.forestCentreSpecies": "Metsänkäyttöilmoitusten automaattimenettelyssä käytettävä lajiluettelo (MKI-OHKE 2023)",
+        "http://tun.fi/MX.regionallyThreatened2020_1a": "Alueellisesti uhanalainen 2020 - 1a Hemiboreaalinen, Ahvenanmaa",
+        "http://tun.fi/MX.regionallyThreatened2020_1b": "Alueellisesti uhanalainen 2020 - 1b Hemiboreaalinen, Lounainen rannikkomaa",
+        "http://tun.fi/MX.regionallyThreatened2020_2a": "Alueellisesti uhanalainen 2020 - 2a Eteläboreaalinen, Lounaismaa ja Pohjanmaan rannikko",
+        "http://tun.fi/MX.regionallyThreatened2020_2b": "Alueellisesti uhanalainen 2020 - 2b Eteläboreaalinen, Järvi-Suomi",
+        "http://tun.fi/MX.regionallyThreatened2020_3a": "Alueellisesti uhanalainen 2020 - 3a Keskiboreaalinen, Pohjanmaa",
+        "http://tun.fi/MX.regionallyThreatened2020_3b": "Alueellisesti uhanalainen 2020 - 3b Keskiboreaalinen, Pohjois-Karjala-Kainuu",
+        "http://tun.fi/MX.regionallyThreatened2020_3c": "Alueellisesti uhanalainen 2020 - 3c Keskiboreaalinen, Lapin kolmio",
+        "http://tun.fi/MX.regionallyThreatened2020_4a": "Alueellisesti uhanalainen 2020 - 4a Pohjoisboreaalinen, Koillismaa",
+        "http://tun.fi/MX.regionallyThreatened2020_4b": "Alueellisesti uhanalainen 2020 - 4b Pohjoisboreaalinen, Perä-Pohjola",
+        "http://tun.fi/MX.regionallyThreatened2020_4c": "Alueellisesti uhanalainen 2020 - 4c Pohjoisboreaalinen, Metsä-Lappi",
+        "http://tun.fi/MX.regionallyThreatened2020_4d": "Alueellisesti uhanalainen 2020 - 4d Pohjoisboreaalinen, Tunturi-Lappi",
+        "http://tun.fi/MX.finlex160_1997_appendix1": "VANHA Kalalajit, joihin sovelletaan luonnonsuojelulakia (LSA 1997/160, liite 1)",
+        "http://tun.fi/MX.finlex160_1997_appendix4": "VANHA Uhanalaiset lajit (LSA 1997/160, liite 4 2013/471)",
+        "http://tun.fi/MX.finlex160_1997_appendix4_specialInterest": "VANHA Erityisesti suojeltavat lajit (LSA 1997/160, liite 4 2013/471)"
+    }
+
+
+    # Function to map the values
+    def map_values(cell):
+        values = cell.split(', ')
+        mapped_values = [regulatory_statuses.get(value, value) for value in values]
+        return '; '.join(mapped_values)
+
+    # Apply the function to the dataframe
+    regulatory_status_column = regulatory_status_column.apply(map_values)
+
+    return regulatory_status_column
 
 def compute_var_from_id_primary_habitat(habitat_column):
     # Mapping data
@@ -142,11 +212,7 @@ def compute_var_from_id_primary_habitat(habitat_column):
 
     habitat_column = habitat_column.map(habitat_dict)
     return habitat_column
-
-def compute_var_from_id_collection(gdf):
-    #computedd_var_from_id_collection
-    return gdf
-    
+   
 def compute_var_from_id_atlas_class(atlas_class_col):
     # Data from https://schema.laji.fi/alt/MY.atlasClassEnum
     data = [
@@ -189,29 +255,40 @@ def compute_var_from_id_atlas_code(atlas_code_col):
     return atlas_code_col.map(id_to_finnish)
 
 def compute_variables(gdf):
-    if 'Atlasluokka' in gdf.columns:
-        gdf['Atlasluokka'] = compute_var_from_id_atlas_class(gdf['Atlasluokka'])
+    # Get "Atlasluokka"
+    if 'unit.atlasClass' in gdf.columns:
+        gdf['unit.atlasClass'] = compute_var_from_id_atlas_class(gdf['unit.atlasClass'])
     else:
-        gdf['Atlasluokka'] = None
+        gdf['unit.atlasClass'] = None
+    # Get "Atlaskoodi"
+    if 'unit.atlasCode' in gdf.columns:
+        gdf['unit.atlasCode'] = compute_var_from_id_atlas_code(gdf['unit.atlasCode'])
+    else:
+        gdf['unit.atlasCode'] = None
 
-    if 'Atlaskoodi' in gdf.columns:
-        gdf['Atlaskoodi'] = compute_var_from_id_atlas_code(gdf['Atlaskoodi'])
+    # Get "Ensisijainen_biotooppi"
+    if 'unit.linkings.originalTaxon.primaryHabitat.habitat' in gdf.columns:
+        gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'] = compute_var_from_id_primary_habitat(gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'])
     else:
-        gdf['Atlaskoodi'] = None
-
-    if 'Ensisijainen_habitaatti' in gdf.columns:
-        gdf['Ensisijainen_habitaatti'] = compute_var_from_id_primary_habitat(gdf['Ensisijainen_habitaatti'])
-    else:
-        gdf['Ensisijainen_habitaatti'] = None
+        gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'] = None
     
-    if 'Uhanalaisuusluokka' in gdf.columns:
-        gdf['Uhanalaisuusluokka'] = compute_var_red_list_status(gdf['Uhanalaisuusluokka'])
+    # Get "Uhanalaisuusluokka"
+    if 'unit.linkings.originalTaxon.latestRedListStatusFinland.status' in gdf.columns:
+        gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = compute_var_red_list_status(gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'])
     else:
-        gdf['Uhanalaisuusluokka'] = None
+        gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = None
 
-    if 'Lajiturva' in gdf.columns:
-        gdf['Lajiturva'] = compute_var_from_id_threatened_status(gdf['Lajiturva'])
+    # Get "Lajiturva"
+    if 'unit.linkings.taxon.threatenedStatus' in gdf.columns:
+        gdf['unit.linkings.taxon.threatenedStatus'] = compute_var_from_id_threatened_status(gdf['unit.linkings.taxon.threatenedStatus'])
     else:
-        gdf['Lajiturva'] = None
+        gdf['unit.linkings.taxon.threatenedStatus'] = None
+
+    # Get "Hallinnollinen_asema"
+    if 'unit.linkings.originalTaxon.administrativeStatuses' in gdf.columns:
+        gdf['unit.linkings.originalTaxon.administrativeStatuses'] = compute_var_from_id_regulatory_status(gdf['unit.linkings.originalTaxon.administrativeStatuses'])
+    else:
+        gdf['unit.linkings.originalTaxon.administrativeStatuses'] = None
+
 
     return gdf

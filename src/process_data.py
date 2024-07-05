@@ -99,8 +99,6 @@ def translate_column_names(gdf, lookup_table, style='virva'):
     column_mapping = {}
     columns_to_remove = []
 
-    gdf = combine_similar_columns(gdf)
-
     # Iterate through the lookup table
     for _, row in lookup_df.iterrows():
         if len(str(row[style])) > 3:
