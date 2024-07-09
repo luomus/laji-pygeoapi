@@ -2,7 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from dotenv import load_dotenv
 import os
-import process_data, edit_config, load_data, edit_configmaps, edit_db, compute_variables
+import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db
 #import numpy as np
 
 # Set options for pandas and geopandas
@@ -19,7 +19,7 @@ lookup_table = r'lookup_table_columns.csv'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
-selected_fields = "unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.municipality,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
+selected_fields = "unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.municipality,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
 administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
 red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
 country_id = "ML.206"
@@ -29,7 +29,7 @@ only_count = "false"
 individual_count_min = "0"
 coordinate_accuracy_max = "1000"
 page = "1"
-page_size = "1000"
+page_size = "10000"
 taxon_admin_filters_operator = "OR"
 collection_and_record_quality = "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;"
 geo_json = "true"
@@ -75,7 +75,7 @@ def main():
     print(f"Retrieving {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches. Store to the database
-    batch_size=5
+    batch_size=10
     for startpage in range(1, pages+1, batch_size):
         if startpage < pages-batch_size-1:
             endpage = startpage + batch_size-1
@@ -106,25 +106,17 @@ def main():
         # Convert GeometryCollections to MultiPolygons if they exist
         gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
 
-        # Change column types
-        gdf['Keruu_aloitus_pvm'] = gdf['Keruu_aloitus_pvm'].astype('str')
-        gdf['Keruu_lopetus_pvm'] = gdf['Keruu_lopetus_pvm'].astype('str')
-        gdf['Sensitiivinen_laji'] = gdf['Sensitiivinen_laji'].astype('bool')
-
-        if 'Aineistolahde' not in gdf.columns:
-            gdf['Aineistolahde'] = None
-
         # Extract entries without family names and drop them
-        occurrences_without_group_count += len(gdf[gdf['elioryhma'].isnull()])
-        gdf = gdf[~gdf['elioryhma'].isnull()]
+        occurrences_without_group_count += len(gdf[gdf['Elioryhma'].isnull()])
+        gdf = gdf[~gdf['Elioryhma'].isnull()]
 
         # Merge duplicates
         gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
         merged_occurrences_count += amount_of_merged_occurrences
 
         # Process each unique species group (e.g. Birds, Mammals etc.)
-        for group_name in gdf['elioryhma'].unique():
-            sub_gdf = gdf[gdf['elioryhma'] == group_name]
+        for group_name in gdf['Elioryhma'].unique():
+            sub_gdf = gdf[gdf['Elioryhma'] == group_name]
 
             # Get cleaned table name
             table_name = process_data.clean_table_name(group_name)

@@ -31,9 +31,11 @@ def get_min_max_dates(gdf):
     end_date: the last datestamp of the Geodataframe in RFC3399 format
     """
     # Filter out NaT (Not a Time) values
-    start_dates = pd.to_datetime(gdf['Keruu_aloitus_pvm']).dropna()
-    end_dates = pd.to_datetime(gdf['Keruu_lopetus_pvm']).dropna()
-
+    try:
+        start_dates = pd.to_datetime(gdf['Keruu_aloitus_pvm']).dropna()
+        end_dates = pd.to_datetime(gdf['Keruu_lopetus_pvm']).dropna()
+    except ValueError as e:
+        print(e)
 
     # Get the first date in RFC3339 format
     if len(start_dates) > 0:
@@ -80,39 +82,49 @@ def combine_similar_columns(gdf):
     
     return gdf
 
-
 def translate_column_names(gdf, lookup_table, style='virva'):
     """
-    Maps column names in a GeoDataFrame to Darwin Core names using a lookup table.
+    Maps column names in a GeoDataFrame to Finnish names and correct data types using a lookup table.
 
     Parameters:
     gdf (geopandas.GeoDataFrame): The GeoDataFrame to be mapped.
     lookup_table (str): The path to the CSV lookup table.
-    style (str): Format to column names tranlate to. Options: 'translated_var', 'dwc' and 'virva'. Defaults to 'virva'.
+    style (str): Format to column names translate to. Options: 'translated_var', 'dwc' and 'virva'. Defaults to 'virva'.
 
     Returns:
-    geopandas.GeoDataFrame: The GeoDataFrame with columns renamed according to the lookup table.
+    geopandas.GeoDataFrame: The GeoDataFrame with columns renamed and converted according to the lookup table.
     """
     # Load the lookup table CSV into a DataFrame
     lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
 
+    # Dictionary to hold the mapping of old column names to new column names and types
     column_mapping = {}
-    columns_to_remove = []
+    column_types = {}
+    columns_to_keep = []
 
-    # Iterate through the lookup table
-    for _, row in lookup_df.iterrows():
-        if len(str(row[style])) > 3:
-            # Map columns if the given format exists
-            column_mapping[row['finbif_api_var']] = row[style]
+    for column in lookup_df['finbif_api_var']:
+        new_column_name = lookup_df.loc[lookup_df['finbif_api_var'] == column, style].iloc[0]
+        new_column_type = lookup_df.loc[lookup_df['finbif_api_var'] == column, 'type'].iloc[0]
+        column_types[new_column_name] = new_column_type
+        columns_to_keep.append(new_column_name)
+
+        if column in gdf.columns:
+            column_mapping[column] = new_column_name
         else:
-            # If there is nothing to map, add column to removable list
-            columns_to_remove.append(row['finbif_api_var'])
+            gdf[new_column_name] = None
 
-    # Remove columns from gdf that do not have a corresponding variable in lookup_df
-    gdf.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+    # Rename existing columns
+    gdf = gdf.rename(columns=column_mapping)
 
-    # Rename columns based on the mapping
-    gdf.rename(columns=column_mapping, inplace=True)
+    # Drop columns that are not in the lookup table
+    gdf = gdf[columns_to_keep]
+
+    # Change column types according to the table and fill NaNs for integer columns
+    for new_column_name, new_column_type in column_types.items():
+        if new_column_type == 'int':
+            gdf.fillna({new_column_name: 0}, inplace=True)
+        if new_column_name != 'geometry':
+            gdf[new_column_name] = gdf[new_column_name].astype(new_column_type)
 
     return gdf
 
@@ -139,7 +151,6 @@ def clean_table_name(group_name):
 
     return f'{cleaned_name}'
 
-
 def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
     """Convert GeometryCollection to MultiPolygon, buffering points and lines if necessary."""
     if isinstance(geometry, GeometryCollection):
@@ -164,7 +175,6 @@ def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
             return None  # Return None if no valid geometries are found
     return geometry  # Return the original geometry if it is not a GeometryCollection
 
-
 def merge_duplicates(gdf):
     """
     Merge duplicates in a GeoDataFrame based on specified subset of columns and geometry.
@@ -175,23 +185,27 @@ def merge_duplicates(gdf):
     Returns:
     GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
     """
-
     # Columns to consider for duplicates
     columns_to_check = ['Keruu_aloitus_pvm', 'Keruu_lopetus_pvm', 'ETRS_TM35FIN_WKT', 'Havainnoijat', 'Taksonin_tunniste']
 
+    #missing_columns = [col for col in columns_to_check if col not in gdf.columns]
+    #if missing_columns:
+    #    raise ValueError(f"Missing columns in the GeoDataFrame: {missing_columns}")
+    
     # Define how each column should be aggregated
     aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu']} # Select the first value for almost all columns
     aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: list(x) if len(x) > 1 else x.iloc[0] # Create a list of the values if more than 1 items
     aggregation_dict['Havainnon_tunniste'] = lambda x: list(x) if len(x) > 1 else x.iloc[0] # Create a list of the values if more than 1 items
-    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum the values
+    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum 'Yksilomaara_tulkitut'
 
     # Group by the columns to check for duplicates
     grouped = gdf.groupby(columns_to_check).agg(aggregation_dict)
 
-    # TODO: Add 'Yhdistetty' column
-
     # Reset index for clarity
     grouped = grouped.reset_index(drop=True)
+
+    # Create 'Yhdistetty' column
+    grouped['Yhdistetty'] = grouped['Havainnon_tunniste'].apply(lambda x: len(x) if isinstance(x, list) else 1)
 
     # Calculate merged features
     amount_of_merged_occurrences = len(gdf) - len(grouped)
