@@ -5,6 +5,16 @@ from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 import requests, pyogrio, psycopg2, geoalchemy2, os, concurrent.futures
 
+def get_collection_names(api_url):
+    # Fetching the JSON data from the API
+    response = requests.get(api_url)
+    data = response.json()
+
+    # Extracting collection ids and longNames and storing them in a dictionary
+    ids_and_names = {item['id']: item['longName'] for item in data['results']}
+
+    return ids_and_names
+
 def get_last_page(data_url):
     """
     Get the last page number from the API response.

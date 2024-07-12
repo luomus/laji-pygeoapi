@@ -52,3 +52,12 @@ name;informal_group_name;InformalGroupName;Elioryhma;str
 unit.linkings.originalTaxon.vernacularName.fi;;;Yleiskielinen_nimi;str
 unit.linkings.originalTaxon.latestRedListStatusFinland.year;;;Uhanalaisuusluokan_vuosi;int
 geometry;geometry;geometry;geometry;geom
+compute_from_individual_count;;;Esiintyman_tila;str
+compute_from_collection_id;;;Aineisto;str
+Seurattava laji;;;Seurattava_laji;str
+Sijainnin tarkkuusluokka;;;Sijainnin_tarkkuusluokka;str
+Havainnon laatu;;;Havainnon_laatu;str
+Peittävyysprosentti;;;Peittavyysprosentti;str
+Havainnon määrän yksikkö;;;Havainnon_maaran_yksikko;str
+Vesistöalue;;;Vesistoalue;str
+Merialueen tunniste;;;Merialueen_tunniste;str

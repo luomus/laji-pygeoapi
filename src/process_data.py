@@ -63,7 +63,7 @@ def combine_similar_columns(gdf):
     """
     # Use regex to find columns with a pattern ending with [n]
     pattern = re.compile(r'^(.*)\[\d+\]$')
-    
+
     # Dictionary to store the groups of columns
     columns_dict = {}
 
@@ -187,17 +187,17 @@ def merge_duplicates(gdf):
     """
     # Columns to consider for duplicates
     columns_to_check = ['Keruu_aloitus_pvm', 'Keruu_lopetus_pvm', 'ETRS_TM35FIN_WKT', 'Havainnoijat', 'Taksonin_tunniste']
-
-    #missing_columns = [col for col in columns_to_check if col not in gdf.columns]
-    #if missing_columns:
-    #    raise ValueError(f"Missing columns in the GeoDataFrame: {missing_columns}")
     
     # Define how each column should be aggregated
-    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu']} # Select the first value for almost all columns
-    aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: list(x) if len(x) > 1 else x.iloc[0] # Create a list of the values if more than 1 items
-    aggregation_dict['Havainnon_tunniste'] = lambda x: list(x) if len(x) > 1 else x.iloc[0] # Create a list of the values if more than 1 items
-    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum 'Yksilomaara_tulkitut'
-
+    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']} # Select the first value for almost all columns
+    aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0] # Join values if more than 1 value
+    aggregation_dict['Havainnon_tunniste'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Maara'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Avainsanat'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Havainnon_lisatiedot'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum values
+    aggregation_dict['Aineisto'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+ 
     # Group by the columns to check for duplicates
     grouped = gdf.groupby(columns_to_check).agg(aggregation_dict)
 
@@ -205,12 +205,34 @@ def merge_duplicates(gdf):
     grouped = grouped.reset_index(drop=True)
 
     # Create 'Yhdistetty' column
-    grouped['Yhdistetty'] = grouped['Havainnon_tunniste'].apply(lambda x: len(x) if isinstance(x, list) else 1)
+    grouped['Yhdistetty'] = grouped['Havainnon_tunniste'].apply(lambda x: len(x.split(';')) if ';' in x else 1)
 
     # Calculate merged features
     amount_of_merged_occurrences = len(gdf) - len(grouped)
 
     return gpd.GeoDataFrame(grouped, geometry='geometry', crs=gdf.crs), amount_of_merged_occurrences
+
+def get_facts(gdf):
+    # List of columns to be added to the DataFrame
+    columns_to_add = ['Seurattava laji', 'Sijainnin tarkkuusluokka', 'Havainnon laatu', 'Peittävyysprosentti', 'Havainnon määrän yksikkö', 'Vesistöalue', 'Merialueen tunniste']
+    new_columns = {column: [None] * len(gdf) for column in columns_to_add}
+
+    # Process the facts
+    for fact_col in gdf.filter(like='].fact').columns: # Loop over all facts
+        value_col = fact_col.replace('].fact', '].value') # Get value columns from the fact column with the same id (e.g. gathering.facts[2].fact -> gathering.facts[2].value)
+        if value_col in gdf.columns:
+            facts = gdf[fact_col] 
+            values = gdf[value_col]
+            for fact_name in columns_to_add: 
+                mask = facts == fact_name # Create a mask
+                new_columns[fact_name] = values.where(mask, new_columns[fact_name])
+        gdf.drop(columns=[fact_col, value_col], axis=1, inplace=True) # Drop fact columns since all their values have been retrieved
+
+    # Add facts to the gdf as new columns
+    new_columns_df = pd.DataFrame(new_columns, index=gdf.index)
+    gdf = pd.concat([gdf, new_columns_df], axis=1)
+
+    return gdf
 
 def validate_geometry(geom):
     """

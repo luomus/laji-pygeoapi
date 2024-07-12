@@ -254,12 +254,55 @@ def compute_var_from_id_atlas_code(atlas_code_col):
     id_to_finnish = {item['id']: item['value']['fi'] for item in data}
     return atlas_code_col.map(id_to_finnish)
 
-def compute_variables(gdf):
+def compute_var_from_individual_count(individual_count_col):
+    return individual_count_col.apply(lambda x: 'paikalla' if x > 0 else 'poissa')
+
+def compute_var_from_record_basis(record_basis_col):
+    record_basis = {
+        "PRESERVED_SPECIMEN": "Näyte",
+        "LIVING_SPECIMEN": "Elävä näyte",
+        "FOSSIL_SPECIMEN": "Fossiili",
+        "SUBFOSSIL_SPECIMEN": "Subfossiili",
+        "SUBFOSSIL_AMBER_INCLUSION_SPECIMEN": "Meripihkafossiili",
+        "MICROBIAL_SPECIMEN": "Mikrobinäyte",
+        "HUMAN_OBSERVATION_UNSPECIFIED": "Havaittu",
+        "HUMAN_OBSERVATION_SEEN": "Nähty",
+        "HUMAN_OBSERVATION_HEARD": "Kuultu",
+        "HUMAN_OBSERVATION_PHOTO": "Valokuvattu",
+        "HUMAN_OBSERVATION_INDIRECT": "Epäsuora havainto (jäljet, ulosteet, yms)",
+        "HUMAN_OBSERVATION_HANDLED": "Käsitelty (otettu kiinni, ei näytettä)",
+        "HUMAN_OBSERVATION_VIDEO": "Videoitu",
+        "HUMAN_OBSERVATION_RECORDED_AUDIO": "Äänitetty",
+        "MACHINE_OBSERVATION_UNSPECIFIED": "Laitteen tekemä havainto",
+        "MACHINE_OBSERVATION_PHOTO": "Laitteen tekemä havainto, valokuva",
+        "MACHINE_OBSERVATION_VIDEO": "Laitteen tekemä havainto, video",
+        "MACHINE_OBSERVATION_AUDIO": "Laitteen tekemä havainto, ääni",
+        "MACHINE_OBSERVATION_GEOLOGGER": "Geopaikannin",
+        "MACHINE_OBSERVATION_SATELLITE_TRANSMITTER": "Satelliittipaikannus",
+        "LITERATURE": "Kirjallisuustieto",
+        "MATERIAL_SAMPLE": "Materiaalinäyte",
+        "MATERIAL_SAMPLE_AIR": "Materiaalinäyte: ilmanäyte",
+        "MATERIAL_SAMPLE_SOIL": "Materiaalinäyte: maaperänäyte",
+        "MATERIAL_SAMPLE_WATER": "Materiaalinäyte: vesinäyte"
+    }
+
+    return record_basis_col.map(record_basis)
+
+def compute_var_from_collection_id(collection_id_col, collection_names):
+    # Get only the IDs without URLs (e.g. 'http://tun.fi/HR.3553' to 'HR.3553')
+    ids = pd.Series(collection_id_col.str.split('/').str[-1])
+
+    # Map values
+    ids = ids.map(collection_names)
+    return ids
+
+def compute_variables(gdf, collection_names):
     # Get "Atlasluokka"
     if 'unit.atlasClass' in gdf.columns:
         gdf['unit.atlasClass'] = compute_var_from_id_atlas_class(gdf['unit.atlasClass'])
     else:
         gdf['unit.atlasClass'] = None
+
     # Get "Atlaskoodi"
     if 'unit.atlasCode' in gdf.columns:
         gdf['unit.atlasCode'] = compute_var_from_id_atlas_code(gdf['unit.atlasCode'])
@@ -290,5 +333,21 @@ def compute_variables(gdf):
     else:
         gdf['unit.linkings.originalTaxon.administrativeStatuses'] = None
 
+    # Get 'Esiintyman_tila'
+    if 'unit.interpretations.individualCount' in gdf.columns:
+        gdf['compute_from_individual_count'] = compute_var_from_individual_count(gdf['unit.interpretations.individualCount']) # Note: calculated from different column
+    else:
+        gdf['compute_from_individual_count'] = None
 
+    # Get 'Havaintotapa'
+    if 'unit.recordBasis' in gdf.columns:
+        gdf['unit.recordBasis'] = compute_var_from_record_basis(gdf['unit.recordBasis'])
+    else:
+        gdf['unit.recordBasis'] = None
+
+    # Get 'Aineisto'
+    if 'document.collectionId' in gdf.columns:
+        gdf['compute_from_collection_id'] = compute_var_from_collection_id(gdf['document.collectionId'], collection_names) # Note: calculated from different column
+    else:
+        gdf['compute_from_collection_id'] = None
     return gdf
