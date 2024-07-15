@@ -6,6 +6,15 @@ from sqlalchemy_utils import database_exists, create_database
 import requests, pyogrio, psycopg2, geoalchemy2, os, concurrent.futures
 
 def get_collection_names(api_url):
+    """
+    Get collection names in Finnish from the API
+
+    Parameters:
+    api_url (str): The URL of the API endpoint.
+
+    Returns:
+    ids_and_names (dictionary): The dictionary containing all collection IDs and their long names
+    """
     # Fetching the JSON data from the API
     response = requests.get(api_url)
     data = response.json()
@@ -34,7 +43,6 @@ def get_last_page(data_url):
         print("An error occurred when getting the last page of api results. Perhaps JSON file is invalid. Returning only the first page.")
         return 1
         
-
 def download_page(data_url, page_no):
     """
     Download data from a specific page of the API. This is in separate function to speed up multiprocessing.

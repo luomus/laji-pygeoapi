@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 import requests, json, os
+import geopandas as gpd
 
 def compute_var_from_id_threatened_status(threatened_status_column):
     threatened_statuses = {
@@ -296,7 +297,38 @@ def compute_var_from_collection_id(collection_id_col, collection_names):
     ids = ids.map(collection_names)
     return ids
 
-def compute_variables(gdf, collection_names):
+def compute_ely_area(gdf_with_geom_and_ids, ely_geojson_path):
+    """
+    Computes the ELY areas for each row in the GeoDataFrame.
+
+    Parameters:
+    gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
+    ely_geojson_path (str): Path to the GeoJSON file containing ELY area geometries.
+
+    Returns:
+    pandas.Series: Series with ELY areas for each row, separated by ';' if there are multiple areas.
+    """
+    # Read the ELY areas GeoJSON data
+    ely_gdf = gpd.read_file(ely_geojson_path)
+    gdf_with_geom_and_ids = gdf_with_geom_and_ids.copy()
+
+    # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
+    if gdf_with_geom_and_ids.crs != ely_gdf.crs:
+        ely_gdf = ely_gdf.to_crs(gdf_with_geom_and_ids.crs)
+
+    # Perform spatial join to find which ELY areas each row is within
+    joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, ely_gdf, how="left", predicate="within")
+
+    # Group by the original indices and aggregate the ELY area names
+    ely_areas = joined_gdf.groupby(joined_gdf.index)['nimi'].agg(lambda x: '; '.join(x.dropna().unique()))
+
+    # Ensure the resulting Series aligns with the original GeoDataFrame's indices
+    ely_areas = ely_areas.reindex(gdf_with_geom_and_ids.index, fill_value='')
+
+    return ely_areas
+
+
+def compute_variables(gdf, collection_names, ely_geojson_path):
     # Get "Atlasluokka"
     if 'unit.atlasClass' in gdf.columns:
         gdf['unit.atlasClass'] = compute_var_from_id_atlas_class(gdf['unit.atlasClass'])
@@ -350,4 +382,8 @@ def compute_variables(gdf, collection_names):
         gdf['compute_from_collection_id'] = compute_var_from_collection_id(gdf['document.collectionId'], collection_names) # Note: calculated from different column
     else:
         gdf['compute_from_collection_id'] = None
+
+    # Get 'Vastuualue'
+    gdf['Vastuualue'] = compute_ely_area(gdf[['unit.unitId','geometry']], ely_geojson_path)
+    
     return gdf

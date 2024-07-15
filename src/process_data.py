@@ -199,7 +199,7 @@ def merge_duplicates(gdf):
     aggregation_dict['Aineisto'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
  
     # Group by the columns to check for duplicates
-    grouped = gdf.groupby(columns_to_check).agg(aggregation_dict)
+    grouped = gdf.groupby(columns_to_check).agg(aggregation_dict).copy()
 
     # Reset index for clarity
     grouped = grouped.reset_index(drop=True)
@@ -218,15 +218,20 @@ def get_facts(gdf):
     new_columns = {column: [None] * len(gdf) for column in columns_to_add}
 
     # Process the facts
-    for fact_col in gdf.filter(like='].fact').columns: # Loop over all facts
+    fact_cols = gdf.filter(like='].fact').columns
+    columns_to_drop = list(fact_cols)
+    for fact_col in fact_cols: # Loop over all facts
         value_col = fact_col.replace('].fact', '].value') # Get value columns from the fact column with the same id (e.g. gathering.facts[2].fact -> gathering.facts[2].value)
+        columns_to_drop.append(value_col)
         if value_col in gdf.columns:
             facts = gdf[fact_col] 
             values = gdf[value_col]
             for fact_name in columns_to_add: 
                 mask = facts == fact_name # Create a mask
                 new_columns[fact_name] = values.where(mask, new_columns[fact_name])
-        gdf.drop(columns=[fact_col, value_col], axis=1, inplace=True) # Drop fact columns since all their values have been retrieved
+    
+    # Drop fact and value columns since all their values have been retrieved
+    gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
 
     # Add facts to the gdf as new columns
     new_columns_df = pd.DataFrame(new_columns, index=gdf.index)

@@ -16,6 +16,7 @@ taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&ac
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 lookup_table = r'lookup_table_columns.csv'
+ely_geojson_path = r'ely_areas_buffered_10km.geojson'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
@@ -77,7 +78,7 @@ def main():
     print(f"Retrieving {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches. Store to the database
-    batch_size=10
+    batch_size = 10
     for startpage in range(1, pages+1, batch_size):
         if startpage < pages-batch_size-1:
             endpage = startpage + batch_size-1
@@ -91,14 +92,13 @@ def main():
 
         # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-
         gdf = process_data.get_facts(gdf)
     
         # Combine similar columns (e.g. 'column[0]' and 'column[1]' to 'column')
         gdf = process_data.combine_similar_columns(gdf)
 
         # Compute variables that can not be directly accessed from the source API
-        gdf = compute_variables.compute_variables(gdf, collection_names)
+        gdf = compute_variables.compute_variables(gdf, collection_names, ely_geojson_path)
 
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
@@ -111,7 +111,7 @@ def main():
         gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
 
         # Extract entries without family names and drop them
-        occurrences_without_group_count += len(gdf[gdf['Elioryhma'].isnull()])
+        occurrences_without_group_count += gdf['Elioryhma'].isnull().sum()
         gdf = gdf[~gdf['Elioryhma'].isnull()]
 
         # Merge duplicates
@@ -119,29 +119,26 @@ def main():
         merged_occurrences_count += amount_of_merged_occurrences
 
         # Process each unique species group (e.g. Birds, Mammals etc.)
-        for group_name in gdf['Elioryhma'].unique():
-            sub_gdf = gdf[gdf['Elioryhma'] == group_name]
+        for group_name, sub_gdf in gdf.groupby('Elioryhma'):
 
             # Get cleaned table name
             table_name = process_data.clean_table_name(group_name)
 
             # Skip nans and unclassified
-            if isinstance(table_name, str) and table_name != 'unclassified' and table_name != 'nan':
+            if table_name not in ('unclassified', 'nan'):
                 
                 # Create local ID
                 sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
 
                 # Add to PostGIS database
                 try:
-                    sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
+                    with engine.connect() as conn:
+                        sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
                     if table_name not in table_names:
                          table_names.append(table_name)
                 except Exception as e:
                     print(f"Error occurred: {e}")
                     failed_features_count += len(sub_gdf) 
-            del sub_gdf
-        del gdf
-    del taxon_df
 
 
     # Update pygeoapi configuration

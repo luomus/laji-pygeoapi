@@ -19,7 +19,6 @@ COPY src/load_data.py .
 COPY src/edit_configmaps.py .
 COPY src/compute_variables.py .
 COPY src/edit_db.py .
-COPY test_data/taxon-export.csv .
-COPY test_data/10000_virva_data.json .
+COPY src/ely_areas_buffered_10km.geojson .
 
 ENTRYPOINT ["python", "-u", "main.py"]
