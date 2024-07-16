@@ -78,7 +78,7 @@ def main():
     print(f"Retrieving {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches. Store to the database
-    batch_size = 10
+    batch_size = 5
     for startpage in range(1, pages+1, batch_size):
         if startpage < pages-batch_size-1:
             endpage = startpage + batch_size-1
@@ -116,19 +116,25 @@ def main():
 
         # Extract entries without groups and drop them
         occurrences_without_group_count += gdf['Elioryhma'].isnull().sum()
-        gdf = gdf[~gdf['Elioryhma'].isnull()]
+        gdf = gdf.dropna(subset=['Elioryhma'])
+
+        # Get unique groups
+        unique_groups = gdf['Elioryhma'].unique()
 
         # Process each unique  group
-        for group_name, sub_gdf in gdf.groupby('Elioryhma'):
+        for group_name in unique_groups:
 
             # Get cleaned table name
             table_name = process_data.clean_table_name(group_name)
 
             # Skip nans and unclassified
             if table_name not in ('unclassified', 'nan'):
+
+                # Filter the sub DataFrame
+                sub_gdf = gdf[gdf['Elioryhma'] == group_name]
                 
                 # Create local ID
-                sub_gdf['Paikallinen_tunniste'] = sub_gdf.index
+                sub_gdf = sub_gdf.assign(Paikallinen_tunniste=sub_gdf.index)
 
                 # Add to PostGIS database
                 try:

@@ -25,7 +25,6 @@ gathering.conversions.eurefWKT;footprint_euref;footprintWKT_EUREF;ETRS_TM35FIN_W
 gathering.displayDateTime;formatted_date_time;eventDateTimeDisplay;Aika;str
 gathering.locality;locality;locality;Sijainti;str
 computed_municipality;municipality_verbatim;verbatimCounty;Kunta;str
-computed_region;region_verbatim;verbatimStateProvince;Maakunta;str
 gathering.notes;event_notes;eventRemarks;Keruutapahtuman_lisatiedot;str
 gathering.team;team;recordedBy;Havainnoijat;str
 unit.keywords;record_keywords;occurrenceKeywords;Avainsanat;str
@@ -50,7 +49,6 @@ gathering.stateLand;state_land;stateLand;Valtion_maalla;bool
 unit.linkings.taxon.threatenedStatus;threatened_status_id;threatenedStatusID;Lajiturva;str
 name;informal_group_name;InformalGroupName;Elioryhma;str
 unit.linkings.originalTaxon.vernacularName.fi;;;Yleiskielinen_nimi;str
-unit.linkings.originalTaxon.latestRedListStatusFinland.year;;;Uhanalaisuusluokan_vuosi;int
 geometry;geometry;geometry;geometry;geom
 compute_from_individual_count;;;Esiintyman_tila;str
 compute_from_collection_id;;;Aineisto;str
