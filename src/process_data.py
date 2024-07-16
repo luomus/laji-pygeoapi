@@ -1,5 +1,6 @@
 import pandas as pd
 import geopandas as gpd
+import numpy as np
 import re
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
 from shapely.ops import unary_union
@@ -75,11 +76,17 @@ def combine_similar_columns(gdf):
                 columns_dict[base_name] = []
             columns_dict[base_name].append(col)
     
+    # DataFrame to store the combined columns
+    combined_columns = pd.DataFrame(index=gdf.index)
+
     # Combine columns in each group
     for base_name, cols in columns_dict.items():
-        gdf[base_name] = gdf[cols].apply(lambda row: ', '.join(row.dropna()), axis=1)
+        combined_columns[base_name] = gdf[cols].apply(lambda row: ', '.join(row.dropna().astype(str)), axis=1)
         gdf.drop(columns=cols, inplace=True)
-    
+
+    # Concatenate the combined columns with the original DataFrame
+    gdf = pd.concat([gdf, combined_columns], axis=1)
+
     return gdf
 
 def translate_column_names(gdf, lookup_table, style='virva'):
@@ -205,7 +212,7 @@ def merge_duplicates(gdf):
     grouped = grouped.reset_index(drop=True)
 
     # Create 'Yhdistetty' column
-    grouped['Yhdistetty'] = grouped['Havainnon_tunniste'].apply(lambda x: len(x.split(';')) if ';' in x else 1)
+    grouped['Yhdistetty'] = np.where(grouped['Havainnon_tunniste'].str.contains(';'), grouped['Havainnon_tunniste'].str.count(';') + 1, 1)
 
     # Calculate merged features
     amount_of_merged_occurrences = len(gdf) - len(grouped)
@@ -234,7 +241,7 @@ def get_facts(gdf):
     gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
 
     # Add facts to the gdf as new columns
-    new_columns_df = pd.DataFrame(new_columns, index=gdf.index)
+    new_columns_df = pd.DataFrame(new_columns, index=gdf.index, dtype='str')
     gdf = pd.concat([gdf, new_columns_df], axis=1)
 
     return gdf
@@ -251,7 +258,7 @@ def validate_geometry(geom):
     edited_features_count (int): number of fixed geometries
     """
     # Use make_valid to ensure all geometries are valid
-    original_geometry = geom.copy()        
+    original_geometry = geom      
     geom = geom.make_valid()
     edited_features_count = (geom != original_geometry).sum()
     return geom, edited_features_count
