@@ -145,6 +145,9 @@ def main():
                 except Exception as e:
                     print(f"Error occurred: {e}")
                     failed_features_count += len(sub_gdf) 
+            del sub_gdf
+        del gdf
+    del taxon_df, collection_names
 
 
     # Update pygeoapi configuration
