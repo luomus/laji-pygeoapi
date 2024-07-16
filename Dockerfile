@@ -19,6 +19,6 @@ COPY src/load_data.py .
 COPY src/edit_configmaps.py .
 COPY src/compute_variables.py .
 COPY src/edit_db.py .
-COPY src/ely_areas_buffered_10km.geojson .
+COPY src/municipalities_and_elys.geojson .
 
 ENTRYPOINT ["python", "-u", "main.py"]

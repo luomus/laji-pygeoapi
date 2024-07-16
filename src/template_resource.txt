@@ -28,7 +28,7 @@
             table: <placeholder_table_name>
             geom_field: geometry
             time_field: Keruu_aloitus_pvm
-            title_field: Tieteellinen_nimi
+            title_field: Suomenkielinen_nimi
             crs:
                 - https://www.opengis.net/def/crs/EPSG/0/4326
                 - https://www.opengis.net/def/crs/EPSG/0/3067

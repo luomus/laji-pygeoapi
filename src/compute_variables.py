@@ -105,7 +105,7 @@ def compute_var_from_id_regulatory_status(regulatory_status_column):
     def map_values(cell):
         values = cell.split(', ')
         mapped_values = [regulatory_statuses.get(value, value) for value in values]
-        return '; '.join(mapped_values)
+        return ', '.join(mapped_values)
 
     # Apply the function to the dataframe
     regulatory_status_column = regulatory_status_column.apply(map_values)
@@ -299,10 +299,10 @@ def compute_ely_area(gdf_with_geom_and_ids, ely_geojson_path):
 
     Parameters:
     gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
-    ely_geojson_path (str): Path to the GeoJSON file containing ELY area geometries.
+    ely_geojson_path (str): Path to the GeoJSON file containing ELY area geometries with 10 km buffers.
 
     Returns:
-    pandas.Series: Series with ELY areas for each row, separated by ';' if there are multiple areas.
+    pandas.Series: Series with ELY areas for each row, separated by ',' if there are multiple areas.
     """
     # Read the ELY areas GeoJSON data
     ely_gdf = gpd.read_file(ely_geojson_path)
@@ -316,15 +316,47 @@ def compute_ely_area(gdf_with_geom_and_ids, ely_geojson_path):
     joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, ely_gdf, how="left", predicate="within")
 
     # Group by the original indices and aggregate the ELY area names
-    ely_areas = joined_gdf.groupby(joined_gdf.index)['nimi'].agg(lambda x: '; '.join(x.dropna().unique()))
+    ely_areas = joined_gdf.groupby(joined_gdf.index)['nimi'].agg(lambda x: ', '.join(x.dropna().unique()))
 
     # Ensure the resulting Series aligns with the original GeoDataFrame's indices
     ely_areas = ely_areas.reindex(gdf_with_geom_and_ids.index, fill_value='')
 
     return ely_areas
 
+def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
+    """
+    Computes the municipalities and ELY areas for each row in the GeoDataFrame.
 
-def compute_variables(gdf, collection_names, ely_geojson_path):
+    Parameters:
+    gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
+    ely_geojson_path (str): Path to the GeoJSON file containing municipal geometries.
+
+    Returns:
+    pandas.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
+    pandas.Series: Series with ely areas for each row, separated by ',' if there are multiple areas.
+    """
+    # Read the GeoJSON data
+    municipal_gdf = gpd.read_file(municipal_geojson)
+    gdf_with_geom_and_ids = gdf_with_geom_and_ids.copy()
+
+    # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
+    if gdf_with_geom_and_ids.crs != municipal_gdf.crs:
+        municipal_gdf = municipal_gdf.to_crs(gdf_with_geom_and_ids.crs)
+
+    # Perform spatial join to find which areas each row is within
+    joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, municipal_gdf, how="left", predicate="intersects")
+
+    # Group by the original indices and aggregate the area names
+    municipalities = joined_gdf.groupby(joined_gdf.index)['NAMEFIN'].agg(lambda x: ', '.join(x.dropna().unique()))
+    elys = joined_gdf.groupby(joined_gdf.index)['ely_nimi'].agg(lambda x: ', '.join(x.dropna().unique()))
+
+    # Ensure the resulting Series aligns with the original GeoDataFrame's indices
+    municipalities = municipalities.reindex(gdf_with_geom_and_ids.index, fill_value='')
+    elys = elys.reindex(gdf_with_geom_and_ids.index, fill_value='')
+
+    return municipalities, elys
+
+def compute_variables(gdf, collection_names, municipal_geojson_path):
     all_cols = {}
 
     # Get "Atlasluokka"
@@ -400,10 +432,11 @@ def compute_variables(gdf, collection_names, ely_geojson_path):
     all_cols['compute_from_collection_id'] = collection_id_col
 
 
-    # Get 'Vastuualue'
-    vastuualue_col = compute_ely_area(gdf[['unit.unitId','geometry']], ely_geojson_path).astype('str')
-    all_cols['Vastuualue'] = vastuualue_col
-
+    # Get 'Kunta' and 'Vastuualue' from coordinates
+    municipal_col, vastuualue_col = compute_areas(gdf[['unit.unitId', 'geometry']], municipal_geojson_path)
+    all_cols['computed_municipality'] = municipal_col.astype('str')
+    all_cols['computed_ely_area'] = vastuualue_col.astype('str')
+    
 
     # Create a dataframe to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

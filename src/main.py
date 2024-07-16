@@ -16,11 +16,11 @@ taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&ac
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 lookup_table = r'lookup_table_columns.csv'
-ely_geojson_path = r'ely_areas_buffered_10km.geojson'
+municipal_geojson_path = r'municipalities_and_elys.geojson'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
-selected_fields = "unit.facts,gathering.facts,document.facts,unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.municipality,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
+selected_fields = "unit.facts,gathering.facts,document.facts,unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
 administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
 red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
 country_id = "ML.206"
@@ -98,7 +98,7 @@ def main():
         gdf = process_data.combine_similar_columns(gdf)
 
         # Compute variables that can not be directly accessed from the source API
-        gdf = compute_variables.compute_variables(gdf, collection_names, ely_geojson_path)
+        gdf = compute_variables.compute_variables(gdf, collection_names, municipal_geojson_path)
 
         # Remove some columns
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
@@ -107,18 +107,18 @@ def main():
         gdf['geometry'], edited_features = process_data.validate_geometry(gdf['geometry'])
         edited_features_count += edited_features
 
-        # Convert GeometryCollections to MultiPolygons if they exist
-        gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
-
-        # Extract entries without family names and drop them
-        occurrences_without_group_count += gdf['Elioryhma'].isnull().sum()
-        gdf = gdf[~gdf['Elioryhma'].isnull()]
-
         # Merge duplicates
         gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
         merged_occurrences_count += amount_of_merged_occurrences
 
-        # Process each unique species group (e.g. Birds, Mammals etc.)
+        # Convert GeometryCollections to MultiPolygons if they exist
+        gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
+
+        # Extract entries without groups and drop them
+        occurrences_without_group_count += gdf['Elioryhma'].isnull().sum()
+        gdf = gdf[~gdf['Elioryhma'].isnull()]
+
+        # Process each unique  group
         for group_name, sub_gdf in gdf.groupby('Elioryhma'):
 
             # Get cleaned table name

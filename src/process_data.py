@@ -197,13 +197,13 @@ def merge_duplicates(gdf):
     
     # Define how each column should be aggregated
     aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']} # Select the first value for almost all columns
-    aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0] # Join values if more than 1 value
-    aggregation_dict['Havainnon_tunniste'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Maara'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Avainsanat'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Havainnon_lisatiedot'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0] # Join values if more than 1 value
+    aggregation_dict['Havainnon_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Maara'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Avainsanat'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Havainnon_lisatiedot'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum values
-    aggregation_dict['Aineisto'] = lambda x: '; '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Aineisto'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
  
     # Group by the columns to check for duplicates
     grouped = gdf.groupby(columns_to_check).agg(aggregation_dict).copy()
@@ -212,7 +212,7 @@ def merge_duplicates(gdf):
     grouped = grouped.reset_index(drop=True)
 
     # Create 'Yhdistetty' column
-    grouped['Yhdistetty'] = np.where(grouped['Havainnon_tunniste'].str.contains(';'), grouped['Havainnon_tunniste'].str.count(';') + 1, 1)
+    grouped['Yhdistetty'] = np.where(grouped['Havainnon_tunniste'].str.contains(','), grouped['Havainnon_tunniste'].str.count(',') + 1, 1)
 
     # Calculate merged features
     amount_of_merged_occurrences = len(gdf) - len(grouped)
