@@ -34,7 +34,7 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
         with open(pygeoapi_config_out, 'w') as file:
             file.writelines(lines)
     else:
-        print("Warning: Didn't remove any collections as the pygeoapi configuration file does not have resources section")
+        print("Didn't remove any collections as the pygeoapi configuration file does not have resources section")
 
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out):

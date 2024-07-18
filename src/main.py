@@ -5,9 +5,8 @@ import os
 import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db
 #import numpy as np
 
-# Set options for pandas and geopandas
+# Set options
 pd.options.mode.copy_on_write = True
-gpd.options.io_engine = "pyogrio" # Faster way to read data
 
 # URLs and file paths
 load_dotenv()
@@ -15,7 +14,6 @@ access_token = os.getenv('ACCESS_TOKEN')
 taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&access_token={access_token}'
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
-lookup_table = r'lookup_table_columns.csv'
 municipal_geojson_path = r'municipalities_and_elys.geojson'
 
 # Create an URL for Virva filtered occurrence data
@@ -54,20 +52,21 @@ def main():
     tot_rows = 0
     multiprocessing = os.getenv('MULTIPROCESSING')
     pages = os.getenv('PAGES')
-    engine = edit_db.connect_to_db()
     table_names = []
     occurrences_without_group_count = 0
     merged_occurrences_count = 0
-    edited_features_count = 0
     failed_features_count = 0
+    edited_features_count = 0
+    last_iteration = False
+    pending_occurrences = pd.DataFrame()
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
-    edit_db.drop_all_tables(engine)
+    edit_db.drop_all_tables()
 
     # Get other data sets
     print("Loading taxon and collection data...")
-    taxon_df = load_data.get_taxon_data(taxon_name_url, pages='all')
+    taxon_df = load_data.get_taxon_data(taxon_name_url)
     collection_names = load_data.get_collection_names(f"https://api.laji.fi/v0/collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
 
     # Determine the number of pages to process 
@@ -75,86 +74,46 @@ def main():
         pages = load_data.get_last_page(occurrence_url)
     pages = int(pages)
     
-    print(f"Retrieving {pages} pages of occurrence data from the API...")
+    print(f"Starting to retrieve {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches. Store to the database
-    batch_size = 5
+    batch_size = 10
     for startpage in range(1, pages+1, batch_size):
         if startpage < pages-batch_size-1:
             endpage = startpage + batch_size-1
         else:
             endpage = pages
+            last_iteration = True
         
-        # Get 10 pages of occurrence data
-        gdf = load_data.get_occurrence_data(occurrence_url, multiprocessing=multiprocessing, startpage=startpage, pages=endpage) 
+        # Get occurrence data
+        print(f"Retrieving pages {startpage} to {endpage}...")
+        gdf = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=multiprocessing) 
 
         print("Prosessing data...")
-
-        # Merge taxonomy information with the occurrence data
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
         gdf = process_data.get_facts(gdf)
-    
-        # Combine similar columns (e.g. 'column[0]' and 'column[1]' to 'column')
         gdf = process_data.combine_similar_columns(gdf)
-
-        # Compute variables that can not be directly accessed from the source API
         gdf = compute_variables.compute_variables(gdf, collection_names, municipal_geojson_path)
-
-        # Remove some columns
-        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
-
-        # Fix invalid geometries
-        gdf['geometry'], edited_features = process_data.validate_geometry(gdf['geometry'])
-        edited_features_count += edited_features
-
-        # Merge duplicates
+        gdf = process_data.translate_column_names(gdf, style='virva')
         gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
         merged_occurrences_count += amount_of_merged_occurrences
-
-        # Convert GeometryCollections to MultiPolygons if they exist
         gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
 
-        # Extract entries without groups and drop them
-        occurrences_without_group_count += gdf['Elioryhma'].isnull().sum()
-        gdf = gdf.dropna(subset=['Elioryhma'])
+        print("Inserting data to the database...")
+        pending_occurrences, table_names, failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, pending_occurrences, table_names, failed_features_count, occurrences_without_group_count, last_iteration)
 
-        # Get unique groups
-        unique_groups = gdf['Elioryhma'].unique()
-
-        # Process each unique  group
-        for group_name in unique_groups:
-
-            # Get cleaned table name
-            table_name = process_data.clean_table_name(group_name)
-
-            # Skip nans and unclassified
-            if table_name not in ('unclassified', 'nan'):
-
-                # Filter the sub DataFrame
-                sub_gdf = gdf[gdf['Elioryhma'] == group_name]
-                
-                # Create local ID
-                sub_gdf = sub_gdf.assign(Paikallinen_tunniste=sub_gdf.index)
-
-                # Add to PostGIS database
-                try:
-                    with engine.connect() as conn:
-                        sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
-                    if table_name not in table_names:
-                         table_names.append(table_name)
-                except Exception as e:
-                    print(f"Error occurred: {e}")
-                    failed_features_count += len(sub_gdf) 
-                del sub_gdf
         del gdf
     del taxon_df, collection_names
 
 
-    # Update pygeoapi configuration
+    print("Updating PostGIS indexes, geometries and pygeoapi configuration...")
     for table_name in table_names:
-        bbox = edit_db.get_table_bbox(engine, table_name)
-        min_date, max_date = edit_db.get_table_dates(engine, table_name)
-        amount_of_occurrences = edit_db.get_amount_of_occurrences(engine, table_name)
+        edit_db.update_indexes(table_name)
+        edited_features = edit_db.validate_geometries_postgis(table_name)
+        edited_features_count += edited_features
+        bbox = edit_db.get_table_bbox(table_name)
+        min_date, max_date = edit_db.get_table_dates(table_name)
+        amount_of_occurrences = edit_db.get_amount_of_occurrences(table_name)
         tot_rows += amount_of_occurrences
 
         # Create parameters dictionary to fill the template for pygeoapi config file
@@ -176,8 +135,8 @@ def main():
     print(f"In total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"In total {merged_occurrences_count} duplicate occurrences were merged")
     print(f"In total {edited_features_count} invalid geometries were fixed")
-    print(f"Warning: in total {occurrences_without_group_count} species without scientific family name were discarded")
-    print(f"Warning: in total {failed_features_count} features failed to add to the database")
+    print(f"In total {occurrences_without_group_count} species without scientific family name were discarded")
+    print(f"In total {failed_features_count} features failed to add to the database")
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":

@@ -357,6 +357,18 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     return municipalities, elys
 
 def compute_variables(gdf, collection_names, municipal_geojson_path):
+    '''
+    Computes or translates variables that can not be directly accessed from the source API
+   
+    Parameters:
+    gdf (geopandas.GeoDataFrame): GeoDataFrame containing occurrences.
+    collection_names (dict): The dictionary containing all collection IDs and their long names
+    municipal_geojson_path (str): Path to the GeoJSON file containing municipal geometries.
+
+    Returns:
+    gdf (geopandas.GeoDataFrame): GeoDataFrame containing occurrences and computed columns.
+    '''
+
     all_cols = {}
 
     # Get "Atlasluokka"

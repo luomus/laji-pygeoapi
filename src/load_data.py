@@ -5,6 +5,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 import requests, pyogrio, psycopg2, geoalchemy2, os, concurrent.futures
 
+gpd.options.io_engine = "pyogrio" # Faster way to read data
+
 def get_collection_names(api_url):
     """
     Get collection names in Finnish from the API
@@ -59,25 +61,20 @@ def download_page(data_url, page_no):
     gdf = gpd.read_file(data_url)    
     return gdf
 
-def get_occurrence_data(data_url, multiprocessing=False, startpage = 1, pages="all"):
+def get_occurrence_data(data_url, startpage, endpage, multiprocessing=False):
     """
     Retrieve occurrence data from the API.
 
     Parameters:
     data_url (str): The URL of the API endpoint.
     multiprocessing (bool, optional): Whether to use multiprocessing. Defaults to False.
-    pages (str or int, optional): Number of pages to retrieve. Defaults to "all".
+    startpage (int): First page to retrieve. 
+    endpage (int): Last page to retrieve 
 
     Returns:
     geopandas.GeoDataFrame: The retrieved occurrence data as a GeoDataFrame.
-    """
-
-    if pages == 'all':
-        endpage = get_last_page(data_url)
-    else:
-        endpage = int(pages)
+    """    
     
-    print(f"Retrieving occurrence data from page {startpage} to {endpage}...")
     gdf = gpd.GeoDataFrame()
 
     if multiprocessing==True or multiprocessing=="True":
@@ -112,13 +109,12 @@ def find_main_taxon(row):
 
     return min_value
 
-def get_taxon_data(taxon_name_url, pages='all'):
+def get_taxon_data(taxon_name_url):
     """
     Retrieve taxon data from the API. Will be merged to occurrence data later.
 
     Parameters:
     taxon_name_url (str): The URL of the taxon name API endpoint.
-    pages (str or int, optional): Number of pages to retrieve. Defaults to "all".
 
     Returns:
     pandas.DataFrame: The retrieved taxon data.

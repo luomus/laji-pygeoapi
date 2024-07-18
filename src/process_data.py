@@ -5,6 +5,10 @@ import re
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
 from shapely.ops import unary_union
 
+# Load the lookup table CSV into a DataFrame
+lookup_table = r'lookup_table_columns.csv'
+lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
+
 def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     """
     Merge taxonomy information to the occurrence data.
@@ -89,21 +93,18 @@ def combine_similar_columns(gdf):
 
     return gdf
 
-def translate_column_names(gdf, lookup_table, style='virva'):
+def translate_column_names(gdf, style='virva'):
     """
     Maps column names in a GeoDataFrame to Finnish names and correct data types using a lookup table.
 
     Parameters:
     gdf (geopandas.GeoDataFrame): The GeoDataFrame to be mapped.
-    lookup_table (str): The path to the CSV lookup table.
     style (str): Format to column names translate to. Options: 'translated_var', 'dwc' and 'virva'. Defaults to 'virva'.
 
     Returns:
     geopandas.GeoDataFrame: The GeoDataFrame with columns renamed and converted according to the lookup table.
     """
-    # Load the lookup table CSV into a DataFrame
-    lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
-
+    
     # Dictionary to hold the mapping of old column names to new column names and types
     column_mapping = {}
     column_types = {}
@@ -147,7 +148,7 @@ def clean_table_name(group_name):
     """
     # Function to clean and return a table name
     if group_name is None or group_name =='nan' or group_name == '':
-        return 'unclassified'
+        return None
     
     # Remove non-alphanumeric characters and white spaces
     cleaned_name = re.sub(r'[^\w\s]', '', str(group_name)).replace(' ', '_')   
@@ -192,9 +193,10 @@ def merge_duplicates(gdf):
     Returns:
     GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
     """
-    # Columns to consider for duplicates
-    columns_to_check = ['Keruu_aloitus_pvm', 'Keruu_lopetus_pvm', 'ETRS_TM35FIN_WKT', 'Havainnoijat', 'Taksonin_tunniste']
-    
+
+    # Convert the filtered DataFrame to a list of values
+    columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
+
     # Define how each column should be aggregated
     aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']} # Select the first value for almost all columns
     aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0] # Join values if more than 1 value
@@ -202,11 +204,11 @@ def merge_duplicates(gdf):
     aggregation_dict['Maara'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Avainsanat'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Havainnon_lisatiedot'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum values
     aggregation_dict['Aineisto'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum values
  
     # Group by the columns to check for duplicates
-    grouped = gdf.groupby(columns_to_check).agg(aggregation_dict).copy()
+    grouped = gdf.groupby(columns_to_group_by).agg(aggregation_dict).copy()
 
     # Reset index for clarity
     grouped = grouped.reset_index(drop=True)
@@ -226,39 +228,23 @@ def get_facts(gdf):
 
     # Process the facts
     fact_cols = gdf.filter(like='].fact').columns
-    columns_to_drop = list(fact_cols)
-    for fact_col in fact_cols: # Loop over all facts
-        value_col = fact_col.replace('].fact', '].value') # Get value columns from the fact column with the same id (e.g. gathering.facts[2].fact -> gathering.facts[2].value)
-        columns_to_drop.append(value_col)
-        if value_col in gdf.columns:
-            facts = gdf[fact_col] 
-            values = gdf[value_col]
-            for fact_name in columns_to_add: 
-                mask = facts == fact_name # Create a mask
-                new_columns[fact_name] = values.where(mask, new_columns[fact_name])
-    
-    # Drop fact and value columns since all their values have been retrieved
-    gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
+    if len(fact_cols) > 0:
+        columns_to_drop = list(fact_cols)
+        for fact_col in fact_cols: # Loop over all facts
+            value_col = fact_col.replace('].fact', '].value') # Get value columns from the fact column with the same id (e.g. gathering.facts[2].fact -> gathering.facts[2].value)
+            columns_to_drop.append(value_col)
+            if value_col in gdf.columns:
+                facts = gdf[fact_col] 
+                values = gdf[value_col]
+                for fact_name in columns_to_add: 
+                    mask = facts == fact_name # Create a mask
+                    new_columns[fact_name] = values.where(mask, new_columns[fact_name])
+        
+        # Drop fact and value columns since all their values have been retrieved
+        gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
 
     # Add facts to the gdf as new columns
     new_columns_df = pd.DataFrame(new_columns, index=gdf.index, dtype='str')
     gdf = pd.concat([gdf, new_columns_df], axis=1)
 
     return gdf
-
-def validate_geometry(geom):
-    """
-    Repairs invalid geometries.
-
-    Parameters:
-    geom (GeoSeries): GeoSeries with geometry information
-
-    Returns:
-    geom (GeoSeries): GeoSeries with valid geometries
-    edited_features_count (int): number of fixed geometries
-    """
-    # Use make_valid to ensure all geometries are valid
-    original_geometry = geom      
-    geom = geom.make_valid()
-    edited_features_count = (geom != original_geometry).sum()
-    return geom, edited_features_count
