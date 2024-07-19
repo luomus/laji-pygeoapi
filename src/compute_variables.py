@@ -246,7 +246,7 @@ def compute_atlas_class(atlas_class_col):
         "http://tun.fi/MY.atlasClassEnumC": "Todennäköinen pesintä",
         "http://tun.fi/MY.atlasClassEnumD": "Varma pesintä"
         }
-    return atlas_class_col.map(data)
+    return atlas_class_col.map(data, na_action='ignore')
 
 def compute_atlas_code(atlas_code_col):
     # Data from the provided JSON string
@@ -273,10 +273,58 @@ def compute_atlas_code(atlas_code_col):
         "http://tun.fi/MY.atlasCodeEnum81": "81 Varma pesintä: kuultu poikasten ääntelyä pesässä (kolo / pesä korkealla).",
         "http://tun.fi/MY.atlasCodeEnum82": "82 Varma pesintä: nähty pesässä munia tai poikasia."
     }
-    return atlas_code_col.map(data)
+    return atlas_code_col.map(data, na_action='ignore')
 
 def compute_individual_count(individual_count_col):
     return np.where(individual_count_col > 0, 'paikalla', 'poissa')
+
+def compute_abundance_unit(abund_col):
+    abundance_units = {
+        "INDIVIDUAL_COUNT": "Yksilömäärä",
+        "PAIR_COUNT": "Parimäärä",
+        "NEST": "Pesien lukumäärä",
+        "BREEDING_SITE": "Lisääntymispaikkojen lukumäärä (kivi, kolo, ym)",
+        "FEEDING_SITE": "Ruokailupaikkojen lukumäärä",
+        "COLONY": "Yhdyskuntien lukumäärä",
+        "FRUIT_BODY": "Itiöemien lukumäärä",
+        "SPROUT": "Versojen lukumäärä",
+        "HUMMOCK": "Mättäiden/tuppaiden lukumäärä",
+        "THALLUS": "Sekovarsien lukumäärä",
+        "FLOWER": "Kukkien lukumäärä",
+        "SPOT": "Laikkujen lukumäärä",
+        "TRUNK": "Runkojen lukumäärä",
+        "QUEEN": "Kuningattarien lukumäärä",
+        "SHELL": "Kuorien lukumäärä",
+        "DROPPINGS": "Jätösten/papanakasojen lukumäärä",
+        "MARKS": "(Syömä)jälkien lukumäärä",
+        "INDIRECT": "Epäsuorien jälkien lukumäärä",
+        "SQUARE_DM": "Neliödesimetri (dm^2)",
+        "SQUARE_M": "Neliömetri (m^2)",
+        "RELATIVE_DENSITY": "Suhteellinen tiheys",
+        "OCCURS_DOES_NOT_OCCUR": "Esiintyy/ei esiinny"
+    }
+    return abund_col.map(abundance_units, na_action='ignore')
+
+def compute_sex(sex_col):
+    sexes = {'MALE': 'Uros',
+             'FEMALE': 'Naaras',
+             'WORKER': 'Työläinen',
+             'UNKNOWN': 'Tuntematon',
+             'NOT_APPLICABLE': 'Soveltumaton',
+             'GYNANDROMORPH': 'Gynandromorfi',
+             'MULTIPLE': 'Eri sukupuolia',
+             'CONFLICTING': 'Ristiriitainen'
+             }
+    return sex_col.map(sexes, na_action='ignore')
+
+def compute_collection_quality(coll_quality_col):
+    qualities = {
+     	'PROFESSIONAL':'Ammattiaineistot / asiantuntijoiden laadunvarmistama',
+        'HOBBYIST':'Asiantuntevat harrastajat / asiantuntijoiden laadunvarmistama',
+        'AMATEUR':'Kansalaishavaintoja / ei laadunvarmistusta'
+    }
+
+    return coll_quality_col.map(qualities, na_action='ignore')
 
 def compute_record_basis(record_basis_col):
     record_basis = {
@@ -391,6 +439,15 @@ def compute_all(gdf, collection_names, municipal_geojson_path):
 
     secure_reason_col = compute_secure_reason(gdf['document.secureReasons'])
     all_cols['document.secureReasons'] = secure_reason_col
+
+    sex_col = compute_sex(gdf['unit.sex'])
+    all_cols['unit.sex'] = sex_col
+
+    abund_unit_col = compute_abundance_unit(gdf['unit.abundanceUnit'])
+    all_cols['unit.abundanceUnit'] = abund_unit_col
+
+    collection_quality_col = compute_collection_quality(gdf['document.linkings.collectionQuality'])
+    all_cols['document.linkings.collectionQuality'] = collection_quality_col
 
     count_col = compute_individual_count(gdf['unit.interpretations.individualCount']) # Note: calculated from different column
     all_cols['compute_from_individual_count'] = count_col
