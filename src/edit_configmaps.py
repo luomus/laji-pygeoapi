@@ -78,13 +78,13 @@ def update_configmap(pygeoapi_config_out):
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
 
-    deploymentconfig_name = "pygeoapi"
-    target_pods = [
-        i["metadata"]["name"] for i in items
-        if "labels" in i["metadata"] 
-        and "deploymentconfig" in i["metadata"]["labels"] 
-        and i["metadata"]["labels"]["deploymentconfig"] == deploymentconfig_name
-        ]
+    deployment_name = "pygeoapi"
+    target_pods = []
+    for item in items:
+        metadata = item.get("metadata", {})
+        labels = metadata.get("labels", {})
+        if deployment_name in labels.get("deployment"):
+            target_pods.append(metadata.get("name"))
 
     # restart the pods by deleting them
     for pod in target_pods:

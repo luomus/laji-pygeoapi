@@ -241,7 +241,11 @@ def get_facts(gdf):
                     new_columns[fact_name] = values.where(mask, new_columns[fact_name])
         
         # Drop fact and value columns since all their values have been retrieved
-        gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
+        try:
+            gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
+        except KeyError as e:
+            print("Cannot drop column..")
+            print(e)
 
     # Add facts to the gdf as new columns
     new_columns_df = pd.DataFrame(new_columns, index=gdf.index, dtype='str')
