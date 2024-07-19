@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import requests, json, os
 import geopandas as gpd
 
-def compute_var_from_id_threatened_status(threatened_status_column):
+def compute_threatened_status(threatened_status_column):
     threatened_statuses = {
     "http://tun.fi/MX.threatenedStatusStatutoryProtected": "Lakisääteinen",
     "http://tun.fi/MX.threatenedStatusThreatened": "Uhanalainen",
@@ -14,7 +14,7 @@ def compute_var_from_id_threatened_status(threatened_status_column):
     threatened_status_column = threatened_status_column.map(threatened_statuses)
     return threatened_status_column
 
-def compute_var_red_list_status(red_list_column):
+def compute_red_list_status(red_list_column):
     red_list_statuses = {
     "http://tun.fi/MX.iucnEX": "EX - Sukupuuttoon kuolleet",
     "http://tun.fi/MX.iucnEW": "EW - Luonnosta hävinneet",
@@ -29,11 +29,35 @@ def compute_var_red_list_status(red_list_column):
     "http://tun.fi/MX.iucnNE": "NE - Arvioimatta jätetyt"
     }
 
-    red_list_column = red_list_column.map(red_list_statuses)
-    return red_list_column
+    return red_list_column.map(red_list_statuses, na_action='ignore')   
 
-def compute_var_from_id_regulatory_status(regulatory_status_column):
+def compute_record_quality(record_quality_column):
+    record_qualities = {"EXPERT_VERIFIED": "Asiantuntijan vahvistama",
+                        "COMMUNITY_VERIFIED": "Yhteisön varmistama",
+                        "NEUTRAL": "Ei arvioitu",
+                        "UNCERTAIN": "Epävarma",
+                        "ERRONEOUS": "Virheellinen"
+                        }
+    return record_quality_column.map(record_qualities, na_action='ignore')
 
+def compute_secure_reason(secure_reason_column):
+    reasons = {"DEFAULT_TAXON_CONSERVATION" :"Lajitiedon sensitiivisyys",
+            "NATURA_AREA_CONSERVATION":"Lajin paikkatiedot salataan Natura-alueella",
+            "WINTER_SEASON_TAXON_CONSERATION":"Talvehtimishavainnot",
+            "BREEDING_SEASON_TAXON_CONSERVATION":"Pesintäaika",
+            "CUSTOM":"Tiedon tuottajan rajoittama aineisto",
+            "USER_HIDDEN":"Käyttäjän karkeistamat nimi- ja/tai paikkatiedot",
+            "DATA_QUARANTINE_PERIOD":"Tutkimusaineiston karenssiaika",
+            "ONLY_PRIVATE":"Tiedon tuottaja on antanut aineiston vain viranomaiskäyttöön",
+            "ADMIN_HIDDEN":"Ylläpitäjän karkeistama",
+            "BREEDING_SITE_CONSERVATION":"Lisääntymispaikan sensitiivisyys (esimerkiksi pesä)",
+            "USER_HIDDEN_LOCATION":"Käyttäjän karkeistamat paikkatiedot",
+            "USER_HIDDEN_TIME":"Käyttäjän karkeistama aika",
+            "USER_PERSON_NAMES_HIDDEN":"Henkilönimet piiloitettu"
+            }
+    return secure_reason_column.map(reasons, na_action='ignore')
+
+def compute_regulatory_status(regulatory_status_column):
     regulatory_statuses = {
         "http://tun.fi/MX.finlex160_1997_appendix4_2021": "Uhanalaiset lajit (LSA 2023/1066, liite 6)",
         "http://tun.fi/MX.finlex160_1997_appendix4_specialInterest_2021": "Erityisesti suojeltavat lajit (LSA 2023/1066, liite 6)",
@@ -112,7 +136,7 @@ def compute_var_from_id_regulatory_status(regulatory_status_column):
 
     return regulatory_status_column
 
-def compute_var_from_id_primary_habitat(habitat_column):
+def compute_primary_habitat(habitat_column):
     # Mapping data
     habitat_dict = {
         'http://tun.fi/MKV.habitatM': 'M - Metsät',
@@ -214,7 +238,7 @@ def compute_var_from_id_primary_habitat(habitat_column):
     habitat_column = habitat_column.map(habitat_dict)
     return habitat_column
    
-def compute_var_from_id_atlas_class(atlas_class_col):
+def compute_atlas_class(atlas_class_col):
     # Data from https://schema.laji.fi/alt/MY.atlasClassEnum
     data = {
         "http://tun.fi/MY.atlasClassEnumA": "Epätodennäköinen pesintä",
@@ -224,7 +248,7 @@ def compute_var_from_id_atlas_class(atlas_class_col):
         }
     return atlas_class_col.map(data)
 
-def compute_var_from_id_atlas_code(atlas_code_col):
+def compute_atlas_code(atlas_code_col):
     # Data from the provided JSON string
     data =  {
         "http://tun.fi/MY.atlasCodeEnum1": "1 Epätodennäköinen pesintä: havaittu lajin yksilö, havainto ei viittaa pesintään.",
@@ -251,10 +275,10 @@ def compute_var_from_id_atlas_code(atlas_code_col):
     }
     return atlas_code_col.map(data)
 
-def compute_var_from_individual_count(individual_count_col):
+def compute_individual_count(individual_count_col):
     return np.where(individual_count_col > 0, 'paikalla', 'poissa')
 
-def compute_var_from_record_basis(record_basis_col):
+def compute_record_basis(record_basis_col):
     record_basis = {
         "PRESERVED_SPECIMEN": "Näyte",
         "LIVING_SPECIMEN": "Elävä näyte",
@@ -283,45 +307,15 @@ def compute_var_from_record_basis(record_basis_col):
         "MATERIAL_SAMPLE_WATER": "Materiaalinäyte: vesinäyte"
     }
 
-    return record_basis_col.map(record_basis)
+    return record_basis_col.map(record_basis, na_action='ignore')
 
-def compute_var_from_collection_id(collection_id_col, collection_names):
+def compute_collection_id(collection_id_col, collection_names):
     # Get only the IDs without URLs (e.g. 'http://tun.fi/HR.3553' to 'HR.3553')
     ids = pd.Series(collection_id_col.str.split('/').str[-1])
 
     # Map values
-    ids = ids.map(collection_names)
+    ids = ids.map(collection_names, na_action='ignore')
     return ids
-
-def compute_ely_area(gdf_with_geom_and_ids, ely_geojson_path):
-    """
-    Computes the ELY areas for each row in the GeoDataFrame.
-
-    Parameters:
-    gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
-    ely_geojson_path (str): Path to the GeoJSON file containing ELY area geometries with 10 km buffers.
-
-    Returns:
-    pandas.Series: Series with ELY areas for each row, separated by ',' if there are multiple areas.
-    """
-    # Read the ELY areas GeoJSON data
-    ely_gdf = gpd.read_file(ely_geojson_path)
-    gdf_with_geom_and_ids = gdf_with_geom_and_ids.copy()
-
-    # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
-    if gdf_with_geom_and_ids.crs != ely_gdf.crs:
-        ely_gdf = ely_gdf.to_crs(gdf_with_geom_and_ids.crs)
-
-    # Perform spatial join to find which ELY areas each row is within
-    joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, ely_gdf, how="left", predicate="within")
-
-    # Group by the original indices and aggregate the ELY area names
-    ely_areas = joined_gdf.groupby(joined_gdf.index)['nimi'].agg(lambda x: ', '.join(x.dropna().unique()))
-
-    # Ensure the resulting Series aligns with the original GeoDataFrame's indices
-    ely_areas = ely_areas.reindex(gdf_with_geom_and_ids.index, fill_value='')
-
-    return ely_areas
 
 def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     """
@@ -356,7 +350,7 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
 
     return municipalities, elys
 
-def compute_variables(gdf, collection_names, municipal_geojson_path):
+def compute_all(gdf, collection_names, municipal_geojson_path):
     '''
     Computes or translates variables that can not be directly accessed from the source API
    
@@ -368,87 +362,45 @@ def compute_variables(gdf, collection_names, municipal_geojson_path):
     Returns:
     gdf (geopandas.GeoDataFrame): GeoDataFrame containing occurrences and computed columns.
     '''
-
+    # Create a dictionary to store computed columns
     all_cols = {}
 
-    # Get "Atlasluokka"
-    if 'unit.atlasClass' in gdf.columns:
-        atlasclass_col = compute_var_from_id_atlas_class(gdf['unit.atlasClass'])
-    else:
-        atlasclass_col = pd.Series([None] * len(gdf))
-    all_cols['unit.AtlasClass'] = atlasclass_col
+    atlasclass_col = compute_atlas_class(gdf['unit.atlasClass'])
+    all_cols['unit.atlasClass'] = atlasclass_col
 
+    atlascode_col = compute_atlas_code(gdf['unit.atlasCode'])
+    all_cols['unit.atlasCode'] = atlascode_col
 
-    # Get "Atlaskoodi"
-    if 'unit.atlasCode' in gdf.columns:
-        atlascode_col = compute_var_from_id_atlas_code(gdf['unit.atlasCode'])
-    else:
-        atlascode_col = pd.Series([None] * len(gdf))
-    all_cols['unit.AtlasCode'] = atlascode_col
-
-
-    # Get "Ensisijainen_biotooppi"
-    if 'unit.linkings.originalTaxon.primaryHabitat.habitat' in gdf.columns:
-        habitat_col = compute_var_from_id_primary_habitat(gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'])
-    else:
-        habitat_col = pd.Series([None] * len(gdf))
+    habitat_col = compute_primary_habitat(gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'])
     all_cols['unit.linkings.originalTaxon.primaryHabitat.habitat'] = habitat_col
     
-
-
-    # Get "Uhanalaisuusluokka"
-    if 'unit.linkings.originalTaxon.latestRedListStatusFinland.status' in gdf.columns:
-        redlist_col = compute_var_red_list_status(gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'])
-    else:
-        redlist_col = pd.Series([None] * len(gdf))
+    redlist_col = compute_red_list_status(gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'])
     all_cols['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = redlist_col
     
-
-    # Get "Lajiturva"
-    if 'unit.linkings.taxon.threatenedStatus' in gdf.columns:
-        threatened_col = compute_var_from_id_threatened_status(gdf['unit.linkings.taxon.threatenedStatus'])
-    else:
-        threatened_col = pd.Series([None] * len(gdf))
+    threatened_col = compute_threatened_status(gdf['unit.linkings.taxon.threatenedStatus'])
     all_cols['unit.linkings.taxon.threatenedStatus'] = threatened_col
     
-
-    # Get "Hallinnollinen_asema"
-    if 'unit.linkings.originalTaxon.administrativeStatuses' in gdf.columns:
-        admin_status_col = compute_var_from_id_regulatory_status(gdf['unit.linkings.originalTaxon.administrativeStatuses'])
-    else:
-        admin_status_col = pd.Series([None] * len(gdf))
+    admin_status_col = compute_regulatory_status(gdf['unit.linkings.originalTaxon.administrativeStatuses'])
     all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = admin_status_col
     
-
-    # Get 'Havaintotapa'
-    if 'unit.recordBasis' in gdf.columns:
-        record_basis_col = compute_var_from_record_basis(gdf['unit.recordBasis'])
-    else:
-        record_basis_col = pd.Series([None] * len(gdf))
+    record_basis_col = compute_record_basis(gdf['unit.recordBasis'])
     all_cols['unit.recordBasis'] = record_basis_col
 
+    record_quality_col = compute_record_quality(gdf['unit.interpretations.recordQuality'])
+    all_cols['unit.interpretations.recordQuality'] = record_quality_col
 
-    # Get 'Esiintyman_tila'
-    if 'unit.interpretations.individualCount' in gdf.columns:
-        count_col = compute_var_from_individual_count(gdf['unit.interpretations.individualCount']) # Note: calculated from different column
-    else:
-        count_col = pd.Series([None] * len(gdf))
+    secure_reason_col = compute_secure_reason(gdf['document.secureReasons'])
+    all_cols['document.secureReasons'] = secure_reason_col
+
+    count_col = compute_individual_count(gdf['unit.interpretations.individualCount']) # Note: calculated from different column
     all_cols['compute_from_individual_count'] = count_col
     
-
-    # Get 'Aineisto'
-    if 'document.collectionId' in gdf.columns:
-        collection_id_col = compute_var_from_collection_id(gdf['document.collectionId'], collection_names) # Note: calculated from different column
-    else:
-        collection_id_col = pd.Series([None] * len(gdf))
+    collection_id_col = compute_collection_id(gdf['document.collectionId'], collection_names) # Note: calculated from different column
     all_cols['compute_from_collection_id'] = collection_id_col
 
-
-    # Get 'Kunta' and 'Vastuualue' from coordinates
     municipal_col, vastuualue_col = compute_areas(gdf[['unit.unitId', 'geometry']], municipal_geojson_path)
     all_cols['computed_municipality'] = municipal_col.astype('str')
     all_cols['computed_ely_area'] = vastuualue_col.astype('str')
-    
 
     # Create a dataframe to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

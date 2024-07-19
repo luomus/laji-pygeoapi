@@ -11,7 +11,7 @@ pd.options.mode.copy_on_write = True
 # URLs and file paths
 load_dotenv()
 access_token = os.getenv('ACCESS_TOKEN')
-taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?pageSize=1000&access_token={access_token}'
+taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?lang=fi&pageSize=1000&access_token={access_token}'
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 municipal_geojson_path = r'municipalities_and_elys.geojson'
@@ -93,7 +93,7 @@ def main():
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
         gdf = process_data.get_facts(gdf)
         gdf = process_data.combine_similar_columns(gdf)
-        gdf = compute_variables.compute_variables(gdf, collection_names, municipal_geojson_path)
+        gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, style='virva')
         gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
         merged_occurrences_count += amount_of_merged_occurrences
