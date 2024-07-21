@@ -413,7 +413,7 @@ def compute_all(gdf, collection_names, municipal_geojson_path):
     all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(collection_qualities, na_action='ignore')
 
     # Mappings with multiple value in a cell:
-    all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = gdf['unit.linkings.originalTaxon.administrativeStatuses'].apply(map_values, regulatory_statuses)
+    all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = gdf['unit.linkings.originalTaxon.administrativeStatuses'].apply(map_values)
 
     # Computed values from different source
     all_cols['compute_from_individual_count'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 

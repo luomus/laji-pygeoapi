@@ -174,8 +174,10 @@ def to_db(gdf, pending_occurrences, table_names, failed_features_count, occurren
     gdf = gdf.dropna(subset=['Elioryhma'])
 
     # If it is the last round, add all pending occurrences to the gdf
-    if last_iteration:
+    if last_iteration or len(pending_occurrences) > 1000:
+        print("Joining pending occurrences to the dataframe..")
         gdf = pd.concat([gdf, pending_occurrences], axis=0)
+        pending_occurrences = pd.DataFrame()
 
     unique_groups = gdf['Elioryhma'].unique()
     for group_name in unique_groups:

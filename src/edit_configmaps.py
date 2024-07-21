@@ -53,13 +53,13 @@ def update_configmap(pygeoapi_config_out):
 
     # Read the content of the config file to update
     with open(pygeoapi_config_out, "r") as f:
-        file_content = f.read()       
+        pygeoapi_config_content = f.read()       
 
     # Prepare the patch data to replace the config map    
     data = [{
         "op": "replace",
         "path": "/data/pygeoapi-config.yml",
-        "value": file_content
+        "value": pygeoapi_config_content
     }]
 
     # Update the config map
@@ -75,21 +75,34 @@ def update_configmap(pygeoapi_config_out):
     # find the pods we want to restart
     headers = {"Authorization": "Bearer {}".format(token)}
     pods_url = f"{api_url}/api/v1/namespaces/{namespace}/pods"
+    print(pods_url)
+
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
 
     deployment_name = "pygeoapi"
-    target_pods = []
-    for item in items:
-        metadata = item.get("metadata", {})
-        labels = metadata.get("labels", {})
-        if deployment_name in labels.get("deployment"):
-            target_pods.append(metadata.get("name"))
+    try:
+        target_pods = [
+            item["metadata"]["name"]
+            for item in items
+            if "labels" in item["metadata"] and deployment_name in item["metadata"]["labels"].get("deployment", "")
+        ]
+    except:
+        print("Error finding deployments")
+        print(f"Items: {str(items)}")
+
+    if not target_pods:
+        print(f"No pods found for deployment: {deployment_name}")
+        return
 
     # restart the pods by deleting them
     for pod in target_pods:
         pod_url = f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}"
-        a = requests.delete(pod_url, headers=headers, verify=ca_cert)
-        a.raise_for_status()
+        try:
+            delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
+            delete_response.raise_for_status()
+            print("Pod updated")
+        except requests.exceptions.RequestException as e:
+            print(f"Error deleting pod {pod}: {e}")
 
-    print("Pods updated")
+    

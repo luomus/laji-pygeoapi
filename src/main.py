@@ -77,9 +77,9 @@ def main():
     print(f"Starting to retrieve {pages} pages of occurrence data from the API...")
 
     # Load and process data in batches. Store to the database
-    batch_size = 10
+    batch_size = 5
     for startpage in range(1, pages+1, batch_size):
-        if startpage < pages-batch_size-1:
+        if startpage <= pages-batch_size-1:
             endpage = startpage + batch_size-1
         else:
             endpage = pages
