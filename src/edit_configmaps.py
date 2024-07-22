@@ -79,29 +79,34 @@ def update_configmap(pygeoapi_config_out):
 
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
+    print(items)
 
-    deployment_name = "pygeoapi"
+    service_name = "pygeoapi-"+branch
     try:
+        # Find pods with the label io.kompose.service set to pygeoapi-dev
         target_pods = [
             item["metadata"]["name"]
             for item in items
-            if "labels" in item["metadata"] and deployment_name in item["metadata"]["labels"].get("deployment", "")
+            if "labels" in item["metadata"] and item["metadata"]["labels"].get("io.kompose.service") == service_name
         ]
-    except:
-        print("Error finding deployments")
+    except KeyError as e:
+        print(f"KeyError: {e} - Possibly missing key in item metadata.")
+    except Exception as e:
+        print(f"Error finding deployments: {e}")
         print(f"Items: {str(items)}")
 
     if not target_pods:
-        print(f"No pods found for deployment: {deployment_name}")
+        print(f"No pods found for deployment: {service_name}")
         return
 
     # restart the pods by deleting them
     for pod in target_pods:
         pod_url = f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}"
+        print(pod_url)
         try:
             delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
             delete_response.raise_for_status()
-            print("Pod updated")
+            print(f"Pod {pod} updated")
         except requests.exceptions.RequestException as e:
             print(f"Error deleting pod {pod}: {e}")
 
