@@ -30,7 +30,7 @@ def update_configmap(pygeoapi_config_out):
     3. Reads the content of the pygeoapi config file.
     4. Prepares a JSON patch request to update the ConfigMap.
     5. Sends a PATCH request to the Kubernetes API to update the ConfigMap.
-    6. Retrieves the list of pods and identifies the ones related to the deployment.
+    6. Retrieves the list of pods and identifies the ones related to the pygeoapi pod.
     7. Deletes the identified pods to trigger a restart with the updated ConfigMap.
     '''
 
@@ -79,7 +79,6 @@ def update_configmap(pygeoapi_config_out):
 
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
-    print(items)
 
     service_name = "pygeoapi-"+branch
     try:
@@ -102,7 +101,6 @@ def update_configmap(pygeoapi_config_out):
     # restart the pods by deleting them
     for pod in target_pods:
         pod_url = f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}"
-        print(pod_url)
         try:
             delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
             delete_response.raise_for_status()
