@@ -169,9 +169,13 @@ def to_db(gdf, pending_occurrences, table_names, failed_features_count, occurren
     last_iteration (bool): Flag indicating whether this is the last iteration.
     """
     
+    # Explode gdf based on Vastuualue
+    gdf['Vastuualue_list'] = gdf['Vastuualue'].str.split(', ') 
+    gdf = gdf.explode(column='Vastuualue_list')
+
     # Process each unique group
-    occurrences_without_group_count += gdf['Elioryhma'].isnull().sum()
-    gdf = gdf.dropna(subset=['Elioryhma'])
+    occurrences_without_group_count += gdf['Vastuualue_list'].isnull().sum()
+    gdf = gdf.dropna(subset=['Vastuualue_list'])
 
     # If it is the last round, add all pending occurrences to the gdf
     if last_iteration or len(pending_occurrences) > 1000:
@@ -179,22 +183,20 @@ def to_db(gdf, pending_occurrences, table_names, failed_features_count, occurren
         gdf = pd.concat([gdf, pending_occurrences], axis=0)
         pending_occurrences = pd.DataFrame()
 
-    unique_groups = gdf['Elioryhma'].unique()
-    for group_name in unique_groups:
-        table_name = clean_table_name(group_name)
+    unique_groups = gdf['Vastuualue_list'].unique()
+    for table_name in unique_groups:
         if table_name:
             # Filter the sub DataFrame
-            sub_gdf = gdf[gdf['Elioryhma'] == group_name]
+            sub_gdf = gdf[gdf['Vastuualue_list'] == table_name]
 
             # If only a couple of occurrences in a group, skip them and insert later to the database to save time
             if not last_iteration and len(sub_gdf) < 100:
                 pending_occurrences = pd.concat([pending_occurrences, sub_gdf], axis=0)
                 continue
 
-            sub_gdf = sub_gdf.assign(Paikallinen_tunniste=sub_gdf.index)
             try:
                 with engine.connect() as conn:
-                    sub_gdf.to_postgis(table_name, engine, if_exists='append', schema='public', index=False)
+                    sub_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
                 if table_name not in table_names:
                     table_names.append(table_name)
             except Exception as e:
@@ -214,10 +216,16 @@ def update_indexes(table_name):
     """
 
     with engine.connect() as connection:
-        reindex_sql = text(f'REINDEX TABLE "{table_name}";')
-        connection.execute(reindex_sql)
+        reindex_table = text(f'REINDEX TABLE "{table_name}";')
+        connection.execute(reindex_table)
 
-        spatial_reindex_sql = text(f'CREATE INDEX "{table_name}_geom_x" ON "{table_name}" USING GIST (geometry);')
+        reindex_id = text(f'CREATE INDEX "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");')
+        connection.execute(reindex_id)
+
+        reindex_id2 = text(f'CREATE INDEX "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");')
+        connection.execute(reindex_id2)
+
+        spatial_reindex_sql = text(f'CREATE INDEX "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);')
         connection.execute(spatial_reindex_sql)
 
 def validate_geometries_postgis(table_name):
@@ -234,5 +242,76 @@ def validate_geometries_postgis(table_name):
         edited_features_count = result.rowcount
     return edited_features_count
 
+def collections_to_multis(table_name, buffer_distance=0.5):
+    """
+    Convert GeometryCollections to MultiPolygons with a specified buffer distance.
+
+    Args:
+        table_name (str): The name of the table containing geometry data.
+        buffer_distance (float): The buffer distance to apply to non-polygon geometries.
+
+    Returns:
+        None
+    """
+    
+    # This SQL converts GeometryCollections to MultiPolygons and counts modified features
+    sql = f"""
+        DO $$
+        DECLARE
+            rec RECORD;
+            polygons GEOMETRY[];
+            geom GEOMETRY;
+            new_geom GEOMETRY;
+            modified_count INTEGER := 0;
+        BEGIN
+            -- Iterate over each row in the table
+            FOR rec IN SELECT "Paikallinen_tunniste", geometry FROM "{table_name}" LOOP
+                -- Initialize an empty array for polygons
+                polygons := ARRAY[]::GEOMETRY[];
+                
+                -- Check if the geometry is a GeometryCollection
+                IF ST_GeometryType(rec.geometry) = 'ST_GeometryCollection' THEN
+                    
+                    -- Iterate over each geometry in the collection
+                    FOR geom IN SELECT (ST_Dump(rec.geometry)).geom LOOP
+                        -- Check the type of each geometry and process accordingly
+                        CASE ST_GeometryType(geom)
+                            WHEN 'ST_Polygon', 'ST_MultiPolygon' THEN
+                                -- Add Polygon or MultiPolygon directly to the array
+                                polygons := array_append(polygons, geom);
+                            WHEN 'ST_Point', 'ST_MultiPoint', 'ST_LineString', 'ST_MultiLineString' THEN
+                                -- Buffer Point, MultiPoint, LineString, and MultiLineString
+                                polygons := array_append(polygons, ST_Buffer(geom, {buffer_distance}));
+                        END CASE;
+                    END LOOP;
+                    
+                    -- Create MultiPolygon from collected geometries if any valid polygons exist
+                    IF array_length(polygons, 1) > 0 THEN
+                        new_geom := ST_Multi(ST_Collect(polygons));
+                        
+                        -- Update the table with the new geometry
+                        UPDATE "{table_name}"
+                        SET geometry = new_geom
+                        WHERE "Paikallinen_tunniste" = "rec.Paikallinen_tunniste";
+                        
+                        -- Increment the modified count
+                        modified_count := modified_count + 1;
+                    END IF;
+                END IF;
+            END LOOP;
+            
+            -- Output the number of modified features
+            RAISE NOTICE 'Number of features modified: %', modified_count;
+        END
+        $$;
+    """
+
+    # Execute the SQL code block
+    with engine.connect() as connection:
+        result = connection.execute(text(sql))
+        
+        # Print out any notices (such as the modification count) from the SQL execution
+        for notice in connection.connection.notices:
+            print(notice.strip())
 
 engine = connect_to_db()

@@ -136,29 +136,6 @@ def translate_column_names(gdf, style='virva'):
 
     return gdf
 
-def clean_table_name(group_name):
-    """
-    Cleans and formats a table name so that they can be used in PostGIS database.
-
-    Parameters:
-    group_name (str): The column name to be cleaned.
-
-    Returns:
-    str: The cleaned table name ready for PostGIS.
-    """
-    # Function to clean and return a table name
-    if group_name is None or group_name =='nan' or group_name == '':
-        return None
-    
-    # Remove non-alphanumeric characters and white spaces
-    cleaned_name = re.sub(r'[^\w\s]', '', str(group_name)).replace(' ', '_')   
-
-    # Shorten the name
-    if len(cleaned_name) > 40:
-        cleaned_name = cleaned_name[:40]
-
-    return f'{cleaned_name}'
-
 def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
     """Convert GeometryCollection to MultiPolygon, buffering points and lines if necessary."""
     if isinstance(geometry, GeometryCollection):
@@ -193,18 +170,21 @@ def merge_duplicates(gdf):
     Returns:
     GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
     """
+    # Create a local id
+    gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")
 
     # Convert the filtered DataFrame to a list of values
     columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
 
     # Define how each column should be aggregated
-    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']} # Select the first value for almost all columns
+    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Paikallinen_tunniste', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']} # Select the first value for almost all columns
     aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0] # Join values if more than 1 value
     aggregation_dict['Havainnon_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Maara'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Avainsanat'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Havainnon_lisatiedot'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Aineisto'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
+    aggregation_dict['Paikallinen_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
     aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum values
  
     # Group by the columns to check for duplicates
