@@ -58,7 +58,6 @@ def main():
     failed_features_count = 0
     edited_features_count = 0
     last_iteration = False
-    pending_occurrences = pd.DataFrame()
 
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
@@ -100,7 +99,7 @@ def main():
         gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
 
         print("Inserting data to the database...")
-        pending_occurrences, table_names, failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, pending_occurrences, table_names, failed_features_count, occurrences_without_group_count, last_iteration)
+        table_names, failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration)
 
         del gdf
     del taxon_df, collection_names

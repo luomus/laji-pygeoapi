@@ -4,7 +4,7 @@ import geopandas as gpd
 import pandas as pd
 import os
 from dotenv import load_dotenv
-from process_data import get_min_max_dates, clean_table_name
+from process_data import get_min_max_dates
 
 def connect_to_db():
     """
@@ -156,13 +156,12 @@ def get_amount_of_occurrences(table_name):
 
     return total_occurrences
 
-def to_db(gdf, pending_occurrences, table_names, failed_features_count, occurrences_without_group_count, last_iteration=False):
+def to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration=False):
     """
     Process and insert geospatial data into a PostGIS database.
 
     Parameters:
     gdf (GeoDataFrame): The main GeoDataFrame containing occurrences.
-    pending_occurrences (DataFrame): A DataFrame to store pending occurrences.
     table_names (list): A list to store table names that have been processed.
     failed_features_count (int): A counter for failed occurrence inserts.
     occurrences_without_group_count (int): A counter for occurrences without a group
@@ -177,22 +176,12 @@ def to_db(gdf, pending_occurrences, table_names, failed_features_count, occurren
     occurrences_without_group_count += gdf['Vastuualue_list'].isnull().sum()
     gdf = gdf.dropna(subset=['Vastuualue_list'])
 
-    # If it is the last round, add all pending occurrences to the gdf
-    if last_iteration or len(pending_occurrences) > 1000:
-        print("Joining pending occurrences to the dataframe..")
-        gdf = pd.concat([gdf, pending_occurrences], axis=0)
-        pending_occurrences = pd.DataFrame()
-
     unique_groups = gdf['Vastuualue_list'].unique()
     for table_name in unique_groups:
         if table_name:
             # Filter the sub DataFrame
             sub_gdf = gdf[gdf['Vastuualue_list'] == table_name]
-
-            # If only a couple of occurrences in a group, skip them and insert later to the database to save time
-            if not last_iteration and len(sub_gdf) < 100:
-                pending_occurrences = pd.concat([pending_occurrences, sub_gdf], axis=0)
-                continue
+            sub_gdf = sub_gdf.drop('Vastuualue_list', axis=1)
 
             try:
                 with engine.connect() as conn:
@@ -205,7 +194,7 @@ def to_db(gdf, pending_occurrences, table_names, failed_features_count, occurren
 
             del sub_gdf
 
-    return pending_occurrences, table_names, failed_features_count, occurrences_without_group_count
+    return table_names, failed_features_count, occurrences_without_group_count
 
 def update_indexes(table_name):
     """
