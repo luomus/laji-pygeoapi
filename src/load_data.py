@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 import requests, pyogrio, psycopg2, geoalchemy2, os, concurrent.futures
+import urllib.error
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
@@ -57,9 +58,19 @@ def download_page(data_url, page_no):
     geopandas.GeoDataFrame: The downloaded data as a GeoDataFrame.
     """
     # Load data
-    data_url = data_url.replace('page=1', f'page={page_no}')
-    gdf = gpd.read_file(data_url)    
-    return gdf
+    try:
+        data_url = data_url.replace('page=1', f'page={page_no}')
+        gdf = gpd.read_file(data_url)   
+        return gdf 
+    except urllib.error.HTTPError as e:
+        print(f"HTTP Error {e.code}: {e.reason}. Could not access {data_url}.")
+    except Exception as e:
+        # Catch any other exceptions
+        print(f"An error occurred: {e}")
+
+    # Return an empty GeoDataFrame in case of an error
+    print("Returning an empty geodataframe...")
+    return gpd.GeoDataFrame()
 
 def get_occurrence_data(data_url, startpage, endpage, multiprocessing=False):
     """
