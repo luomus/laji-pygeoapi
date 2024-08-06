@@ -12,9 +12,9 @@ server:
     # cors: true
     pretty_print: true
     limit: 10
-    # templates:
-      # path: /path/to/Jinja2/templates
-      # static: /path/to/static/folder # css/js/img
+    templates:
+      path: custom_templates
+      #static: custom_static
     map:
         url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
         attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
@@ -30,20 +30,21 @@ metadata:
             en: FinBIF occurrence data OGC API
             fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
         description:
-            en: This portal allows you to query and fetch virva-filtered occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-06-25.
-            fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja. Päivitetty 2024-06-25.
+            en: This portal allows you to query and fetch virva-filtered occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-08-06. 
+            fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja. Päivitetty 2024-08-06.            
         keywords:
             en:
-                - occurrence
+                - occurrence data
                 - geospatial data
                 - api
             fi:
                 - lajitieto
                 - paikkatieto
                 - rajapinta
-        keywords_type: theme
+        keywords_type: place
         terms_of_service: https://creativecommons.org/licenses/by/4.0/
-        url: https://example.org
+        url: https://info.laji.fi/en/frontpage/finnish-biodiversity-information-facility-finbif/terms-of-services/
+        properties: 
     license:
         name: CC-BY 4.0 license
         url: https://creativecommons.org/licenses/by/4.0/
@@ -69,37 +70,3 @@ metadata:
         role: pointOfContact
 
 resources:
-
-    Birds:
-        type: collection
-        title: Birds 
-        description: This collection contains 8608 occurrences of Birds. 
-        keywords:
-            en:
-                - Birds
-                - species
-        extents:
-            spatial:
-                bbox: [19.54434, 59.778728, 30.860287, 70.05583]
-                crs: https://www.opengis.net/def/crs/EPSG/0/4326
-            temporal: 
-                begin: 2024-06-09T00:00:00Z
-                end: 2024-06-25T00:00:00Z
-        providers:
-          - type: feature
-            name: PostgreSQL
-            data:
-                host: postgres
-                port: 5432
-                dbname: tmp
-                user: tmp
-                password: tmp
-            id_field: Paikallinen_tunniste
-            uri: Havainnon_tunniste
-            table: Birds
-            geom_field: geometry
-            time_field: Keruu_aloitus_pvm
-            title_field: Tulkittu_tieteellinen_nimi
-            crs:
-                - https://www.opengis.net/def/crs/EPSG/0/4326
-                - https://www.opengis.net/def/crs/EPSG/0/3067
