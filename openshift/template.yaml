@@ -117,8 +117,8 @@ objects:
             # cors: true
             pretty_print: true
             limit: 10
-            # templates:
-              # path: /path/to/Jinja2/templates
+            templates:
+              path: /custom-templates-${BRANCH}
               # static: /path/to/static/folder # css/js/img
             map:
                 url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
@@ -173,40 +173,171 @@ objects:
                     fi: https://laji.fi/
                 role: pointOfContact
         resources:
-            Birds:
-                type: collection
-                title: Birds 
-                description: occurrences from laji.fi
-                keywords:
-                    en:
-                        - Birds
-                        - species
-                extents:
-                    spatial:
-                        bbox: [19.33897, 59.504462, 31.307532, 70.069293]
-                        crs: https://www.opengis.net/def/crs/EPSG/0/4326
-                    temporal: 
-                        begin: 2023-07-12T00:00:00Z
-                        end: 2024-05-20T03:40:00Z
-                providers:
-                  - type: feature
-                    name: PostgreSQL
-                    data:
-                        host: postgres
-                        port: ${DB_PORT}
-                        dbname: tmp
-                        user: tmp
-                        password: tmp
-                    id_field: localID
-                    uri: occurrenceID
-                    table: Birds
-                    geom_field: geometry
-                    time_field: datetimestamp
-                    title_field: scientificNameInterpreted
-                    crs:
-                        - https://www.opengis.net/def/crs/EPSG/0/4326
-                        - https://www.opengis.net/def/crs/EPSG/0/3067
-                        
+   
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: custom-templates-${BRANCH}
+      labels:
+        app: pygeoapi-${BRANCH}
+    data:
+      landing_page.html: |-
+        {% extends "_base.html" %}
+        {% block title %}{{ super() }} {% trans %}Home{% endtrans %} {% endblock %}
+        {% block body %}
+        <br/>
+        <section id="collections">
+        <div class="row">
+          <div class="col-md-8 col-sm-12">
+          <section id="identification">
+            <h1>{{ config['metadata']['identification']['title'] }}</h1>
+            <p>{{ config['metadata']['identification']['description'] }}</p>
+            <p>
+                {% for kw in config['metadata']['identification']['keywords'] %}
+                  <span class="badge bg-primary text-bg-primary">{{ kw }}</span>
+                {% endfor %}
+            </p>
+            <div class="card bg-light mb-3">
+              <div class="card-body">
+                {% if config['metadata']['identification']['terms_of_service'] %}
+                  <div class="row">
+                      <div class="col-sm-4">
+                        {% trans %}Terms of service{% endtrans %}
+                      </div>
+                      <div class="col-sm-8">
+                        {{ config['metadata']['identification']['terms_of_service'] | urlize() }}
+                      </div>
+                  </div>
+                {% endif %}
+                {% if config['metadata']['license']['url'] %}
+                  <div class="row">
+                      <div class="col-sm-4">
+                        {% trans %}License{% endtrans %}
+                      </div>
+                      <div class="col-sm-8">
+                          <a href="{{ config['metadata']['license']['url'] }}">
+                            {{ config['metadata']['license']['name'] or config['metadata']['license']['url'] }}</a>
+                      </div>
+                  </div>
+                {% endif %}
+                  <div class="row">
+                      <div class="col-sm-4">
+                        {% trans %}URL{% endtrans %}
+                      </div>
+                      <div class="col-sm-8">
+                          <a href="{{ config['metadata']['identification']['url'] }}">
+                            {{ config['metadata']['identification']['url'] | truncate( 70 ) }}</a>
+                      </div>
+                  </div>
+              </div>
+            </div>
+          </section>
+          {% if data['collection'] %}
+          <section id="collections">
+            <h2>{% trans %}Collections{% endtrans %}</h2>
+            <p>
+              <a href="{{ config['server']['url'] }}/collections?f=html">{% trans %}View the collections in this service{% endtrans %}</a>
+            </p>
+          </section>
+        {% endif %}
+        {% if data['stac'] %}
+          <section id="collections">
+            <h2>{% trans %}SpatioTemporal Assets{% endtrans %}</h2>
+            <p>
+              <a href="{{ config['server']['url'] }}/stac?f=html">{% trans %}View the SpatioTemporal Assets in this service{% endtrans %}</a>
+            </p>
+          </section>
+        {% endif %}
+        {% if data['processes'] %}
+          <section id="processes">
+              <h2>{% trans %}Processes{% endtrans %}</h2>
+              <p>
+                <a href="{{ config['server']['url'] }}/processes?f=html">{% trans %}View the processes in this service{% endtrans %}</a>
+              </p>
+          </section>
+          <section id="jobs">
+              <h2>{% trans %}Jobs{% endtrans %}</h2>
+              <p>
+                <a title="Browse jobs" href="{{config.server.url}}/jobs">{% trans %}Browse jobs{% endtrans %}</a>
+              </p>
+          </section>
+        {% endif %}
+          <section id="openapi">
+              <h2>{% trans %}API Definition{% endtrans %}</h2>
+              <p>
+                {% trans %}Documentation{% endtrans %}: <a href="{{ config['server']['url'] }}/openapi?f=html">{% trans %}Swagger UI{% endtrans %}</a> <a href="{{ config['server']['url'] }}/openapi?f=html&ui=redoc">{% trans %}ReDoc{% endtrans %}</a>
+              </p>
+              <p>
+                <a href="{{ config['server']['url'] }}/openapi?f=json">{% trans %}OpenAPI Document{% endtrans %}</a>
+              </p>
+          </section>
+          <section id="conformance">
+              <h2>{% trans %}Conformance{% endtrans %}</h2>
+              <p>
+                <a href="{{ config['server']['url'] }}/conformance?f=html">{% trans %}View the conformance classes of this service{% endtrans %}</a>
+              </p>
+          </section>
+          <section id="API Documentation">
+            <h2>{% trans %}API Instructions and Documentation{% endtrans %}</h2>
+            <p>
+              <a href="https://info.laji.fi/etusivu/palvelut-ja-ohjeet/paikkatieto/rajapintayhteydet/ogc-api-paikkatietorajapinta-yleisesti/">{% trans %}View the instructions and documentation{% endtrans %}</a>
+            </p>
+        </section>
+          </div>
+          <div class="col-md-4 col-sm-12">
+            <div class="card mb-3">
+              <div class="card-header">
+              <b>{% trans %}Provider{% endtrans %}</b>
+              </div>
+              <div class="card-body">
+                <b>{{ config['metadata']['provider']['name'] }}</b><br/>
+                <a href="{{ config['metadata']['provider']['url'] }}">{{ config['metadata']['provider']['url'] }}</a><br/>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                  <b>{% trans %}Contact point{% endtrans %}</b>
+              </div>
+              <div class="card-body">
+                <b>{% trans %}Address{% endtrans %}</b><br/>
+                <div class="section">
+                  <span>{{ config['metadata']['contact']['address'] }}</span><br/>
+                  <span>{{ config['metadata']['contact']['city'] }}</span>,
+                  <span>{{ config['metadata']['contact']['stateorprovince'] }}</span><br/>
+                  <span>{{ config['metadata']['contact']['postalcode'] }}</span><br/>
+                  <span>{{ config['metadata']['contact']['country'] }}</span>
+                </div>
+                <div>
+                  <b>{% trans %}Email{% endtrans %}</b><br/>
+                  <span><a href="mailto:{{ config['metadata']['contact']['email'] }}">{{ config['metadata']['contact']['email'] }}</a></span><br/>
+                  {% if config['metadata']['contact']['phone'] %}
+                    <b>{% trans %}Telephone{% endtrans %}</b><br/>
+                    <span><a href="tel:{{ config['metadata']['contact']['phone'] }}">{{ config['metadata']['contact']['phone'] }}</a></span><br/>
+                  {% endif %}
+                  {% if config['metadata']['contact']['fax'] %}
+                    <b>{% trans %}Fax{% endtrans %}</b><br/>
+                    <span><a href="tel:{{ config['metadata']['contact']['fax'] }}">{{ config['metadata']['contact']['fax'] }}</a></span><br/>
+                  {% endif %}
+                  {% if config['metadata']['contact']['url'] %}
+                    <b>{% trans %}Contact URL{% endtrans %}</b><br/>
+                    <span><a href="{{ config['metadata']['contact']['url'] }}">{{ config['metadata']['contact']['url'] }}</a></span><br/>
+                  {% endif %}
+                  {% if config['metadata']['contact']['hours'] %}
+                    <b>{% trans %}Hours{% endtrans %}</b><br/>
+                    <span>{{ config['metadata']['contact']['hours'] }}</span><br/>
+                  {% endif %}
+                  {% if config['metadata']['contact']['instructions'] %}
+                    <b>{% trans %}Contact instructions{% endtrans %}</b><br/>
+                    <span>{{ config['metadata']['contact']['instructions'] }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </section>
+        {% endblock %}
+
   - kind: ServiceAccount
     apiVersion: v1
     metadata:
@@ -401,6 +532,10 @@ objects:
               configMap:
                 name: pygeoapi-config-${BRANCH}
                 defaultMode: 420
+            - name: custom-templates-${BRANCH}
+              configMap:
+                name: custom-templates-${BRANCH}
+                defaultMode: 420
           containers:
             - resources: {}
               terminationMessagePath: /dev/termination-log
@@ -420,6 +555,8 @@ objects:
                 - name: pygeoapi-config-${BRANCH}
                   mountPath: /pygeoapi/local.config.yml
                   subPath: pygeoapi-config.yml
+                - name: custom-templates-${BRANCH}
+                  mountPath: /custom-templates-${BRANCH}
               terminationMessagePolicy: File
               image: pygeoapi-${BRANCH}:latest
           restartPolicy: Always
