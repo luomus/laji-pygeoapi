@@ -2,7 +2,7 @@
     <placeholder_table_name>:
         type: collection
         title: <placeholder_table_name> 
-        description: This collection contains <placeholder_amount_of_occurrences> occurrences of <placeholder_table_name>. 
+        description: This collection contains <placeholder_amount_of_occurrences> occurrences from the <placeholder_table_name> area with 10 km buffers. 
         keywords:
             en:
                 - <placeholder_table_name>
