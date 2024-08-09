@@ -15,7 +15,6 @@ taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?lang=fi&pageSize
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 municipal_geojson_path = r'municipalities_and_elys.geojson'
-metadata_db_path = 'catalogue.tinydb'
 metadata_xml_path = 'metadata'
 
 # Create an URL for Virva filtered occurrence data
@@ -40,9 +39,11 @@ occurrence_url = f"{base_url}selected={selected_fields}&administrativeStatusId={
 # Pygeoapi output file
 if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
     pygeoapi_config_out = r'pygeoapi-config_out.yml'
+    metadata_db_path = 'tmp-catalogue.tinydb'
     print("Starting in Openshift / Kubernetes...")
 else:
     pygeoapi_config_out = r'pygeoapi-config.yml'
+    metadata_db_path = 'catalogue.tinydb'
     print("Starting in Docker...")
 
 def main():
@@ -161,7 +162,7 @@ def main():
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
-        edit_configmaps.update_configmap(pygeoapi_config_out) 
+        edit_configmaps.update_configmap(pygeoapi_config_out, metadata_db_path) 
 
     print("API is ready to use. ")
 

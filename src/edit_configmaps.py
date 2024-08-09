@@ -22,7 +22,7 @@ def get_kubernetes_info():
 
     return api_url, namespace
 
-def update_configmap(pygeoapi_config_out):
+def update_configmap(pygeoapi_config_out, metadata_db_path):
     '''
     This function updates a Kubernetes ConfigMap with new data from a given file and restarts the related pods.
     1. Retrieves the Kubernetes API URL and namespace.
@@ -69,7 +69,25 @@ def update_configmap(pygeoapi_config_out):
 
     # Print possible errors
     if r.status_code != 200:
-        print(f"Failed to update configmap: {r.status_code} - {r.text}")
+        print(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
+        r.raise_for_status()
+
+    # Read the content of the metadata db file to update
+    with open(metadata_db_path, "r") as f:
+        metadata_db_content = f.read()  
+    
+    # Prepare the patch data to replace the metadata db config map    
+    data = [{
+        "op": "replace",
+        "path": "/data/catalogue.tinydb",
+        "value": metadata_db_content
+    }]
+    # Update the config map
+    r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
+    
+    # Print possible errors
+    if r.status_code != 200:
+        print(f"Failed to update metadata catalogue db configmap: {r.status_code} - {r.text}")
         r.raise_for_status()
 
     # find the pods we want to restart
