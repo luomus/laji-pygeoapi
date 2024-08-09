@@ -1,6 +1,7 @@
 FROM geopython/pygeoapi:latest
 
-COPY custom_templates .
+COPY pygeoapi/entrypoint.sh .
 
 RUN chgrp -R 0 /pygeoapi && chmod -R g=u /pygeoapi
-RUN chgrp 0 /pygeoapi/catalogue.tinydb && chmod g=u /pygeoapi/catalogue.tinydb
+
+ENTRYPOINT ["/pygeoapi/entrypoint.sh"]
