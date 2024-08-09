@@ -8,6 +8,7 @@ services:
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
       - ./custom_templates/:/pygeoapi/custom_templates/
+      - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,3 +44,4 @@ services:
     volumes:
       - ./pygeoapi-config.yml:/app/pygeoapi-config.yml
       - ./.env:/.env
+      - ./catalogue.tinydb:/app/catalogue.tinydb

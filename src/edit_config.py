@@ -58,3 +58,34 @@ def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_o
     # Append the filled template to the output config file
     with open(pygeoapi_config_out, "a") as file:
         file.write(template)
+
+def add_metadata_to_config(pygeoapi_config_out, metadata_db_path):
+    config_template = f"""
+    occurrence-metadata:
+        type: collection
+        title: Occurrence Metadata 
+        description: This metadata record contains metadata of the all collections in this service 
+        keywords:
+            en:
+                - metadata
+                - record
+        extents:
+            spatial:
+                bbox: [19.08317359,59.45414258,31.58672881,70.09229553]
+                crs: https://www.opengis.net/def/crs/EPSG/0/3067
+            temporal: 
+                begin: 1990-01-01T00:00:00Z
+                end: {str(date.today())}T00:00:00Z
+        providers:
+          - type: record
+            name: TinyDBCatalogue
+            data: {metadata_db_path}
+            id_field: externalId
+            time_field: recordCreated
+            title_field: title
+    """
+
+    # Append the filled template to the output config file
+    with open(pygeoapi_config_out, "a") as file:
+        file.write(config_template)
+        print("metadata added to config file")

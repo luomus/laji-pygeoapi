@@ -2,7 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from dotenv import load_dotenv
 import os
-import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db
+import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db, edit_metadata
 #import numpy as np
 
 # Set options
@@ -15,6 +15,8 @@ taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?lang=fi&pageSize
 template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 municipal_geojson_path = r'municipalities_and_elys.geojson'
+metadata_db_path = 'catalogue.tinydb'
+metadata_xml_path = 'metadata'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
@@ -50,6 +52,7 @@ def main():
     #print(f"URL: n\ {occurrence_url}")
 
     tot_rows = 0
+    table_no = 0
     multiprocessing = os.getenv('MULTIPROCESSING')
     pages = os.getenv('PAGES')
     table_names = []
@@ -62,6 +65,7 @@ def main():
     # Clear config file and database to make space for new data sets. 
     edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out)
     edit_db.drop_all_tables()
+    edit_metadata.empty_metadata_db(metadata_db_path)
 
     # Get other data sets
     print("Loading taxon and collection data...")
@@ -112,13 +116,14 @@ def main():
         edited_features_count += edited_features
         bbox = edit_db.get_table_bbox(table_name)
         min_date, max_date = edit_db.get_table_dates(table_name)
-        amount_of_occurrences = edit_db.get_amount_of_occurrences(table_name)
-        tot_rows += amount_of_occurrences
+        no_of_occurrences = edit_db.get_amount_of_occurrences(table_name)
+        tot_rows += no_of_occurrences
+        table_no += 1
 
         # Create parameters dictionary to fill the template for pygeoapi config file
         template_params = {
             "<placeholder_table_name>": table_name,
-            "<placeholder_amount_of_occurrences>": str(amount_of_occurrences),
+            "<placeholder_amount_of_occurrences>": str(no_of_occurrences),
             "<placeholder_bbox>": str(bbox),
             "<placeholder_min_date>": min_date,
             "<placeholder_max_date>": max_date,
@@ -127,9 +132,23 @@ def main():
             "<placeholder_postgres_user>": os.getenv('POSTGRES_USER'),
             "<placeholder_db_name>": os.getenv('POSTGRES_DB')
         }
+
+        metadata_dict = {
+            "bbox": bbox,
+            "dataset_name": table_name,
+            "no_of_occurrences": no_of_occurrences,
+            "min_date": min_date,
+            "max_date": max_date,
+            "table_no": table_no
+        }
+
         # Add database information into the config file
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
-        print(f"In total {amount_of_occurrences} occurrences of {table_name} inserted to the database")
+
+        # Create metadata and add to the TinyDB
+        edit_metadata.create_metadata(metadata_dict, metadata_db_path)
+
+        print(f"In total {no_of_occurrences} occurrences of {table_name} inserted to the database")
 
     print(f"In total {tot_rows} rows of data inserted successfully into the PostGIS database and pygeoapi config file.")
     print(f"In total {merged_occurrences_count} duplicate occurrences were merged")
@@ -137,10 +156,13 @@ def main():
     print(f"In total {occurrences_without_group_count} species without scientific family name were discarded")
     print(f"In total {failed_features_count} features failed to add to the database")
 
+    # Add metadata info to config file
+    edit_config.add_metadata_to_config(pygeoapi_config_out, metadata_db_path)
+
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
         edit_configmaps.update_configmap(pygeoapi_config_out) 
-        
+
     print("API is ready to use. ")
 
 if __name__ == '__main__':
