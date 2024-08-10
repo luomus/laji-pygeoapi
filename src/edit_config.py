@@ -79,7 +79,7 @@ def add_metadata_to_config(pygeoapi_config_out, metadata_db_path):
         providers:
           - type: record
             name: TinyDBCatalogue
-            data: catalogue.tinydb
+            data: metada_db.tinydb
             id_field: externalId
             time_field: recordCreated
             title_field: title
