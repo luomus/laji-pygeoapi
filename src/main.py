@@ -40,10 +40,12 @@ occurrence_url = f"{base_url}selected={selected_fields}&administrativeStatusId={
 if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
     pygeoapi_config_out = r'pygeoapi-config_out.yml'
     metadata_db_path = 'tmp-catalogue.tinydb'
+    db_path_in_config = 'metadata_db.tinydb'
     print("Starting in Openshift / Kubernetes...")
 else:
     pygeoapi_config_out = r'pygeoapi-config.yml'
     metadata_db_path = 'catalogue.tinydb'
+    db_path_in_config = metadata_db_path
     print("Starting in Docker...")
 
 def main():
@@ -158,11 +160,11 @@ def main():
     print(f"In total {failed_features_count} features failed to add to the database")
 
     # Add metadata info to config file
-    edit_config.add_metadata_to_config(pygeoapi_config_out, metadata_db_path)
+    edit_config.add_metadata_to_config(pygeoapi_config_out, db_path_in_config)
 
     # And finally replace configmap in openshift with the local config file only when the script is running in kubernetes / openshift
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
-        edit_configmaps.update_configmap(pygeoapi_config_out, metadata_db_path) 
+        edit_configmaps.update_and_restart(pygeoapi_config_out, metadata_db_path) 
 
     print("API is ready to use. ")
 

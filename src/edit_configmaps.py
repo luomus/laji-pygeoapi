@@ -9,8 +9,7 @@ def get_kubernetes_info():
     and returns both the API URL and namespace.
 
     Returns:
-    api_url (string)
-    namespace (string)
+    tuple: (api_url (string), namespace (str))
     '''
     with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace") as f:
         namespace = f.read().strip()
@@ -22,16 +21,69 @@ def get_kubernetes_info():
 
     return api_url, namespace
 
-def update_configmap(pygeoapi_config_out, metadata_db_path):
+def delete_pod(api_url, namespace, pod, headers, ca_cert):
     '''
-    This function updates a Kubernetes ConfigMap with new data from a given file and restarts the related pods.
+    Deletes a Kubernetes/Openshift pod to trigger a restart.
+
+    Parameters:
+    - api_url (str): The base URL for the Kubernetes API.
+    - namespace (str): The Kubernetes namespace where the pod resides.
+    - pod (str): The name of the pod to delete.
+    - headers (dict): The headers to include in the request.
+    - ca_cert (str): The path to the CA certificate for SSL verification.
+    '''
+        
+    pod_url = f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}"
+    try:
+        delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
+        delete_response.raise_for_status()
+        print(f"Pod {pod} restarted")
+    except requests.exceptions.RequestException as e:
+        print(f"Error deleting pod {pod}: {e}")
+
+
+def update_configmap(configmap_url, headers, ca_cert, file_to_add, path):
+    '''
+    Updates a specific path in a Kubernetes ConfigMap using a JSON patch.
+
+    Parameters:
+    - configmap_url (str): The URL of the ConfigMap to update.
+    - headers (dict): The authorization headers to include in the request.
+    - ca_cert (str): The path to the CA certificate for SSL verification.
+    - file_to_add (str): The file whose contents will replace the data at the specified path.
+    - path (str): The path within the ConfigMap to update.
+    '''
+    # Read the content of the config file to update
+    with open(file_to_add, "r") as f:
+        file_content = f.read()       
+
+    # Prepare the patch data to replace the config map    
+    data = [{
+        "op": "replace",
+        "path": path,
+        "value": file_content
+    }]
+
+    r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
+
+    # Print possible errors
+    if r.status_code != 200:
+        print(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
+        r.raise_for_status()
+
+def update_and_restart(pygeoapi_config_out, metadata_db_path):
+    '''
+    Updates a Kubernetes ConfigMap with new configuration data and restarts related pods.
+
+    Steps:
     1. Retrieves the Kubernetes API URL and namespace.
-    2. Reads the CA certificate and service account token.
-    3. Reads the content of the pygeoapi config file.
-    4. Prepares a JSON patch request to update the ConfigMap.
-    5. Sends a PATCH request to the Kubernetes API to update the ConfigMap.
-    6. Retrieves the list of pods and identifies the ones related to the pygeoapi pod.
-    7. Deletes the identified pods to trigger a restart with the updated ConfigMap.
+    2. Loads environment variables and reads the service account token.
+    3. Updates the ConfigMap with new configuration data.
+    4. Identifies the relevant pods by label and deletes them to trigger a restart.
+
+    Parameters:
+    pygeoapi_config_out (str): The path to the pygeoapi config file
+    metadata_db_path (str): The path to the metadata database
     '''
 
     print("Updating configmap...")
@@ -51,56 +103,25 @@ def update_configmap(pygeoapi_config_out, metadata_db_path):
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
         token = f.read()
 
-    # Read the content of the config file to update
-    with open(pygeoapi_config_out, "r") as f:
-        pygeoapi_config_content = f.read()       
-
-    # Prepare the patch data to replace the config map    
-    data = [{
-        "op": "replace",
-        "path": "/data/pygeoapi-config.yml",
-        "value": pygeoapi_config_content
-    }]
-
     # Update the config map
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
     configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config-{branch}"
-    r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
 
-    # Print possible errors
-    if r.status_code != 200:
-        print(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
-        r.raise_for_status()
+    update_configmap(configmap_url, headers, ca_cert, pygeoapi_config_out, "/data/pygeoapi-config.yml")
+    update_configmap(configmap_url, headers, ca_cert, metadata_db_path, "/data/catalogue.tinydb")
 
-    # Read the content of the metadata db file to update
-    with open(metadata_db_path, "r") as f:
-        metadata_db_content = f.read()  
-    
-    # Prepare the patch data to replace the metadata db config map    
-    data = [{
-        "op": "replace",
-        "path": "/data/catalogue.tinydb",
-        "value": metadata_db_content
-    }]
-    # Update the config map
-    r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
-    
-    # Print possible errors
-    if r.status_code != 200:
-        print(f"Failed to update metadata catalogue db configmap: {r.status_code} - {r.text}")
-        r.raise_for_status()
+
 
     # find the pods we want to restart
     headers = {"Authorization": "Bearer {}".format(token)}
     pods_url = f"{api_url}/api/v1/namespaces/{namespace}/pods"
-    print(pods_url)
 
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
 
     service_name = "pygeoapi-"+branch
     try:
-        # Find pods with the label io.kompose.service set to pygeoapi-dev
+        # Find pods with the label io.kompose.service set to pygeoapi-branch
         target_pods = [
             item["metadata"]["name"]
             for item in items
@@ -118,12 +139,6 @@ def update_configmap(pygeoapi_config_out, metadata_db_path):
 
     # restart the pods by deleting them
     for pod in target_pods:
-        pod_url = f"{api_url}/api/v1/namespaces/{namespace}/pods/{pod}"
-        try:
-            delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
-            delete_response.raise_for_status()
-            print(f"Pod {pod} updated")
-        except requests.exceptions.RequestException as e:
-            print(f"Error deleting pod {pod}: {e}")
+        delete_pod(api_url, namespace, pod, headers, ca_cert)
 
     

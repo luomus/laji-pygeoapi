@@ -59,7 +59,14 @@ def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_o
     with open(pygeoapi_config_out, "a") as file:
         file.write(template)
 
-def add_metadata_to_config(pygeoapi_config_out, metadata_db_path):
+def add_metadata_to_config(pygeoapi_config_out, db_path_in_config):
+    """
+    This function adds metadata information to the pygeoapi config file. 
+    
+    Parameters:
+    pygeoapi_config_out (str): The path to the pygeoapi config file
+    db_path_in_config (str): path to the tinydb catalogue that stores metadata information
+    """
     config_template = f"""
     occurrence-metadata:
         type: collection
@@ -79,7 +86,7 @@ def add_metadata_to_config(pygeoapi_config_out, metadata_db_path):
         providers:
           - type: record
             name: TinyDBCatalogue
-            data: metadata_db.tinydb
+            data: {db_path_in_config}
             id_field: externalId
             time_field: recordCreated
             title_field: title
