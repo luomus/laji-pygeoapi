@@ -70,6 +70,11 @@ def create_metadata(metadata_dict, metadata_db_path):
                 'scheme': 'default',
                 'value': 'ID_'+str(table_no)
             }],
+            'format': [
+                {'name': 'geo+json'},
+                {'name': 'html'},
+                {'name': 'csv'}
+            ],
             'themes': 'themes',
             '_metadata-anytext': ''
         },

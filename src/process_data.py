@@ -4,6 +4,7 @@ import numpy as np
 import re
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
 from shapely.ops import unary_union
+import datetime
 
 # Load the lookup table CSV into a DataFrame
 lookup_table = r'lookup_table_columns.csv'
@@ -23,38 +24,6 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'].str.extract('(MVL\.\d+)')
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.originalTaxon.informalTaxonGroups[0]', right_on='id', how='left')
     return merged_gdf
-
-def get_min_max_dates(gdf):
-    """
-    Finds the minimum and maximum event dates and returns them in RFC3339 format
-
-    Parameters:
-    gdf (geopandas.GeoDataFrame): The GeoDataFrame containing column named eventDateTimeDisplay (or Aika).
-
-    Returns:
-    first_date: the first datestamp of the GeoDataframe in RFC3399 format
-    end_date: the last datestamp of the Geodataframe in RFC3399 format
-    """
-    # Filter out NaT (Not a Time) values
-    try:
-        start_dates = pd.to_datetime(gdf['Keruu_aloitus_pvm']).dropna()
-        end_dates = pd.to_datetime(gdf['Keruu_lopetus_pvm']).dropna()
-    except ValueError as e:
-        print(e)
-
-    # Get the first date in RFC3339 format
-    if len(start_dates) > 0:
-        first_date = str(start_dates.min().strftime('%Y-%m-%dT%H:%M:%SZ'))
-    else:
-        first_date = None
-
-    # Get the last date in RFC3399 format
-    if len(end_dates) > 0:
-        end_date = str(end_dates.max().strftime('%Y-%m-%dT%H:%M:%SZ'))
-    else:
-        end_date = None
-
-    return first_date, end_date
     
 def combine_similar_columns(gdf):
     """
@@ -131,7 +100,9 @@ def translate_column_names(gdf, style='virva'):
     for new_column_name, new_column_type in column_types.items():
         if new_column_type == 'int':
             gdf.fillna({new_column_name: 0}, inplace=True)
-        if new_column_name != 'geometry':
+        elif new_column_type == 'datetime':
+            gdf[new_column_name] = pd.to_datetime(gdf[new_column_name], errors='coerce', format='%Y-%m-%d')
+        elif new_column_name != 'geometry':
             gdf[new_column_name] = gdf[new_column_name].astype(new_column_type)
 
     return gdf

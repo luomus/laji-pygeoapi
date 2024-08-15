@@ -4,7 +4,6 @@ import geopandas as gpd
 import pandas as pd
 import os
 from dotenv import load_dotenv
-from process_data import get_min_max_dates
 
 def connect_to_db():
     """
@@ -93,10 +92,7 @@ def get_all_tables():
     inspector = inspect(engine)
     tables = inspector.get_table_names()
 
-    # Print the list of tables
-    print("Printing all tables in the database:")
-    for table in tables:
-        print(table)
+    return tables
 
 def get_table_bbox(table_name):
     """
@@ -122,17 +118,28 @@ def get_table_bbox(table_name):
 
 def get_table_dates(table_name):
     """
-    Retrieve the earliest and latest event dates from a specified table.
+    Retrieve the earliest and latest dates from a specified table.
 
     Parameters:
     table_name (str): The name of the table to query.
 
     Returns:
-    tuple: A tuple containing the minimum and maximum dates.
+    tuple: A tuple containing the minimum and maximum dates in RFC3339 format.
     """
-    sql = f'SELECT "Keruu_aloitus_pvm", "Keruu_lopetus_pvm", "geometry" FROM "{table_name}"'
-    gdf = gpd.read_postgis(sql, engine, geom_col='geometry')
-    min_date, max_date = get_min_max_dates(gdf)
+    sql = text(f'''
+    SELECT 
+        TO_CHAR(MIN("Keruu_aloitus_pvm"), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as min_date,
+        TO_CHAR(MAX("Keruu_lopetus_pvm"), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as max_date
+    FROM "{table_name}"
+    WHERE "Keruu_aloitus_pvm" IS NOT NULL OR "Keruu_lopetus_pvm" IS NOT NULL;
+    ''')
+
+    with engine.connect() as connection:
+        result = connection.execute(sql).fetchone()
+
+    # Result will contain the minimum and maximum dates
+    print(result)
+    min_date, max_date = result
     return min_date, max_date
 
 def get_amount_of_occurrences(table_name):
@@ -229,6 +236,7 @@ def validate_geometries_postgis(table_name):
         count_fixed_sql = text(f'UPDATE "{table_name}" SET geometry = ST_MakeValid(geometry) WHERE NOT ST_IsValid(geometry);')
         result = connection.execute(count_fixed_sql)
         edited_features_count = result.rowcount
+        connection.commit()
     return edited_features_count
 
 def collections_to_multis(table_name, buffer_distance=0.5):
@@ -297,7 +305,8 @@ def collections_to_multis(table_name, buffer_distance=0.5):
 
     # Execute the SQL code block
     with engine.connect() as connection:
-        result = connection.execute(text(sql))
+        connection.execute(text(sql))
+        connection.commit()
         
         # Print out any notices (such as the modification count) from the SQL execution
         for notice in connection.connection.notices:
