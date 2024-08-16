@@ -115,6 +115,35 @@ def get_table_bbox(table_name):
         return [min_x, min_y, max_x, max_y]
     else:
         return None
+    
+def get_quality_frequency(table_name):
+    """
+    Retrieve frequencies of the column Aineiston_laatu. Results can be stored to metadata later.
+
+    Parameters:
+    table_name (str): The name of the table to query.
+
+    """
+    sql = text(f'''
+    SELECT
+        "Aineiston_laatu",
+        ROUND((COUNT(*)::decimal / SUM(COUNT(*)) OVER ()) * 100, 2) AS percentage
+    FROM
+        "{table_name}"
+    GROUP BY
+        "Aineiston_laatu";
+    ''')
+
+    quality_dict = {}
+    
+    with engine.connect() as connection:
+        result = connection.execute(sql)
+
+    for row in result:
+        quality_value, quality_percentage = row
+        quality_dict[quality_value] = float(quality_percentage)
+
+    return quality_dict
 
 def get_table_dates(table_name):
     """
@@ -138,7 +167,6 @@ def get_table_dates(table_name):
         result = connection.execute(sql).fetchone()
 
     # Result will contain the minimum and maximum dates
-    print(result)
     min_date, max_date = result
     return min_date, max_date
 
@@ -161,7 +189,7 @@ def get_amount_of_occurrences(table_name):
     # Get the total occurrences from the DataFrame
     total_occurrences = result_df['total_occurrences'].iloc[0]
 
-    return total_occurrences
+    return total_occurrences  
 
 def to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration=False):
     """

@@ -39,6 +39,10 @@ def create_metadata(metadata_dict, metadata_db_path):
     max_day = max_date.split('T')[0]
     no_of_occurrences = metadata_dict.get('no_of_occurrences')
     table_no = metadata_dict.get('table_no')
+    quality_dict = metadata_dict.get('quality_dict')
+    professional = quality_dict.get('Ammattiaineistot / asiantuntijoiden laadunvarmistama')
+    hobbyist = quality_dict.get('Asiantuntevat harrastajat / asiantuntijoiden laadunvarmistama')
+    amateur = quality_dict.get('Kansalaishavaintoja / ei laadunvarmistusta')
 
 
     # Create a JSON metadata record to be inserted into the database.
@@ -89,7 +93,7 @@ def create_metadata(metadata_dict, metadata_db_path):
                     "trs": "http://www.opengis.net/def/uom/ISO-8601/0/Gregorian"
                 }
             },
-            'quality': 'Data has been gathered from many sources. Some of them are collected by professionals and some by hobbyists. Therefore quality varies a lot. See the data fields and the links below',
+            'quality': f'The Finnish Biodiversity Information Facility (FinBIF) compiles datasets from many sources, including government, professional researchers and citizen scientists. Data accuracy varies significantly within and between datasets—and all data should not necessarily be used for all applications. In this collection, {professional} % of occurrences are collected by professionals, {hobbyist} % collected by non-professional specialists, and {amateur} % collected by wider community. Therefore quality varies a lot. See data columns and the links below',
             '_metadata-anytext': ''
         },
         'links': [
@@ -115,6 +119,12 @@ def create_metadata(metadata_dict, metadata_db_path):
             "type":"text/html",
             "title":"Source data metadata",
             "href":"https://laji.fi/theme/dataset-metadata",
+            "rel": "related"
+        },
+        {
+            "type":"text/html",
+            "title":"About data quality",
+            "href":"https://info.laji.fi/en/frontpage/data-management/data-quality/",
             "rel": "related"
         },
         ]
