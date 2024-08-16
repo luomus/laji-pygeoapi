@@ -41,7 +41,7 @@ def create_metadata(metadata_dict, metadata_db_path):
     table_no = metadata_dict.get('table_no')
 
 
-    # Create a JSON record for the metadata to be inserted into the database.
+    # Create a JSON metadata record to be inserted into the database.
     json_record = {
         'id': "ID_"+str(table_no),
         'conformsTo': [
@@ -65,17 +65,31 @@ def create_metadata(metadata_dict, metadata_db_path):
             'type': 'surface',
             'title': dataset_name,
             'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name}. The occurrences have been collected between {min_day} and {max_day}.',
-            'providers': [],
+            'providers': [{
+                'name': 'Finnish Biodiversity Information Facility (FinBIF)',
+                'roles': ['integrator', 'distributor', 'producer', 'publisher']
+            }],
             'externalIds': [{
                 'scheme': 'default',
                 'value': 'ID_'+str(table_no)
             }],
             'format': [
-                {'name': 'geo+json'},
-                {'name': 'html'},
-                {'name': 'csv'}
+                {'name': 'GeoJSON', 'mediatype': 'geo+json'},
+                {'name': 'HTML', 'mediatype':  'html'},
+                {'name': 'CSV', 'mediatype':  'csv'}
             ],
             'themes': 'themes',
+            'extent': {
+                "spatial": {
+                    "bbox": [[minx, miny, maxx, maxy]],
+                    "crs": "https://www.opengis.net/def/crs/EPSG/0/4326"
+                },
+                "temporal": {
+                    "interval": [[min_date, max_date]],
+                    "trs": "http://www.opengis.net/def/uom/ISO-8601/0/Gregorian"
+                }
+            },
+            'quality': 'Data has been gathered from many sources. Some of them are collected by professionals and some by hobbyists. Therefore quality varies a lot. See the data fields and the links below',
             '_metadata-anytext': ''
         },
         'links': [
@@ -88,16 +102,24 @@ def create_metadata(metadata_dict, metadata_db_path):
         {
             "type":"text/html",
             "title":"How to use data in QGIS",
-            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-in-qgis-python-or-r"
+            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-in-qgis-python-or-r",
+            "rel": "related"
         },
         {
             "type":"text/html",
             "title":"General OGC API instructions",
-            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-instructions/"
+            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-instructions/",
+            "rel": "related"
+        },
+        {
+            "type":"text/html",
+            "title":"Source data metadata",
+            "href":"https://laji.fi/theme/dataset-metadata",
+            "rel": "related"
         },
         ]
     }
-
+    
     # Insert the JSON record into the TinyDB database
     try:
         res = db.insert(json_record)
