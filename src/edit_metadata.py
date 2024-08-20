@@ -66,13 +66,14 @@ def create_metadata(metadata_dict, metadata_db_path):
         'properties': {
             'created': "2024-08-08",
             'updated': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'type': 'surface',
+            'type': 'dataset',
             'title': dataset_name,
-            'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name}. The occurrences have been collected between {min_day} and {max_day}.',
+            'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name} with 10 km buffers. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
             'providers': [{
                 'name': 'Finnish Biodiversity Information Facility (FinBIF)',
-                'roles': ['integrator', 'distributor', 'producer', 'publisher']
+                'roles': ['distributor', 'pointOfContact', 'publisher']
             }],
+            'contactPoint': 'helpdesk@laji.fi',
             'externalIds': [{
                 'scheme': 'default',
                 'value': 'ID_'+str(table_no)
@@ -82,7 +83,9 @@ def create_metadata(metadata_dict, metadata_db_path):
                 {'name': 'HTML', 'mediatype':  'html'},
                 {'name': 'CSV', 'mediatype':  'csv'}
             ],
-            'themes': 'themes',
+            'themes': 'occurrences',
+            'status': 'onGoing',
+            'maintenanceFrequency': 'weekly',
             'extent': {
                 "spatial": {
                     "bbox": [[minx, miny, maxx, maxy]],

@@ -16,6 +16,7 @@ template_resource = r'template_resource.txt'
 pygeoapi_config = r'pygeoapi-config.yml'
 municipal_geojson_path = r'municipalities_and_elys.geojson'
 metadata_xml_path = 'metadata'
+lookup_table = r'lookup_table_columns.csv'
 
 # Create an URL for Virva filtered occurrence data
 base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
@@ -100,8 +101,8 @@ def main():
         gdf = process_data.get_facts(gdf)
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
-        gdf = process_data.translate_column_names(gdf, style='virva')
-        gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf)
+        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+        gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf, lookup_table)
         merged_occurrences_count += amount_of_merged_occurrences
         gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
 

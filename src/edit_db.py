@@ -87,7 +87,7 @@ def drop_all_tables():
 
 def get_all_tables():
     """
-    Retrieves and prints all table names in the database.
+    Retrieves all table names in the database.
     """
     inspector = inspect(engine)
     tables = inspector.get_table_names()

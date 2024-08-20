@@ -6,10 +6,6 @@ from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, L
 from shapely.ops import unary_union
 import datetime
 
-# Load the lookup table CSV into a DataFrame
-lookup_table = r'lookup_table_columns.csv'
-lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
-
 def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     """
     Merge taxonomy information to the occurrence data.
@@ -62,18 +58,21 @@ def combine_similar_columns(gdf):
 
     return gdf
 
-def translate_column_names(gdf, style='virva'):
+def translate_column_names(gdf, lookup_table, style='virva'):
     """
     Maps column names in a GeoDataFrame to Finnish names and correct data types using a lookup table.
 
     Parameters:
     gdf (geopandas.GeoDataFrame): The GeoDataFrame to be mapped.
+    lookup_table (str): Path to the lookup table
     style (str): Format to column names translate to. Options: 'translated_var', 'dwc' and 'virva'. Defaults to 'virva'.
 
     Returns:
     geopandas.GeoDataFrame: The GeoDataFrame with columns renamed and converted according to the lookup table.
     """
-    
+    # Load the lookup table CSV into a DataFrame
+    lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
+
     # Dictionary to hold the mapping of old column names to new column names and types
     column_mapping = {}
     column_types = {}
@@ -89,6 +88,7 @@ def translate_column_names(gdf, style='virva'):
             column_mapping[column] = new_column_name
         else:
             gdf[new_column_name] = None
+            print(f"Column {new_column_name} was not found so it is created with empty values")
 
     # Rename existing columns
     gdf = gdf.rename(columns=column_mapping)
@@ -100,9 +100,9 @@ def translate_column_names(gdf, style='virva'):
     for new_column_name, new_column_type in column_types.items():
         if new_column_type == 'int':
             gdf.fillna({new_column_name: 0}, inplace=True)
-        elif new_column_type == 'datetime':
+        if new_column_type == 'datetime':
             gdf[new_column_name] = pd.to_datetime(gdf[new_column_name], errors='coerce', format='%Y-%m-%d')
-        elif new_column_name != 'geometry':
+        if new_column_type != 'geom' and new_column_type != 'datetime':
             gdf[new_column_name] = gdf[new_column_name].astype(new_column_type)
 
     return gdf
@@ -131,16 +131,21 @@ def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
             return None  # Return None if no valid geometries are found
     return geometry  # Return the original geometry if it is not a GeometryCollection
 
-def merge_duplicates(gdf):
+def merge_duplicates(gdf, lookup_table):
     """
     Merge duplicates in a GeoDataFrame based on specified subset of columns and geometry.
 
     Parameters:
     gdf (GeoDataFrame): The input GeoDataFrame.
+    lookup_table (str): Path to the lookup table.
 
     Returns:
     GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
     """
+
+    # Load the lookup table CSV into a DataFrame
+    lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
+
     # Create a local id
     gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")
 
