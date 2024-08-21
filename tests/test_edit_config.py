@@ -53,7 +53,7 @@ class TestClearCollectionsFromConfig(unittest.TestCase):
         # Create input configuration file with collections
         with open(self.pygeoapi_config, "w") as config_file:
             config_file.write("blabla metadata and server info blabla \n")
-            config_file.write("blabla updated <latest_update_placeholder> yes yes \n")
+            config_file.write("blabla updated 2024-01-01 yes yes \n")
             config_file.write("resources:\n")
             config_file.write("  - name: collection1\n")
             config_file.write("    type: feature\n")

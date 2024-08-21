@@ -6,8 +6,8 @@ gathering.interpretations.coordinateAccuracy;coordinates_uncertainty_interpreted
 unit.interpretations.recordQuality;record_quality;occurrenceQuality;Havainnon_luotettavuus;str;FALSE
 unit.abundanceString;abundance_verbatim;verbatimAbundance;Maara;str;FALSE
 gathering.interpretations.biogeographicalProvinceDisplayname;bio_province_interpreted;bioStateProvinceInterpreted;Eliomaakunta;str;TRUE
-gathering.eventDate.begin;date_start;eventDateStart;Keruu_aloitus_pvm;str;TRUE
-gathering.eventDate.end;date_end;eventDateEnd;Keruu_lopetus_pvm;str;TRUE
+gathering.eventDate.begin;date_start;eventDateStart;Keruu_aloitus_pvm;datetime;TRUE
+gathering.eventDate.end;date_end;eventDateEnd;Keruu_lopetus_pvm;datetime;TRUE
 gathering.gatheringId;event_id;eventID;Keruutapahtuman_tunniste;str;FALSE
 document.collectionId;collection_id;collectionID;Aineiston_tunniste;str;TRUE
 unit.breedingSite;is_breeding_location;breedingLocationStatus;Pesintapaikka;bool;TRUE

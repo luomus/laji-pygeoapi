@@ -314,9 +314,16 @@ collection_qualities = {
 def compute_individual_count(individual_count_col):
     """
     Determine whether the column gets a value 'paikalla' or 'poissa'.
-    """
+    Keeps None or NaN values as they are.
 
-    return np.where(individual_count_col > 0, 'paikalla', 'poissa')
+    Parameters:
+    individual_count_col (pd.Series): Column containing individual counts.
+
+    Returns:
+    pd.Series: Series with 'paikalla', 'poissa', or original NaN/None based on the individual count.
+    """
+    return np.where(individual_count_col.isna(), individual_count_col, 
+                    np.where(individual_count_col > 0, 'paikalla', 'poissa'))
 
 def compute_collection_id(collection_id_col, collection_names):
     """

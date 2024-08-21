@@ -37,14 +37,12 @@ def get_last_page(data_url):
     Returns:
     int: The last page number.
     """
-    try:
-        response = requests.get(data_url)
-        api_response = response.json()
-        last_page = api_response.get("lastPage")
-        return last_page
-    except Exception as e:
-        print("An error occurred when getting the last page of api results. Perhaps JSON file is invalid. Returning only the first page.")
-        return 1
+
+    response = requests.get(data_url)
+    api_response = response.json()
+    last_page = api_response.get("lastPage")
+    return last_page
+
         
 def download_page(data_url, page_no):
     """

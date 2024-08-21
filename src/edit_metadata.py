@@ -39,9 +39,13 @@ def create_metadata(metadata_dict, metadata_db_path):
     max_day = max_date.split('T')[0]
     no_of_occurrences = metadata_dict.get('no_of_occurrences')
     table_no = metadata_dict.get('table_no')
+    quality_dict = metadata_dict.get('quality_dict')
+    professional = quality_dict.get('Ammattiaineistot / asiantuntijoiden laadunvarmistama')
+    hobbyist = quality_dict.get('Asiantuntevat harrastajat / asiantuntijoiden laadunvarmistama')
+    amateur = quality_dict.get('Kansalaishavaintoja / ei laadunvarmistusta')
 
 
-    # Create a JSON record for the metadata to be inserted into the database.
+    # Create a JSON metadata record to be inserted into the database.
     json_record = {
         'id': "ID_"+str(table_no),
         'conformsTo': [
@@ -62,15 +66,37 @@ def create_metadata(metadata_dict, metadata_db_path):
         'properties': {
             'created': "2024-08-08",
             'updated': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'type': 'surface',
+            'type': 'dataset',
             'title': dataset_name,
-            'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name}. The occurrences have been collected between {min_day} and {max_day}.',
-            'providers': [],
+            'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name} with 10 km buffers. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
+            'providers': [{
+                'name': 'Finnish Biodiversity Information Facility (FinBIF)',
+                'roles': ['distributor', 'pointOfContact', 'publisher']
+            }],
+            'contactPoint': 'helpdesk@laji.fi',
             'externalIds': [{
                 'scheme': 'default',
                 'value': 'ID_'+str(table_no)
             }],
-            'themes': 'themes',
+            'format': [
+                {'name': 'GeoJSON', 'mediatype': 'geo+json'},
+                {'name': 'HTML', 'mediatype':  'html'},
+                {'name': 'CSV', 'mediatype':  'csv'}
+            ],
+            'themes': 'occurrences',
+            'status': 'onGoing',
+            'maintenanceFrequency': 'weekly',
+            'extent': {
+                "spatial": {
+                    "bbox": [[minx, miny, maxx, maxy]],
+                    "crs": "https://www.opengis.net/def/crs/EPSG/0/4326"
+                },
+                "temporal": {
+                    "interval": [[min_date, max_date]],
+                    "trs": "http://www.opengis.net/def/uom/ISO-8601/0/Gregorian"
+                }
+            },
+            'quality': f'The Finnish Biodiversity Information Facility (FinBIF) compiles datasets from many sources, including government, professional researchers and citizen scientists. Data accuracy varies significantly within and between datasets—and all data should not necessarily be used for all applications. In this collection, {professional} % of occurrences are collected by professionals, {hobbyist} % collected by non-professional specialists, and {amateur} % collected by wider community. Therefore quality varies a lot. See data columns and the links below',
             '_metadata-anytext': ''
         },
         'links': [
@@ -83,16 +109,30 @@ def create_metadata(metadata_dict, metadata_db_path):
         {
             "type":"text/html",
             "title":"How to use data in QGIS",
-            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-in-qgis-python-or-r"
+            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-in-qgis-python-or-r",
+            "rel": "related"
         },
         {
             "type":"text/html",
             "title":"General OGC API instructions",
-            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-instructions/"
+            "href":"https://info.laji.fi/en/frontpage/services-and-instructions/spatial-data/spatial-data-services/ogc-api-instructions/",
+            "rel": "related"
+        },
+        {
+            "type":"text/html",
+            "title":"Source data metadata",
+            "href":"https://laji.fi/theme/dataset-metadata",
+            "rel": "related"
+        },
+        {
+            "type":"text/html",
+            "title":"About data quality",
+            "href":"https://info.laji.fi/en/frontpage/data-management/data-quality/",
+            "rel": "related"
         },
         ]
     }
-
+    
     # Insert the JSON record into the TinyDB database
     try:
         res = db.insert(json_record)
