@@ -5,6 +5,44 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 
+postgis_default_tables = ['spatial_ref_sys',
+                            'topology',
+                            'layer',
+                            'featnames',
+                            'geocode_settings',
+                            'geocode_settings_default',
+                            'direction_lookup',
+                            'secondary_unit_lookup', 
+                            'state_lookup',
+                            'street_type_lookup',
+                            'place_lookup',
+                            'county_lookup',
+                            'countysub_lookup',
+                            'zip_lookup_all',
+                            'zip_lookup_base',
+                            'zip_lookup',
+                            'county',
+                            'state',
+                            'place',
+                            'zip_state',
+                            'zip_state_loc',
+                            'cousub',
+                            'edges',
+                            'addrfeat',
+                            'addr',
+                            'zcta5',
+                            'tabblock20',
+                            'faces',
+                            'loader_platform',
+                            'loader_variables',
+                            'loader_lookuptables',
+                            'tract',
+                            'tabblock',
+                            'bg',
+                            'pagc_gaz',
+                            'pagc_lex',
+                            'pagc_rules']
+
 def connect_to_db():
     """
     Creates connection to the PostGIS database using credentials store in .env file or parameters/secrets in openshift
@@ -37,44 +75,6 @@ def drop_all_tables():
     """
     print("Initializing the database...")
     
-    postgis_default_tables = ['spatial_ref_sys',
-                               'topology',
-                               'layer',
-                               'featnames',
-                               'geocode_settings',
-                               'geocode_settings_default',
-                               'direction_lookup',
-                               'secondary_unit_lookup', 
-                               'state_lookup',
-                               'street_type_lookup',
-                               'place_lookup',
-                               'county_lookup',
-                               'countysub_lookup',
-                               'zip_lookup_all',
-                               'zip_lookup_base',
-                               'zip_lookup',
-                               'county',
-                               'state',
-                               'place',
-                               'zip_state',
-                               'zip_state_loc',
-                               'cousub',
-                               'edges',
-                               'addrfeat',
-                               'addr',
-                               'zcta5',
-                               'tabblock20',
-                               'faces',
-                               'loader_platform',
-                               'loader_variables',
-                               'loader_lookuptables',
-                               'tract',
-                               'tabblock',
-                               'bg',
-                               'pagc_gaz',
-                               'pagc_lex',
-                               'pagc_rules']
-
     # Find all table names
     metadata = MetaData()
     metadata.reflect(engine)
@@ -190,6 +190,24 @@ def get_amount_of_occurrences(table_name):
     total_occurrences = result_df['total_occurrences'].iloc[0]
 
     return total_occurrences  
+
+def get_amount_of_all_occurrences():
+    """The function to return the number of all occurrences from the database."""  
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    number_of_all_occurrences = 0
+    for table in tables:
+        if table not in postgis_default_tables:
+            # Specify the column that contains the occurrences. Replace 'occurrences_column' with the actual column name.
+            sql = f'SELECT COUNT(*) as total_occurrences FROM "{table}"'
+
+            # Read the result into a DataFrame
+            result_df = pd.read_sql_query(sql, engine)
+
+            # Get the total occurrences from the DataFrame
+            number_of_all_occurrences += result_df['total_occurrences'].iloc[0]
+
+    return number_of_all_occurrences
 
 def to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration=False):
     """
@@ -339,5 +357,30 @@ def collections_to_multis(table_name, buffer_distance=0.5):
         # Print out any notices (such as the modification count) from the SQL execution
         for notice in connection.connection.notices:
             print(notice.strip())
+
+def remove_duplicates_by_id(table_name):
+    """
+    Remove duplicate rows from the specified table based on the 'Havainnon_tunniste' attribute.
+    This is needed if data is updated and some pages have had occurrences that are already in the database.
+    Parameters:
+    table_name (str): The name of the table to be checked for duplicates.
+    Returns:
+    int: The number of duplicate rows removed.
+    """
+    number_before_deletion = get_amount_of_occurrences(table_name)
+
+    with engine.connect() as connection:
+        # SQL to delete duplicate rows based on the Havainnon_tunniste attribute
+        remove_duplicates_sql = text(f'DELETE FROM "{table_name}" WHERE ctid NOT IN (SELECT MIN(ctid) FROM "{table_name}" GROUP BY "Havainnon_tunniste");')
+
+        # Execute the SQL to remove duplicates
+        connection.execute(remove_duplicates_sql)
+        connection.commit()
+
+    number_after_deletion = get_amount_of_occurrences(table_name)
+    removed_occurrences = number_before_deletion - number_after_deletion
+
+    return removed_occurrences
+
 
 engine = connect_to_db()
