@@ -107,29 +107,36 @@ def translate_column_names(gdf, lookup_table, style='virva'):
 
     return gdf
 
-def convert_geometry_collection_to_multipolygon(geometry, buffer_distance=0.5):
-    """Convert GeometryCollection to MultiPolygon, buffering points and lines if necessary."""
-    if isinstance(geometry, GeometryCollection):
-        polygons = []
+def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
+    """Convert GeometryCollection to MultiPolygon in the entire GeoDataFrame, buffering points and lines if necessary."""
 
-        # Extract Point, LineString, Polygon, MultiPoint, MultiLineString, and MultiPolygon geometries from GeometryCollections
-        for geom in geometry.geoms:
-            if isinstance(geom, (Polygon, MultiPolygon)):
-                polygons.append(geom)
-            elif isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)):
-                polygons.append(geom.buffer(buffer_distance))
+    # Iterate over each row in the GeoDataFrame
+    for idx in gdf.index:
+        geometry = gdf.at[idx, 'geometry']
+        
+        if isinstance(geometry, GeometryCollection):
+            print("Geometry collection found")
+            polygons = []
 
-        # Convert polygons to MultiPolygon
-        if len(polygons) == 1:
-            if isinstance(polygons[0], Polygon):
-                return MultiPolygon(polygons) # Return Multipygon created from the only Polygon
+            # Extract Point, LineString, Polygon, MultiPoint, MultiLineString, and MultiPolygon geometries from GeometryCollections
+            for geom in geometry.geoms:
+                if isinstance(geom, (Polygon, MultiPolygon)):
+                    polygons.append(geom)
+                elif isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)):
+                    polygons.append(geom.buffer(buffer_distance))
+
+            # Convert polygons to MultiPolygon
+            if len(polygons) == 1:
+                if isinstance(polygons[0], Polygon):
+                    gdf.at[idx, 'geometry'] = MultiPolygon(polygons)  # Convert single Polygon to MultiPolygon
+                else:
+                    gdf.at[idx, 'geometry'] = polygons[0]  # Keep the MultiPolygon as is
+            elif len(polygons) > 1:
+                gdf.at[idx, 'geometry'] = MultiPolygon(polygons)  # Create MultiPolygon from multiple Polygons
             else:
-                return polygons[0] # Return MultiPolygon
-        elif len(polygons) > 1: 
-            return MultiPolygon(polygons) # Return MultiPolygon created from multiple Polygons
-        else:
-            return None  # Return None if no valid geometries are found
-    return geometry  # Return the original geometry if it is not a GeometryCollection
+                gdf.at[idx, 'geometry'] = None  # Set to None if no valid geometries are found
+
+    return gdf
 
 def merge_duplicates(gdf, lookup_table):
     """
