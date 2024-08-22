@@ -7,6 +7,9 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
 
     Parameters:
     pygeoapi_config (str): The path to the pygeoapi configuration file.
+
+    Returns:
+    last_update (str): The date when database was last updated
     """
     print("Deleting collection information from the pygeoapi config file...")
     with open(pygeoapi_config, 'r') as file:
@@ -19,6 +22,7 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
         # Add latest update timestamp to pygeoapi description
         match = re.search(r'\d{4}-\d{2}-\d{2}', line)
         if match:
+            last_update = match
             lines[i] = line.replace(match.group(), str(date.today()))
 
         # Find the point where resources section starts
@@ -35,6 +39,8 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
             file.writelines(lines)
     else:
         print("Didn't remove any collections as the pygeoapi configuration file does not have resources section")
+    
+    return last_update
 
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out):
