@@ -77,6 +77,7 @@ def translate_column_names(gdf, lookup_table, style='virva'):
     column_mapping = {}
     column_types = {}
     columns_to_keep = []
+    new_columns_df = pd.DataFrame(index=gdf.index)
 
     for column in lookup_df['finbif_api_var']:
         new_column_name = lookup_df.loc[lookup_df['finbif_api_var'] == column, style].iloc[0]
@@ -87,11 +88,14 @@ def translate_column_names(gdf, lookup_table, style='virva'):
         if column in gdf.columns:
             column_mapping[column] = new_column_name
         else:
-            gdf[new_column_name] = None
+            new_columns_df[new_column_name] = None
             print(f"Column {new_column_name} was not found so it is created with empty values")
 
     # Rename existing columns
     gdf = gdf.rename(columns=column_mapping)
+
+    # Concatenate the new columns DataFrame with the original DataFrame
+    gdf = pd.concat([gdf, new_columns_df], axis=1)
 
     # Drop columns that are not in the lookup table
     gdf = gdf[columns_to_keep]
