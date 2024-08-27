@@ -19,7 +19,7 @@ COPY src/load_data.py .
 COPY src/edit_configmaps.py .
 COPY src/compute_variables.py .
 COPY src/edit_db.py .
-COPY src/municipalities_and_elys.geojson .
+COPY src/municipalities.geojson .
 COPY catalogue.tinydb .
 COPY src/edit_metadata.py .
 

@@ -13,8 +13,8 @@
     <!--[if lt IE 9]>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
     <![endif]-->
-    <meta name="twitter:image:src"   content="{% block thumb %}{% endblock %}{% if not self.thumb() %}{{ config['server']['url'] }}/static/img/logo.png{% endif %}" />
-    <meta property="og:image"        content="{{ self.thumb() }}{% if not self.thumb() %}{{ config['server']['url'] }}/static/img/logo.png{% endif %}" />
+    <meta name="twitter:image:src"   content="{% block thumb %}{% endblock %}{% if not self.thumb() %}{{ config['server']['url'] }}/static/img/custom_logo.png{% endif %}" />
+    <meta property="og:image"        content="{{ self.thumb() }}{% if not self.thumb() %}{{ config['server']['url'] }}/static/img/custom_logo.png{% endif %}" />
     <meta name="twitter:site"        content="{{ config['metadata']['identification']['title'] }}" />
     <meta property="og:site_name"    content="{{ config['metadata']['identification']['title'] }}" />    
     <meta name="twitter:card"        content="summary_large_image" />
@@ -40,7 +40,7 @@
       <header class="d-flex flex-wrap justify-content-center py-3">
         <a href="{{ config['server']['url'] }}"
           class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
-          <img src="{{ config['server']['url'] }}/static/img/logo.png"
+          <img src="{{ config['server']['url'] }}/static/img/custom_logo.png"
             title="{{ config['metadata']['identification']['title'] }}" style="height:40px;vertical-align: middle;" /></a>
         <ul class="nav nav-pills">
           <li class="nav-item">
@@ -70,7 +70,7 @@
           {% set links_found = namespace(json=0, jsonld=0) %}
 
           {% for link in data['links'] %}
-          {% if link['rel'] == 'alternate' and link['type'] and link['type'] in ['application/json', 'application/geo+json'] %}
+          {% if link['rel'] == 'alternate' and link['type'] and link['type'] in ['application/json', 'application/geo+json', 'application/prs.coverage+json'] %}
           {% set links_found.json = 1 %}
           <a href="{{ link['href'] }}">{% trans %}json{% endtrans %}</a>
           {% elif link['rel'] == 'alternate' and link['type'] and link['type'] == 'application/ld+json' %}
@@ -102,9 +102,13 @@
       </div>
     </div>
     </main>
-    <footer class="sticky-bottom bg-light d-flex flex-wrap py-3 px-3 border-top">{% trans %}Powered by {% endtrans %} <a title="pygeoapi" href="https://pygeoapi.io"><img
-        src="{{ config['server']['url'] }}/static/img/pygeoapi.png" class="mx-1" title="pygeoapi logo"
-        style="height:24px;vertical-align: middle;" /></a> {{ version }}</footer>
+    <footer class="sticky-bottom bg-light d-flex justify-content-center align-items-center py-3 px-3 border-top">
+      <div class="text-center w-100">
+        {% trans %}Powered by {% endtrans %}
+        <a title="pygeoapi" href="https://pygeoapi.io"><img src="{{ config['server']['url'] }}/static/img/pygeoapi.png" class="mx-1" title="pygeoapi logo" style="height:24px;vertical-align: middle;" /></a>
+        {{ version }}
+      </div>
+    </footer> 
     {% block extrafoot %}
     {% endblock %}
     <script>

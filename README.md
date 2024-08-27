@@ -22,7 +22,7 @@ POSTGRES_DB=my_geospatial_db
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=admin123
 POSTGRES_HOST=postgres
-PAGES=2
+PAGES=latest
 BRANCH=dev
 MULTIPROCESSING=False
 RUNNING_IN_OPENSHIFT=False
@@ -35,7 +35,7 @@ Where
 | POSTGRES_USER| The database user|postgres |
 | POSTGRES_PASSWORD| The password associated with the default user | *not set*|
 | POSTGRES_HOST| The host running the database| postgres |
-| PAGES| Number of pages to download from the source APIs. Either an integer or *"all"*| 10|
+| PAGES| Integer to download a specific number of pages. *"0"* to empty the database. *"all"* to add all data (this takes a lot of time), *"latest"* to add only the latest data after the last update | latest |
 | BRANCH| The GitHub branch|dev|
 | MULTIPROCESSING| Enables (*"True"*) or disables (*"False"*) multiprocessing when downloading data from the source APIs| False               |
 | RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in a Docker.| False |

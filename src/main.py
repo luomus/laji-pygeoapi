@@ -19,17 +19,16 @@ def main():
     taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?lang=fi&pageSize=1000&access_token={access_token}'
     template_resource = r'template_resource.txt'
     pygeoapi_config = r'pygeoapi-config.yml'
-    municipal_geojson_path = r'municipalities_and_elys.geojson'
-    metadata_xml_path = 'metadata'
+    municipal_geojson_path = r'municipalities.geojson'
     lookup_table = r'lookup_table_columns.csv'
 
     # Create an URL for Virva filtered occurrence data
     base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
     selected_fields = "unit.facts,gathering.facts,document.facts,unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
-    #administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
-    #red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
+    administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
+    red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
     country_id = "ML.206"
-    time_range = "1990-01-01/"
+    time_range = "1990-01-01/" 
     only_count = "false"
     individual_count_min = "0"
     coordinate_accuracy_max = "1000"
@@ -39,10 +38,8 @@ def main():
     collection_and_record_quality = "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;"
     geo_json = "true"
     feature_type = "ORIGINAL_FEATURE"
-    occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
-    # administrativeStatusId={administrative_status_ids}&redListStatusId={red_list_status_ids}
-
-
+    occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
+    
     # Pygeoapi output file
     if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
         pygeoapi_config_out = r'pygeoapi-config_out.yml'
@@ -66,24 +63,52 @@ def main():
     failed_features_count = 0
     edited_features_count = 0
     duplicates_count_by_id = 0
+    processed_occurrences = 0
     last_iteration = False
 
     # Clear config file and metadata database to make space for new data sets. 
     last_update = edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out).group()
     edit_metadata.empty_metadata_db(metadata_db_path)
 
-    if os.getenv('BRANCH') == 'main' and last_update:
-        occurrence_url = f"{occurrence_url}&loadedSameOrAfter={last_update}"
-
     # Get other data sets
     print("Loading taxon and collection data...")
     taxon_df = load_data.get_taxon_data(taxon_name_url)
     collection_names = load_data.get_collection_names(f"https://api.laji.fi/v0/collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
 
-    # Determine the number of pages to process
-    pages = load_data.get_last_page(occurrence_url)
     
-    print(f"Starting to retrieve {pages} pages of occurrence data from the API...")
+    # Determine the number of pages to retrieve based on the 'PAGES' environment variable
+    pages_env = os.getenv('PAGES').lower()
+
+    if pages_env == 'latest' and last_update:
+        # If 'latest' is selected and there is a last update, retrieve only the latest occurrences
+        occurrence_url = f"{occurrence_url}&loadedSameOrAfter={last_update}"
+        pages = load_data.get_last_page(occurrence_url)
+        print(f"Starting to retrieve {pages} pages of occurrence data loaded after the last update: {last_update}...")
+        
+    elif pages_env == 'all':
+        # If 'all' is selected, drop all db tables and retrieve all pages of occurrence data
+        pages = load_data.get_last_page(occurrence_url)
+        edit_db.drop_all_tables()
+        print(f"Starting to retrieve {pages} pages of occurrence data for an empty database...")
+        
+    elif pages_env == '0':
+        # If '0' is selected, drop all tables without downloading any new data
+        edit_db.drop_all_tables()
+        print(f"Emptying the database without downloading data...")
+        pages = 0
+        
+    else:
+        # If a specific number of pages is provided, attempt to parse it and download that many pages
+        try:
+            pages = int(os.getenv('PAGES'))
+            edit_db.drop_all_tables()
+            print(f"Starting to retrieve {pages} pages of occurrence data for an empty database...")
+        except ValueError:
+            # Handle invalid input for the 'PAGES' environment variable
+            print("ERROR: The environment variable 'PAGES' is not valid. Choose 'latest', 'all', '0', or specify the number of pages you want to download (e.g., 10).")
+            raise Exception("Invalid 'PAGES' environment variable value.")
+
+
     number_of_occurrences_before_updating = edit_db.get_amount_of_all_occurrences()
 
     # Load and process data in batches. Store to the database
@@ -98,6 +123,7 @@ def main():
         # Get occurrence data
         print(f"Retrieving pages {startpage} to {endpage}...")
         gdf = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=multiprocessing) 
+        processed_occurrences += len(gdf)
 
         print("Prosessing data...")
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
@@ -105,9 +131,9 @@ def main():
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+        gdf = process_data.convert_geometry_collection_to_multipolygon(gdf)
         gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf, lookup_table)
         merged_occurrences_count += amount_of_merged_occurrences
-        gdf['geometry'] = gdf['geometry'].apply(process_data.convert_geometry_collection_to_multipolygon)
 
         print("Inserting data to the database...")
         table_names, failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration)
@@ -116,7 +142,6 @@ def main():
     del taxon_df, collection_names
 
     print(f"Number of occurrences before updating: {number_of_occurrences_before_updating}")
-    print("Updating PostGIS indexes, geometries and pygeoapi configuration...")
     for table_name in table_names:
         edited_features_count += edit_db.validate_geometries_postgis(table_name)
         duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
@@ -153,10 +178,11 @@ def main():
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
         edit_metadata.create_metadata(metadata_dict, metadata_db_path)
         edit_db.update_indexes(table_name)
+        print(f"Metadata created and data processed in PostGIS ready for the table {table_name}")
 
     number_of_occurrences_after_updating = edit_db.get_amount_of_all_occurrences()
     print(f"Number of occurrences after updating: {number_of_occurrences_after_updating}")
-    print(f"So, in total, {pages * int(page_size)} occurrences were processed:")
+    print(f"So, in total, {processed_occurrences} occurrences were processed:")
     print(f" -> {number_of_occurrences_after_updating - number_of_occurrences_before_updating} of them were added to the database:")
     print(f" -> {edited_features_count} of them had invalid geometries that were fixed")
     print(f" -> {occurrences_without_group_count} of them were discarced because they were not part of any ELY center area")

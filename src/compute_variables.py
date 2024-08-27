@@ -360,11 +360,11 @@ def map_values(cell):
 
 def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     """
-    Computes the municipalities and ELY areas for each row in the GeoDataFrame.
+    Computes the municipalities and provinces for each row in the GeoDataFrame.
 
     Parameters:
     gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
-    ely_geojson_path (str): Path to the GeoJSON file containing municipal geometries.
+    municipal_geojson (str): Path to the GeoJSON file containing municipal geometries and corresponding ELY areas and provinces.
 
     Returns:
     pandas.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
@@ -382,8 +382,8 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, municipal_gdf, how="left", predicate="intersects")
 
     # Group by the original indices and aggregate the area names
-    municipalities = joined_gdf.groupby(joined_gdf.index)['NAMEFIN'].agg(lambda x: ', '.join(x.dropna().unique()))
-    elys = joined_gdf.groupby(joined_gdf.index)['ely_nimi'].agg(lambda x: ', '.join(x.dropna().unique()))
+    municipalities = joined_gdf.groupby(joined_gdf.index)['Municipal_Name'].agg(lambda x: ', '.join(x.dropna().unique()))
+    elys = joined_gdf.groupby(joined_gdf.index)['ELY_Area_Name'].agg(lambda x: ', '.join(x.dropna().unique()))
 
     # Ensure the resulting Series aligns with the original GeoDataFrame's indices
     municipalities = municipalities.reindex(gdf_with_geom_and_ids.index, fill_value='')
@@ -407,17 +407,38 @@ def compute_all(gdf, collection_names, municipal_geojson_path):
     all_cols = {}
 
     # Direct mappings:
-    all_cols['unit.atlasClass'] = gdf['unit.atlasClass'].map(atlas_classes, na_action='ignore')
-    all_cols['unit.atlasCode'] = gdf['unit.atlasCode'].map(atlas_codes, na_action='ignore')
-    all_cols['unit.linkings.originalTaxon.primaryHabitat.habitat'] = gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'].map(habitat_dict)
-    all_cols['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'].map(red_list_statuses, na_action='ignore') 
-    all_cols['unit.linkings.taxon.threatenedStatus'] = gdf['unit.linkings.taxon.threatenedStatus'].map(threatened_statuses, na_action='ignore')
-    all_cols['unit.recordBasis'] = gdf['unit.recordBasis'].map(record_basis, na_action='ignore')
-    all_cols['unit.interpretations.recordQuality'] = gdf['unit.interpretations.recordQuality'].map(record_qualities, na_action='ignore')
-    all_cols['document.secureReasons'] = gdf['document.secureReasons'].map(reasons, na_action='ignore')
-    all_cols['unit.sex'] = gdf['unit.sex'].map(sexes, na_action='ignore')
-    all_cols['unit.abundanceUnit'] = gdf['unit.abundanceUnit'].map(abundance_units, na_action='ignore')
-    all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(collection_qualities, na_action='ignore')
+    if 'unit.atlasClass' in gdf.columns:
+        all_cols['unit.atlasClass'] = gdf['unit.atlasClass'].map(atlas_classes, na_action='ignore')
+
+    if 'unit.atlasCode' in gdf.columns:
+        all_cols['unit.atlasCode'] = gdf['unit.atlasCode'].map(atlas_codes, na_action='ignore')
+
+    if 'unit.linkings.originalTaxon.primaryHabitat.habitat' in gdf.columns:
+        all_cols['unit.linkings.originalTaxon.primaryHabitat.habitat'] = gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'].map(habitat_dict)
+   
+    if 'unit.linkings.originalTaxon.latestRedListStatusFinland.status' in gdf.columns:
+        all_cols['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'].map(red_list_statuses, na_action='ignore') 
+    
+    if 'unit.linkings.taxon.threatenedStatus' in gdf.columns:
+        all_cols['unit.linkings.taxon.threatenedStatus'] = gdf['unit.linkings.taxon.threatenedStatus'].map(threatened_statuses, na_action='ignore')
+    
+    if 'unit.recordBasis' in gdf.columns:
+        all_cols['unit.recordBasis'] = gdf['unit.recordBasis'].map(record_basis, na_action='ignore')
+    
+    if 'unit.interpretations.recordQuality' in gdf.columns:
+        all_cols['unit.interpretations.recordQuality'] = gdf['unit.interpretations.recordQuality'].map(record_qualities, na_action='ignore')
+    
+    if 'document.secureReasons' in gdf.columns:
+        all_cols['document.secureReasons'] = gdf['document.secureReasons'].map(reasons, na_action='ignore')
+    
+    if 'unit.sex' in gdf.columns:
+        all_cols['unit.sex'] = gdf['unit.sex'].map(sexes, na_action='ignore')
+    
+    if 'unit.abundanceUnit' in gdf.columns:
+        all_cols['unit.abundanceUnit'] = gdf['unit.abundanceUnit'].map(abundance_units, na_action='ignore')
+    
+    if 'document.linkings.collectionQuality' in gdf.columns:
+        all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(collection_qualities, na_action='ignore')
 
     # Mappings with multiple value in a cell:
     all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = gdf['unit.linkings.originalTaxon.administrativeStatuses'].apply(map_values)
