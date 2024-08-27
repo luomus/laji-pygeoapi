@@ -151,10 +151,12 @@ def main():
         quality_dict = edit_db.get_quality_frequency(table_name)
         tot_rows += no_of_occurrences
         table_no += 1
+        title_name = table_name.split(" (")[0] # Remove abbreviations in the brackets e.g. 'Uusimaa (U)' to 'Uusimaa'
 
         # Create parameters dictionary to fill the template for pygeoapi config file
         template_params = {
             "<placeholder_table_name>": table_name,
+            "<placeholder_title>": title_name,
             "<placeholder_amount_of_occurrences>": str(no_of_occurrences),
             "<placeholder_bbox>": str(bbox),
             "<placeholder_min_date>": min_date,
@@ -168,6 +170,7 @@ def main():
         metadata_dict = {
             "bbox": bbox,
             "dataset_name": table_name,
+            "title_name": title_name,
             "no_of_occurrences": no_of_occurrences,
             "min_date": min_date,
             "max_date": max_date,
@@ -178,7 +181,7 @@ def main():
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
         edit_metadata.create_metadata(metadata_dict, metadata_db_path)
         edit_db.update_indexes(table_name)
-        print(f"Everything ready fo the table {table_name}")
+        print(f"Everything ready fo the table {title_name}")
 
     number_of_occurrences_after_updating = edit_db.get_amount_of_all_occurrences()
     print(f"Number of occurrences after updating: {number_of_occurrences_after_updating}")

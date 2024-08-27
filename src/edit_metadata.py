@@ -31,6 +31,7 @@ def create_metadata(metadata_dict, metadata_db_path):
 
     # Extract necessary fields from the metadata dictionary.
     dataset_name = metadata_dict.get('dataset_name')
+    title_name = metadata_dict.get('title_name')
     bbox = metadata_dict.get('bbox')
     minx, miny, maxx, maxy = bbox
     min_date = metadata_dict.get('min_date')
@@ -67,7 +68,7 @@ def create_metadata(metadata_dict, metadata_db_path):
             'created': "2024-08-08",
             'updated': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
             'type': 'dataset',
-            'title': dataset_name,
+            'title': f'{title_name}',
             'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name} with 10 km buffers. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
             'providers': [{
                 'name': 'Finnish Biodiversity Information Facility (FinBIF)',
@@ -101,7 +102,7 @@ def create_metadata(metadata_dict, metadata_db_path):
         },
         'links': [
         {
-            "href":f"https://geoapi.laji.fi/collections/{dataset_name}",
+            "href":f"https://geoapi.laji.fi/collections/{title_name}",
             "rel":"item",
             "title":"Dataset in LUOMUS OGC API Features service",
             "type":"OGCFeat"
