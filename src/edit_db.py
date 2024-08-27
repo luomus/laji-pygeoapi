@@ -220,22 +220,24 @@ def to_db(gdf, table_names, failed_features_count, occurrences_without_group_cou
     occurrences_without_group_count (int): A counter for occurrences without a group
     last_iteration (bool): Flag indicating whether this is the last iteration.
     """
-    
-    # Explode gdf based on Vastuualue
-    gdf['Vastuualue_list'] = gdf['Vastuualue'].str.split(', ') 
-    gdf = gdf.explode(column='Vastuualue_list')
+    # Remove NaN values
+    occurrences_without_group_count += gdf['Eliomaakunta'].isnull().sum()
+    gdf = gdf.dropna(subset=['Eliomaakunta'])
+
+    # Explode gdf based on biogeographical province
+    gdf['Eliomaakunta_list'] = gdf['Eliomaakunta'].str.split(', ') 
+    gdf = gdf.explode(column='Eliomaakunta_list')
 
     # Process each unique group
-    occurrences_without_group_count += gdf['Vastuualue_list'].isnull().sum()
-    gdf = gdf.dropna(subset=['Vastuualue_list'])
-
-    unique_groups = gdf['Vastuualue_list'].unique()
+    unique_groups = gdf['Eliomaakunta_list'].unique()
     for table_name in unique_groups:
         if table_name:
-            # Filter the sub DataFrame
-            sub_gdf = gdf[gdf['Vastuualue_list'] == table_name]
-            sub_gdf = sub_gdf.drop('Vastuualue_list', axis=1)
 
+            # Filter the sub DataFrame
+            sub_gdf = gdf[gdf['Eliomaakunta'] == table_name]
+            sub_gdf = sub_gdf.drop('Eliomaakunta_list', axis=1)
+
+            # Add to the PostGIS db
             try:
                 with engine.connect() as conn:
                     sub_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
