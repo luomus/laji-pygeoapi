@@ -360,11 +360,11 @@ def map_values(cell):
 
 def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     """
-    Computes the municipalities and ELY areas for each row in the GeoDataFrame.
+    Computes the municipalities and provinces for each row in the GeoDataFrame.
 
     Parameters:
     gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
-    ely_geojson_path (str): Path to the GeoJSON file containing municipal geometries.
+    municipal_geojson (str): Path to the GeoJSON file containing municipal geometries and corresponding ELY areas and provinces.
 
     Returns:
     pandas.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
@@ -382,8 +382,8 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, municipal_gdf, how="left", predicate="intersects")
 
     # Group by the original indices and aggregate the area names
-    municipalities = joined_gdf.groupby(joined_gdf.index)['NAMEFIN'].agg(lambda x: ', '.join(x.dropna().unique()))
-    elys = joined_gdf.groupby(joined_gdf.index)['ely_nimi'].agg(lambda x: ', '.join(x.dropna().unique()))
+    municipalities = joined_gdf.groupby(joined_gdf.index)['Municipal_Name'].agg(lambda x: ', '.join(x.dropna().unique()))
+    elys = joined_gdf.groupby(joined_gdf.index)['ELY_Area_Name'].agg(lambda x: ', '.join(x.dropna().unique()))
 
     # Ensure the resulting Series aligns with the original GeoDataFrame's indices
     municipalities = municipalities.reindex(gdf_with_geom_and_ids.index, fill_value='')
