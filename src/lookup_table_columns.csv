@@ -58,5 +58,4 @@ Havainnon laatu;;;Havainnon_laatu;str;TRUE
 Peittävyysprosentti;;;Peittavyysprosentti;str;TRUE
 Havainnon määrän yksikkö;;;Havainnon_maaran_yksikko;str;TRUE
 Vesistöalue;;;Vesistoalue;str;FALSE
-Merialueen tunniste;;;Merialueen_tunniste;str;FALSE
 computed_ely_area;;;Vastuualue;str;FALSE

@@ -188,34 +188,48 @@ def merge_duplicates(gdf, lookup_table):
 
     return gpd.GeoDataFrame(grouped, geometry='geometry', crs=gdf.crs), amount_of_merged_occurrences
 
-def get_facts(gdf):
-    # List of columns to be added to the DataFrame
-    columns_to_add = ['Seurattava laji', 'Sijainnin tarkkuusluokka', 'Havainnon laatu', 'Peittävyysprosentti', 'Havainnon määrän yksikkö', 'Vesistöalue', 'Merialueen tunniste']
-    new_columns = {column: [None] * len(gdf) for column in columns_to_add}
+def process_facts(gdf):
+    """
+    Convert unit.facts[n].fact and unit.facts[n].value columns into individual columns 
+    in the GeoDataFrame, with the fact names as column names and corresponding values as column values.
 
-    # Process the facts
-    fact_cols = gdf.filter(like='].fact').columns
-    if len(fact_cols) > 0:
-        columns_to_drop = list(fact_cols)
-        for fact_col in fact_cols: # Loop over all facts
-            value_col = fact_col.replace('].fact', '].value') # Get value columns from the fact column with the same id (e.g. gathering.facts[2].fact -> gathering.facts[2].value)
-            columns_to_drop.append(value_col)
-            if value_col in gdf.columns:
-                facts = gdf[fact_col] 
-                values = gdf[value_col]
-                for fact_name in columns_to_add: 
-                    mask = facts == fact_name # Create a mask
-                    new_columns[fact_name] = values.where(mask, new_columns[fact_name])
-        
-        # Drop fact and value columns since all their values have been retrieved
-        try:
-            gdf.drop(columns=columns_to_drop, axis=1, inplace=True) 
-        except KeyError as e:
-            print("Cannot drop column..")
-            print(e)
+    Parameters:
+    gdf (geopandas.GeoDataFrame): The input GeoDataFrame.
 
-    # Add facts to the gdf as new columns
-    new_columns_df = pd.DataFrame(new_columns, index=gdf.index, dtype='str')
+    Returns:
+    geopandas.GeoDataFrame: The processed GeoDataFrame with fact-value pairs converted to columns.
+    """
+    # Initialize a dictionary to hold the new columns
+    new_columns = {}
+    columns_to_add = ['Seurattava laji', 'Sijainnin tarkkuusluokka', 'Havainnon laatu', 'Peittävyysprosentti', 'Havainnon määrän yksikkö', 'Vesistöalue']
+
+
+    # Identify all columns that match the pattern unit.facts[n].fact and unit.facts[n].value
+    all_fact_colums = [col for col in gdf.columns if 'facts' in col]
+    fact_columns = [col for col in gdf.columns if '].fact' in col]
+    value_columns = [col for col in gdf.columns if '].value' in col]
+
+    # Iterate over the fact columns
+    for fact_col, value_col in zip(fact_columns, value_columns):
+
+        # Iterate over each row in the GeoDataFrame
+        for idx, fact_name in gdf[fact_col].items():
+            if pd.notna(fact_name) and fact_name in columns_to_add:  # If the fact_name is not null and is in the list
+
+                # If the fact_name column does not already exist in new_columns, initialize it
+                if fact_name not in new_columns:
+                    new_columns[fact_name] = [None] * len(gdf)
+                
+                # Assign the corresponding value to the new column
+                new_columns[fact_name][idx] = gdf.at[idx, value_col]
+
+    # Drop the original fact and value columns
+    gdf.drop(columns=all_fact_colums, axis=1, inplace=True)
+
+    # Convert the new_columns dictionary into a DataFrame
+    new_columns_df = pd.DataFrame(new_columns, index=gdf.index)
+
+    # Concatenate the new columns with the original GeoDataFrame
     gdf = pd.concat([gdf, new_columns_df], axis=1)
 
     return gdf

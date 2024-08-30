@@ -16,14 +16,14 @@ def main():
     # URLs and file paths
     load_dotenv()
     access_token = os.getenv('ACCESS_TOKEN')
-    taxon_name_url = f'https://api.laji.fi/v0/informal-taxon-groups?lang=fi&pageSize=1000&access_token={access_token}'
+    taxon_name_url = f'https://apitest.laji.fi/v0/informal-taxon-groups?lang=fi&pageSize=1000&access_token={access_token}'
     template_resource = r'template_resource.txt'
     pygeoapi_config = r'pygeoapi-config.yml'
     municipal_geojson_path = r'municipalities.geojson'
     lookup_table = r'lookup_table_columns.csv'
 
     # Create an URL for Virva filtered occurrence data
-    base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
+    base_url = "https://apitest.laji.fi/v0/warehouse/query/unit/list?"
     selected_fields = "unit.facts,gathering.facts,document.facts,unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
     administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
     red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
@@ -73,7 +73,7 @@ def main():
     # Get other data sets
     print("Loading taxon and collection data...")
     taxon_df = load_data.get_taxon_data(taxon_name_url)
-    collection_names = load_data.get_collection_names(f"https://api.laji.fi/v0/collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
+    collection_names = load_data.get_collection_names(f"https://apitest.laji.fi/v0/collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
 
     
     # Determine the number of pages to retrieve based on the 'PAGES' environment variable
@@ -127,7 +127,7 @@ def main():
 
         print("Prosessing data...")
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-        gdf = process_data.get_facts(gdf)
+        gdf = process_data.process_facts(gdf)
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
