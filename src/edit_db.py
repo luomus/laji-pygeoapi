@@ -87,12 +87,13 @@ def drop_all_tables():
 
 def get_all_tables():
     """
-    Retrieves all table names in the database.
+    Retrieves all table names (except default tables) from the database. Returns them as a list.
     """
     inspector = inspect(engine)
     tables = inspector.get_table_names()
+    tables_without_defaults = [i for i in tables if i not in postgis_default_tables]
 
-    return tables
+    return tables_without_defaults
 
 def get_table_bbox(table_name):
     """
@@ -209,13 +210,12 @@ def get_amount_of_all_occurrences():
 
     return number_of_all_occurrences
 
-def to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration=False):
+def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iteration=False):
     """
     Process and insert geospatial data into a PostGIS database.
 
     Parameters:
     gdf (GeoDataFrame): The main GeoDataFrame containing occurrences.
-    table_names (list): A list to store table names that have been processed.
     failed_features_count (int): A counter for failed occurrence inserts.
     occurrences_without_group_count (int): A counter for occurrences without a group
     last_iteration (bool): Flag indicating whether this is the last iteration.
@@ -241,15 +241,13 @@ def to_db(gdf, table_names, failed_features_count, occurrences_without_group_cou
             try:
                 with engine.connect() as conn:
                     sub_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
-                if table_name not in table_names:
-                    table_names.append(table_name)
             except Exception as e:
                 print(f"Error occurred: {e}")
                 failed_features_count += len(sub_gdf)
 
             del sub_gdf
 
-    return table_names, failed_features_count, occurrences_without_group_count
+    return failed_features_count, occurrences_without_group_count
 
 def update_indexes(table_name):
     """

@@ -57,7 +57,6 @@ def main():
     table_no = 0
     multiprocessing = os.getenv('MULTIPROCESSING')
     pages = os.getenv('PAGES')
-    table_names = []
     occurrences_without_group_count = 0
     merged_occurrences_count = 0
     failed_features_count = 0
@@ -136,12 +135,13 @@ def main():
         merged_occurrences_count += amount_of_merged_occurrences
 
         print("Inserting data to the database...")
-        table_names, failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, table_names, failed_features_count, occurrences_without_group_count, last_iteration)
+        failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, failed_features_count, occurrences_without_group_count, last_iteration)
 
         del gdf
     del taxon_df, collection_names
 
     print(f"Number of occurrences before updating: {number_of_occurrences_before_updating}")
+    table_names = edit_db.get_all_tables()
     for table_name in table_names:
         edited_features_count += edit_db.validate_geometries_postgis(table_name)
         duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
