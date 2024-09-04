@@ -236,6 +236,7 @@ def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iter
     unique_groups = gdf['Eliomaakunta_list'].unique()
     for table_name in unique_groups:
             # Filter the sub DataFrame
+            sub_gdf = gdf[gdf['Eliomaakunta_list'] == table_name]
             sub_gdf = sub_gdf.drop('Eliomaakunta_list', axis=1)
 
             # Separate by geometry type
