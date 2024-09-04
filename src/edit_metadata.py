@@ -32,6 +32,7 @@ def create_metadata(metadata_dict, metadata_db_path):
     # Extract necessary fields from the metadata dictionary.
     dataset_name = metadata_dict.get('dataset_name')
     title_name = metadata_dict.get('title_name')
+    geom_type = metadata_dict.get('geom_type')
     bbox = metadata_dict.get('bbox')
     minx, miny, maxx, maxy = bbox
     min_date = metadata_dict.get('min_date')
@@ -45,12 +46,6 @@ def create_metadata(metadata_dict, metadata_db_path):
     hobbyist = quality_dict.get('Asiantuntevat harrastajat / asiantuntijoiden laadunvarmistama')
     amateur = quality_dict.get('Kansalaishavaintoja / ei laadunvarmistusta')
 
-    if 'polygon' in dataset_name:
-        geom_type = 'polygon'
-    elif 'line' in dataset_name:
-        geom_type = 'line'
-    elif 'point' in dataset_name:
-        geom_type = 'point'
 
 
     # Create a JSON metadata record to be inserted into the database.

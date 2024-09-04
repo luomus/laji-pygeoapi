@@ -152,9 +152,17 @@ def main():
         table_no += 1
         title_name = compute_variables.get_title_name_from_table_name(table_name) 
 
+        if 'polygon' in table_name:
+            geom_type = 'polygon'
+        elif 'line' in table_name:
+            geom_type = 'line'
+        elif 'point' in table_name:
+            geom_type = 'point'
+
         # Create parameters dictionary to fill the template for pygeoapi config file
         template_params = {
             "<placeholder_table_name>": table_name,
+            "<placeholder_geom_type>": geom_type,
             "<placeholder_title>": title_name,
             "<placeholder_amount_of_occurrences>": str(no_of_occurrences),
             "<placeholder_bbox>": str(bbox),
@@ -169,6 +177,7 @@ def main():
         metadata_dict = {
             "bbox": bbox,
             "dataset_name": table_name,
+            "geom_type": geom_type,
             "title_name": title_name,
             "no_of_occurrences": no_of_occurrences,
             "min_date": min_date,

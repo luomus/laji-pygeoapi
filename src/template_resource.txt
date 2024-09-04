@@ -2,11 +2,11 @@
     <placeholder_table_name>:
         type: collection
         title: <placeholder_table_name> 
-        description: This collection contains <placeholder_amount_of_occurrences> occurrences from the <placeholder_title> area with 10 km buffers. 
+        description: This collection contains <placeholder_amount_of_occurrences> <placeholder_geom_type>s from the <placeholder_title> area with 10 km buffers. 
         keywords:
             en:
                 - <placeholder_title>
-                - species
+                - occurrence data
         extents:
             spatial:
                 bbox: <placeholder_bbox>
