@@ -217,8 +217,12 @@ def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iter
     Parameters:
     gdf (GeoDataFrame): The main GeoDataFrame containing occurrences.
     failed_features_count (int): A counter for failed occurrence inserts.
-    occurrences_without_group_count (int): A counter for occurrences without a group
+    occurrences_without_group_count (int): A counter for occurrences without a group.
     last_iteration (bool): Flag indicating whether this is the last iteration.
+
+    Returns:
+    failed_features_count  (int): An updated counter for failed occurrence inserts.
+    occurrences_without_group_count (int): An updated counter for occurrences without a group.
     """
     # Remove NaN values
     occurrences_without_group_count += gdf['Eliomaakunta'].isnull().sum()
@@ -231,19 +235,27 @@ def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iter
     # Process each unique group
     unique_groups = gdf['Eliomaakunta_list'].unique()
     for table_name in unique_groups:
-        if table_name:
-
             # Filter the sub DataFrame
-            sub_gdf = gdf[gdf['Eliomaakunta'] == table_name]
             sub_gdf = sub_gdf.drop('Eliomaakunta_list', axis=1)
 
-            # Add to the PostGIS db
-            try:
-                with engine.connect() as conn:
-                    sub_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
-            except Exception as e:
-                print(f"Error occurred: {e}")
-                failed_features_count += len(sub_gdf)
+            # Separate by geometry type
+            geom_types = {
+                'points': sub_gdf[sub_gdf.geometry.geom_type.isin(['Point','MultiPoint'])],
+                'lines': sub_gdf[sub_gdf.geometry.geom_type.isin(['LineString', 'MultiLineString'])],
+                'polygons': sub_gdf[sub_gdf.geometry.geom_type.isin(['Polygon', 'MultiPolygon'])]
+            }
+
+            for geom_type, geom_gdf in geom_types.items():
+                if not geom_gdf.empty:
+                    try:
+                        with engine.connect() as conn:
+                            table_name = table_name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean the table name
+                            table_full_name = f"{table_name}_{geom_type}"
+                            print(f"Inserting data into table: {table_full_name}")
+                            geom_gdf.to_postgis(table_full_name, conn, if_exists='append', schema='public', index=False)
+                    except Exception as e:
+                        print(f"Error occurred: {e}")
+                        failed_features_count += len(geom_gdf)
 
             del sub_gdf
 

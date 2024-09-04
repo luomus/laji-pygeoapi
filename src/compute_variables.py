@@ -391,6 +391,49 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
 
     return municipalities, elys
 
+def get_title_name_from_table_name(table_name):
+    """
+    Converts table names back to the title names. E.g. 'sompion_lappi_polygons' -> 'Sompion Lappi'
+
+    Parameters: 
+    table_name (str): A PostGIS table name
+
+    Returns: 
+    cleaned_valuea (str): A cleaned version of a PostGIS table name
+    """
+    # Define a dictionary to map table names to cleaned values
+    table_mapping = {
+        "sompion_lappi": "Sompion Lappi",
+        "satakunta": "Satakunta",
+        "pohjois_savo": "Pohjois-Savo",
+        "pera_pohjanmaa": "Perä-Pohjanmaa",
+        "laatokan_karjala": "Laatokan Karjala",
+        "kittilan_lappi": "Kittilän Lappi",
+        "keski_pohjanmaa": "Keski-Pohjanmaa",
+        "kainuu": "Kainuu",
+        "etela_hame": "Etelä-Häme",
+        "enontekion_lappi": "Enontekiön Lappi",
+        "ahvenanmaa": "Ahvenanmaa",
+        "etela_savo": "Etelä-Savo",
+        "etela_karjala": "Etelä-Karjala",
+        "varsinais_suomi": "Varsinais-Suomi",
+        "pohjois_hame": "Pohjois-Häme",
+        "koillismaa": "Koillismaa",
+        "uusimaa": "Uusimaa",
+        "oulun_pohjanmaa": "Oulun Pohjanmaa",
+        "inarin_lappi": "Inarin Lappi",
+        "etela_pohjanmaa": "Etelä-Pohjanmaa",
+        "pohjois_karjala": "Pohjois-Karjala"
+    }
+
+    # Remove the data type (e.g., points, polygons, lines)
+    base_name = table_name.rsplit('_', 1)[0]
+    
+    # Look up the cleaned value in the dictionary
+    cleaned_value = table_mapping.get(base_name, "Unknown table name")
+    
+    return cleaned_value
+
 def compute_all(gdf, collection_names, municipal_geojson_path):
     '''
     Computes or translates variables that can not be directly accessed from the source API
@@ -439,6 +482,10 @@ def compute_all(gdf, collection_names, municipal_geojson_path):
     
     if 'document.linkings.collectionQuality' in gdf.columns:
         all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(collection_qualities, na_action='ignore')
+
+    # Remove endings from biogeographical regions
+    if 'gathering.interpretations.biogeographicalProvinceDisplayname' in gdf.columns:
+        all_cols['gathering.interpretations.biogeographicalProvinceDisplayname'] = gdf['gathering.interpretations.biogeographicalProvinceDisplayname'].str.split(r"\s*\(").str[0]
 
     # Mappings with multiple value in a cell:
     all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = gdf['unit.linkings.originalTaxon.administrativeStatuses'].apply(map_values)

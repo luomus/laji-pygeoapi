@@ -45,6 +45,13 @@ def create_metadata(metadata_dict, metadata_db_path):
     hobbyist = quality_dict.get('Asiantuntevat harrastajat / asiantuntijoiden laadunvarmistama')
     amateur = quality_dict.get('Kansalaishavaintoja / ei laadunvarmistusta')
 
+    if 'polygon' in dataset_name:
+        geom_type = 'polygon'
+    elif 'line' in dataset_name:
+        geom_type = 'line'
+    elif 'point' in dataset_name:
+        geom_type = 'point'
+
 
     # Create a JSON metadata record to be inserted into the database.
     json_record = {
@@ -68,8 +75,8 @@ def create_metadata(metadata_dict, metadata_db_path):
             'created': "2024-08-08",
             'updated': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
             'type': 'dataset',
-            'title': f'{title_name}',
-            'description': f'This dataset has {no_of_occurrences} occurrences from the area of {dataset_name} with 10 km buffers. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
+            'title': f'{dataset_name}',
+            'description': f'This dataset has {no_of_occurrences} {geom_type} occurrence features from the area of {title_name} with 10 km buffers. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
             'providers': [{
                 'name': 'Finnish Biodiversity Information Facility (FinBIF)',
                 'roles': ['distributor', 'pointOfContact', 'publisher']
@@ -102,7 +109,7 @@ def create_metadata(metadata_dict, metadata_db_path):
         },
         'links': [
         {
-            "href":f"https://geoapi.laji.fi/collections/{title_name}",
+            "href":f"https://geoapi.laji.fi/collections/{dataset_name}",
             "rel":"item",
             "title":"Dataset in LUOMUS OGC API Features service",
             "type":"OGCFeat"
