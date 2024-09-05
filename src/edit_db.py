@@ -228,6 +228,9 @@ def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iter
     occurrences_without_group_count += gdf['Eliomaakunta'].isnull().sum()
     gdf = gdf.dropna(subset=['Eliomaakunta'])
 
+    # Create a local id
+    gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")
+
     # Explode gdf based on biogeographical province
     gdf['Eliomaakunta_list'] = gdf['Eliomaakunta'].str.split(', ') 
     gdf = gdf.explode(column='Eliomaakunta_list')

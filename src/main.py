@@ -58,7 +58,7 @@ def main():
     multiprocessing = os.getenv('MULTIPROCESSING')
     pages = os.getenv('PAGES')
     occurrences_without_group_count = 0
-    merged_occurrences_count = 0
+    #merged_occurrences_count = 0
     failed_features_count = 0
     edited_features_count = 0
     duplicates_count_by_id = 0
@@ -131,8 +131,8 @@ def main():
         gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
         gdf = process_data.convert_geometry_collection_to_multipolygon(gdf)
-        gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf, lookup_table)
-        merged_occurrences_count += amount_of_merged_occurrences
+        #gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf, lookup_table)
+        #merged_occurrences_count += amount_of_merged_occurrences
 
         print("Inserting data to the database...")
         failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, failed_features_count, occurrences_without_group_count, last_iteration)
@@ -198,7 +198,7 @@ def main():
     print(f" -> {number_of_occurrences_after_updating - number_of_occurrences_before_updating} of them were added to the database:")
     print(f" -> {edited_features_count} of them had invalid geometries that were fixed")
     print(f" -> {occurrences_without_group_count} of them were discarced because they were not part of any ELY center area")
-    print(f" -> {merged_occurrences_count} of them were merged as duplicates")
+    #print(f" -> {merged_occurrences_count} of them were merged as duplicates")
     print(f" -> {duplicates_count_by_id} of them were not inserted as they were already in the database")
     print(f" -> {failed_features_count} of them failed to add to the database")
 
