@@ -296,9 +296,13 @@ def validate_geometries_postgis(table_name):
 
     with engine.connect() as connection:
         count_fixed_sql = text(f'UPDATE "{table_name}" SET geometry = ST_MakeValid(geometry) WHERE NOT ST_IsValid(geometry);')
-        result = connection.execute(count_fixed_sql)
-        edited_features_count = result.rowcount
-        connection.commit()
+        try:
+            result = connection.execute(count_fixed_sql)
+            edited_features_count = result.rowcount
+            connection.commit()
+        except Exception as e:
+            print(e)
+            edited_features_count = 0
     return edited_features_count
 
 def collections_to_multis(table_name, buffer_distance=0.5):
