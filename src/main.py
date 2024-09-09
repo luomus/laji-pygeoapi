@@ -131,8 +131,8 @@ def main():
         gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
         gdf = process_data.convert_geometry_collection_to_multipolygon(gdf)
-        #gdf, amount_of_merged_occurrences = process_data.merge_duplicates(gdf, lookup_table)
-        #merged_occurrences_count += amount_of_merged_occurrences
+        gdf, edited_features = process_data.validate_geometry(gdf)
+        edited_features_count += edited_features
 
         print("Inserting data to the database...")
         failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, failed_features_count, occurrences_without_group_count, last_iteration)
@@ -142,7 +142,6 @@ def main():
 
     table_names = edit_db.get_all_tables()
     for table_name in table_names:
-        edited_features_count += edit_db.validate_geometries_postgis(table_name)
         duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
         bbox = edit_db.get_table_bbox(table_name)
         min_date, max_date = edit_db.get_table_dates(table_name)

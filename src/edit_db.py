@@ -255,7 +255,6 @@ def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iter
                         with engine.connect() as conn:
                             table_name = table_name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean the table name
                             table_full_name = f"{table_name}_{geom_type}"
-                            print(f"Inserting data into table: {table_full_name}")
                             geom_gdf.to_postgis(table_full_name, conn, if_exists='append', schema='public', index=False)
                     except Exception as e:
                         print(f"Error occurred: {e}")
@@ -292,18 +291,23 @@ def validate_geometries_postgis(table_name):
 
     Parameters:
     table_name (str): Table to be checked
-    """
 
-    with engine.connect() as connection:
-        count_fixed_sql = text(f'UPDATE "{table_name}" SET geometry = ST_MakeValid(geometry) WHERE NOT ST_IsValid(geometry);')
-        try:
-            result = connection.execute(count_fixed_sql)
-            edited_features_count = result.rowcount
-            connection.commit()
-        except Exception as e:
-            print(e)
-            edited_features_count = 0
-    return edited_features_count
+    Returns:
+    edited_features_count (int): the number of features that hav been fixed
+    """
+    if 'point' not in table_name:
+        with engine.connect() as connection:
+            count_fixed_sql = text(f'UPDATE "{table_name}" SET geometry = ST_MakeValid(geometry) WHERE NOT ST_IsValid(geometry);')
+            try:
+                result = connection.execute(count_fixed_sql)
+                edited_features_count = result.rowcount
+                connection.commit()
+            except Exception as e:
+                print(e)
+                edited_features_count = 0
+        return edited_features_count
+    else:
+        return 0
 
 def collections_to_multis(table_name, buffer_distance=0.5):
     """

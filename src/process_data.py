@@ -20,7 +20,24 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'].str.extract('(MVL\.\d+)')
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.originalTaxon.informalTaxonGroups[0]', right_on='id', how='left')
     return merged_gdf
+
+def validate_geometry(gdf):
+    """
+    Repairs invalid geometries.
+    Parameters:
+    gdf (geopandas.GeoDataFrame): The occurrence data GeoDataFrame.
+
+    Returns:
+    gdf (geopandas.GeoDataFrame): The occurrence data GeoDataFrame where invalid geometries are fixed
+    edited_features_count (int): number of fixed geometries
+    """
+    # Use make_valid to ensure all geometries are valid
     
+    og_geom = gdf['geometry']
+    gdf['geometry']  = gdf['geometry'].make_valid()
+    edited_features_count = (gdf['geometry']  != og_geom).sum()
+    return gdf, edited_features_count
+
 def combine_similar_columns(gdf):
     """
     Finds similar columns (e.g. keyword[0], keyword[1], keyword[2]) and combines them
