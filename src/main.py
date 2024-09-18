@@ -1,9 +1,7 @@
-import geopandas as gpd
 import pandas as pd
 from dotenv import load_dotenv
 import os
 import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db, edit_metadata
-#import numpy as np
 
 def main():
     """
@@ -22,6 +20,38 @@ def main():
     municipal_geojson_path = r'municipalities.geojson'
     lookup_table = r'lookup_table_columns.csv'
 
+    # If the code is running in openshift/kubernetes, set paths differently
+    if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+        pygeoapi_config_out = r'pygeoapi-config_out.yml'
+        metadata_db_path = 'tmp-catalogue.tinydb'
+        db_path_in_config = 'metadata_db.tinydb'
+        print("Starting in Openshift / Kubernetes...")
+    else:
+        pygeoapi_config_out = r'pygeoapi-config.yml'
+        metadata_db_path = 'catalogue.tinydb'
+        db_path_in_config = metadata_db_path
+        print("Starting in Docker...")
+
+    # Define variables and counters
+    multiprocessing = os.getenv('MULTIPROCESSING')
+    occurrences_without_group_count = 0
+    failed_features_count = 0
+    edited_features_count = 0
+    duplicates_count_by_id = 0
+    processed_occurrences = 0
+    last_iteration = False
+    pages_env = os.getenv('PAGES').lower()
+    pages = None
+    
+    # Clear config file and metadata database to make space for new data sets. 
+    last_update = edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out).group()
+    edit_metadata.empty_metadata_db(metadata_db_path)
+
+    # Get other data sets
+    print("Loading taxon and collection data...")
+    taxon_df = load_data.get_taxon_data(taxon_name_url)
+    collection_names = load_data.get_collection_names(f"https://api.laji.fi/v0/collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
+
     # Create an URL for Virva filtered occurrence data
     base_url = "https://api.laji.fi/v0/warehouse/query/unit/list?"
     selected_fields = "unit.facts,gathering.facts,document.facts,unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand"
@@ -38,158 +68,74 @@ def main():
     collection_and_record_quality = "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;"
     geo_json = "true"
     feature_type = "ORIGINAL_FEATURE"
+    biogeographical_province_ids = ["ML.251","ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
     occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
-    
-    # Pygeoapi output file
-    if os.getenv('RUNNING_IN_OPENSHIFT') == True or os.getenv('RUNNING_IN_OPENSHIFT') == "True":
-        pygeoapi_config_out = r'pygeoapi-config_out.yml'
-        metadata_db_path = 'tmp-catalogue.tinydb'
-        db_path_in_config = 'metadata_db.tinydb'
-        print("Starting in Openshift / Kubernetes...")
-    else:
-        pygeoapi_config_out = r'pygeoapi-config.yml'
-        metadata_db_path = 'catalogue.tinydb'
-        db_path_in_config = metadata_db_path
-        print("Starting in Docker...")
-        #print(f"URL: n\ {occurrence_url}")
-
-    tot_rows = 0
-    table_no = 0
-    multiprocessing = os.getenv('MULTIPROCESSING')
-    pages = os.getenv('PAGES')
-    occurrences_without_group_count = 0
-    #merged_occurrences_count = 0
-    failed_features_count = 0
-    edited_features_count = 0
-    duplicates_count_by_id = 0
-    processed_occurrences = 0
-    last_iteration = False
-
-    # Clear config file and metadata database to make space for new data sets. 
-    last_update = edit_config.clear_collections_from_config(pygeoapi_config, pygeoapi_config_out).group()
-    edit_metadata.empty_metadata_db(metadata_db_path)
-
-    # Get other data sets
-    print("Loading taxon and collection data...")
-    taxon_df = load_data.get_taxon_data(taxon_name_url)
-    collection_names = load_data.get_collection_names(f"https://api.laji.fi/v0/collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
-
-    
-    # Determine the number of pages to retrieve based on the 'PAGES' environment variable
-    pages_env = os.getenv('PAGES').lower()
-
+ 
+    # Check if 'PAGES' is set to 'latest' and 'last_update' is available
     if pages_env == 'latest' and last_update:
-        # If 'latest' is selected and there is a last update, retrieve only the latest occurrences
-        occurrence_url = f"{occurrence_url}&loadedSameOrAfter={last_update}"
-        pages = load_data.get_last_page(occurrence_url)
-        print(f"Starting to retrieve {pages} pages of occurrence data loaded after the last update: {last_update}...")
-        
-    elif pages_env == 'all':
-        # If 'all' is selected, drop all db tables and retrieve all pages of occurrence data
-        pages = load_data.get_last_page(occurrence_url)
+        occurrence_url = f"{occurrence_url}&loadedSameOrAfter={last_update}" # Add the 'loadedSameOrAfter' parameter to the occurrence URL for filtering recent data
+
+    # If 'PAGES' is set to 'all' or '0', drop all tables from the database (start fresh)    
+    elif pages_env == 'all' or pages_env == '0':
         edit_db.drop_all_tables()
-        print(f"Starting to retrieve {pages} pages of occurrence data for an empty database...")
-        
-    elif pages_env == '0':
-        # If '0' is selected, drop all tables without downloading any new data
-        edit_db.drop_all_tables()
-        print(f"Emptying the database without downloading data...")
-        pages = 0
-        
+
+    # If 'PAGES' is a specific number, parse it and drop all tables    
     else:
-        # If a specific number of pages is provided, attempt to parse it and download that many pages
         try:
             pages = int(os.getenv('PAGES'))
             edit_db.drop_all_tables()
-            print(f"Starting to retrieve {pages} pages of occurrence data for an empty database...")
         except ValueError:
-            # Handle invalid input for the 'PAGES' environment variable
-            print("ERROR: The environment variable 'PAGES' is not valid. Choose 'latest', 'all', '0', or specify the number of pages you want to download (e.g., 10).")
-            raise Exception("Invalid 'PAGES' environment variable value.")
-
-
+            raise Exception("Invalid 'PAGES' environment variable value. Choose 'latest', 'all', '0', or specify the number of pages you want to download (e.g., 10).")
+        
+    # Get the current number of occurrences before starting the update process    
     number_of_occurrences_before_updating = edit_db.get_amount_of_all_occurrences()
 
-    # Load and process data in batches. Store to the database
-    batch_size = 5
-    for startpage in range(1, pages+1, batch_size):
-        if startpage <= pages-batch_size-1:
-            endpage = startpage + batch_size-1
-        else:
-            endpage = pages
-            last_iteration = True
-        
-        # Get occurrence data
-        print(f"Retrieving pages {startpage} to {endpage}...")
-        gdf = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=multiprocessing) 
-        processed_occurrences += len(gdf)
+    # If 'PAGES' is not '0', proceed with data processing
+    if pages_env != '0': 
 
-        print("Prosessing data...")
-        gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-        gdf = process_data.process_facts(gdf)
-        gdf = process_data.combine_similar_columns(gdf)
-        gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
-        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
-        gdf = process_data.convert_geometry_collection_to_multipolygon(gdf)
-        gdf, edited_features = process_data.validate_geometry(gdf)
-        edited_features_count += edited_features
+        # Loop over each biogeographical province ID to load and process its occurrence data
+        for idx, id in enumerate(biogeographical_province_ids):
+            if 'biogeographicalProvinceId' not in occurrence_url:
+                occurrence_url = f"{occurrence_url}&biogeographicalProvinceId={id}"
+            else:
+                occurrence_url = occurrence_url.replace(f'biogeographicalProvinceId={biogeographical_province_ids[idx-1]}', f'biogeographicalProvinceId={id}')
+            
+            # If the number of pages to load is not set, calculate the last available page
+            if not pages:
+                pages = load_data.get_last_page(occurrence_url)
 
-        print("Inserting data to the database...")
-        failed_features_count, occurrences_without_group_count = edit_db.to_db(gdf, failed_features_count, occurrences_without_group_count, last_iteration)
+            print(f"Loading {pages} pages of occurrences from the area {compute_variables.get_biogeographical_region_from_id(id)}")
+            gdf = load_data.get_occurrence_data(occurrence_url, startpage=1, endpage=pages, multiprocessing=multiprocessing) 
 
-        del gdf
-    del taxon_df, collection_names
+            # If occurrences were found, update the processed occurrences counter
+            if len(gdf) > 0:
+                processed_occurrences += len(gdf)
+            else:
+                continue # Skip further processing if no occurrences are found
 
-    table_names = edit_db.get_all_tables()
-    for table_name in table_names:
-        duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
-        bbox = edit_db.get_table_bbox(table_name)
-        min_date, max_date = edit_db.get_table_dates(table_name)
-        no_of_occurrences = edit_db.get_amount_of_occurrences(table_name)
-        quality_dict = edit_db.get_quality_frequency(table_name)
-        tot_rows += no_of_occurrences
-        table_no += 1
-        title_name = compute_variables.get_title_name_from_table_name(table_name) 
+            print("Preparing data...")
+            gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
+            gdf = process_data.process_facts(gdf)
+            gdf = process_data.combine_similar_columns(gdf)
+            gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
+            gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+            gdf = process_data.convert_geometry_collection_to_multipolygon(gdf)
+            gdf, edited_features = process_data.validate_geometry(gdf)
+            edited_features_count += edited_features
 
-        if 'polygon' in table_name:
-            geom_type = 'polygon'
-        elif 'line' in table_name:
-            geom_type = 'line'
-        elif 'point' in table_name:
-            geom_type = 'point'
+            print("Inserting data to the DB...")
+            failed_features_count, occurrences_without_group_count, table_name = edit_db.to_db(gdf, id, failed_features_count, occurrences_without_group_count, last_iteration)
 
-        # Create parameters dictionary to fill the template for pygeoapi config file
-        template_params = {
-            "<placeholder_table_name>": table_name,
-            "<placeholder_geom_type>": geom_type,
-            "<placeholder_title>": title_name,
-            "<placeholder_amount_of_occurrences>": str(no_of_occurrences),
-            "<placeholder_bbox>": str(bbox),
-            "<placeholder_min_date>": min_date,
-            "<placeholder_max_date>": max_date,
-            "<placeholder_postgres_host>": os.getenv('POSTGRES_HOST'),
-            "<placeholder_postgres_password>": os.getenv('POSTGRES_PASSWORD'),
-            "<placeholder_postgres_user>": os.getenv('POSTGRES_USER'),
-            "<placeholder_db_name>": os.getenv('POSTGRES_DB')
-        }
+            print("Processing data in the DB...")
+            duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
+            edit_db.update_indexes(table_name)
 
-        metadata_dict = {
-            "bbox": bbox,
-            "dataset_name": table_name,
-            "geom_type": geom_type,
-            "title_name": title_name,
-            "no_of_occurrences": no_of_occurrences,
-            "min_date": min_date,
-            "max_date": max_date,
-            "table_no": table_no,
-            "quality_dict": quality_dict
-        }
+            del gdf
+        del taxon_df, collection_names
 
-        edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
-        edit_metadata.create_metadata(metadata_dict, metadata_db_path)
-        edit_db.update_indexes(table_name)
-        print(f"Everything ready for the table {table_name}")
-
+    edit_metadata.create_metadata(template_resource, metadata_db_path, pygeoapi_config_out)
+ 
+    # Print statistics
     number_of_occurrences_after_updating = edit_db.get_amount_of_all_occurrences()
     print(f"Number of occurrences before updating: {number_of_occurrences_before_updating}")
     print(f"Number of occurrences after updating: {number_of_occurrences_after_updating}")
@@ -197,7 +143,6 @@ def main():
     print(f" -> {number_of_occurrences_after_updating - number_of_occurrences_before_updating} of them were added to the database:")
     print(f" -> {edited_features_count} of them had invalid geometries that were fixed")
     print(f" -> {occurrences_without_group_count} of them were discarced because they were not part of any ELY center area")
-    #print(f" -> {merged_occurrences_count} of them were merged as duplicates")
     print(f" -> {duplicates_count_by_id} of them were not inserted as they were already in the database")
     print(f" -> {failed_features_count} of them failed to add to the database")
 

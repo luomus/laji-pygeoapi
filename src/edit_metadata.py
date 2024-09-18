@@ -3,6 +3,10 @@ from datetime import datetime
 from pathlib import Path
 from datetime import datetime
 from tinydb import TinyDB
+import edit_db, compute_variables, edit_config
+import os
+from dotenv import load_dotenv
+
 
 def empty_metadata_db(metadata_db_path):
     """
@@ -15,7 +19,64 @@ def empty_metadata_db(metadata_db_path):
     db.drop_tables()
     db.close()
 
-def create_metadata(metadata_dict, metadata_db_path):
+def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
+    """
+    Generates metadata for geospatial tables in the database and updates both 
+    the PyGeoAPI configuration and a metadata database.
+    
+    Parameters:
+    - template_resource (str): A template file for generating PyGeoAPI configuration with placeholders for dynamic values.
+    - metadata_db_path (str): Path to the metadata database where JSON metadata for each table will be stored.
+    - pygeoapi_config_out (str): Output path for the PyGeoAPI configuration file.
+    """
+    table_names = edit_db.get_all_tables()
+    for idx, table_name in enumerate(table_names):
+        bbox = edit_db.get_table_bbox(table_name)
+        min_date, max_date = edit_db.get_table_dates(table_name)
+        no_of_occurrences = edit_db.get_amount_of_occurrences(table_name)
+        quality_dict = edit_db.get_quality_frequency(table_name)
+        title_name = compute_variables.get_title_name_from_table_name(table_name) 
+
+        if 'polygon' in table_name:
+            geom_type = 'polygon'
+        elif 'line' in table_name:
+            geom_type = 'line'
+        elif 'point' in table_name:
+            geom_type = 'point'
+
+        # Create parameters dictionary to fill the template for pygeoapi config file
+        load_dotenv()
+        template_params = {
+            "<placeholder_table_name>": table_name,
+            "<placeholder_geom_type>": geom_type,
+            "<placeholder_title>": title_name,
+            "<placeholder_amount_of_occurrences>": str(no_of_occurrences),
+            "<placeholder_bbox>": str(bbox),
+            "<placeholder_min_date>": min_date,
+            "<placeholder_max_date>": max_date,
+            "<placeholder_postgres_host>": os.getenv('POSTGRES_HOST'),
+            "<placeholder_postgres_password>": os.getenv('POSTGRES_PASSWORD'),
+            "<placeholder_postgres_user>": os.getenv('POSTGRES_USER'),
+            "<placeholder_db_name>": os.getenv('POSTGRES_DB')
+        }
+
+        metadata_dict = {
+            "bbox": bbox,
+            "dataset_name": table_name,
+            "geom_type": geom_type,
+            "title_name": title_name,
+            "no_of_occurrences": no_of_occurrences,
+            "min_date": min_date,
+            "max_date": max_date,
+            "table_no": idx,
+            "quality_dict": quality_dict
+        }
+
+        edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
+        add_JSON_metadata_to_DB(metadata_dict, metadata_db_path)
+        print(f"Everything ready for the table {table_name}")
+
+def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
     """
     Creates a JSON metadata record and inserts it into a TinyDB database.
 

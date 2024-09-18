@@ -3,8 +3,6 @@ import geopandas as gpd
 import numpy as np
 import re
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
-from shapely.ops import unary_union
-import datetime
 
 def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     """
@@ -106,7 +104,7 @@ def translate_column_names(gdf, lookup_table, style='virva'):
             column_mapping[column] = new_column_name
         else:
             new_columns_df[new_column_name] = None
-            print(f"Column {new_column_name} was not found so it is created with empty values")
+            #print(f"Column {new_column_name} was not found so it is created with empty values")
 
     # Rename existing columns
     gdf = gdf.rename(columns=column_mapping)

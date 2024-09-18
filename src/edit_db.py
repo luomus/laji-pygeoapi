@@ -1,9 +1,9 @@
 from sqlalchemy import inspect
 from sqlalchemy import create_engine, text, MetaData
-import geopandas as gpd
 import pandas as pd
 import os
 from dotenv import load_dotenv
+import compute_variables
 
 postgis_default_tables = ['spatial_ref_sys',
                             'topology',
@@ -73,7 +73,7 @@ def drop_all_tables():
     """
     Drops all tables in the database except default PostGIS tables.
     """
-    print("Initializing the database...")
+    print("Emptying the database...")
     
     # Find all table names
     metadata = MetaData()
@@ -210,12 +210,13 @@ def get_amount_of_all_occurrences():
 
     return number_of_all_occurrences
 
-def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iteration=False):
+def to_db(gdf, id, failed_features_count, occurrences_without_group_count, last_iteration=False):
     """
     Process and insert geospatial data into a PostGIS database.
 
     Parameters:
     gdf (GeoDataFrame): The main GeoDataFrame containing occurrences.
+    id (str): Biogeographical province id (e.g. MVL.251)
     failed_features_count (int): A counter for failed occurrence inserts.
     occurrences_without_group_count (int): A counter for occurrences without a group.
     last_iteration (bool): Flag indicating whether this is the last iteration.
@@ -223,46 +224,34 @@ def to_db(gdf, failed_features_count, occurrences_without_group_count, last_iter
     Returns:
     failed_features_count  (int): An updated counter for failed occurrence inserts.
     occurrences_without_group_count (int): An updated counter for occurrences without a group.
+    full_table_name (str): The table name used in PostGIS database
     """
-    # Remove NaN values
-    occurrences_without_group_count += gdf['Eliomaakunta'].isnull().sum()
-    gdf = gdf.dropna(subset=['Eliomaakunta'])
 
     # Create a local id
     gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")
 
-    # Explode gdf based on biogeographical province
-    gdf['Eliomaakunta_list'] = gdf['Eliomaakunta'].str.split(', ') 
-    gdf = gdf.explode(column='Eliomaakunta_list')
+    table_name = compute_variables.get_biogeographical_region_from_id(id)
 
-    # Process each unique group
-    unique_groups = gdf['Eliomaakunta_list'].unique()
-    for table_name in unique_groups:
-            # Filter the sub DataFrame
-            sub_gdf = gdf[gdf['Eliomaakunta_list'] == table_name]
-            sub_gdf = sub_gdf.drop('Eliomaakunta_list', axis=1)
+    # Separate by geometry type
+    geom_types = {
+        'points': gdf[gdf.geometry.geom_type.isin(['Point','MultiPoint'])],
+        'lines': gdf[gdf.geometry.geom_type.isin(['LineString', 'MultiLineString'])],
+        'polygons': gdf[gdf.geometry.geom_type.isin(['Polygon', 'MultiPolygon'])]
+    }
 
-            # Separate by geometry type
-            geom_types = {
-                'points': sub_gdf[sub_gdf.geometry.geom_type.isin(['Point','MultiPoint'])],
-                'lines': sub_gdf[sub_gdf.geometry.geom_type.isin(['LineString', 'MultiLineString'])],
-                'polygons': sub_gdf[sub_gdf.geometry.geom_type.isin(['Polygon', 'MultiPolygon'])]
-            }
+    # Loop over geometry types and corresponding geodataframes
+    for geom_type, geom_gdf in geom_types.items():
+        if not geom_gdf.empty:
+            try:
+                with engine.connect() as conn:
+                    table_name = table_name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean table name
+                    table_full_name = f"{table_name}_{geom_type}" # Add geom type to name
+                    geom_gdf.to_postgis(table_full_name, conn, if_exists='append', schema='public', index=False)
+            except Exception as e:
+                print(f"Error occurred: {e}")
+                failed_features_count += len(geom_gdf)
 
-            for geom_type, geom_gdf in geom_types.items():
-                if not geom_gdf.empty:
-                    try:
-                        with engine.connect() as conn:
-                            table_name = table_name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean the table name
-                            table_full_name = f"{table_name}_{geom_type}"
-                            geom_gdf.to_postgis(table_full_name, conn, if_exists='append', schema='public', index=False)
-                    except Exception as e:
-                        print(f"Error occurred: {e}")
-                        failed_features_count += len(geom_gdf)
-
-            del sub_gdf
-
-    return failed_features_count, occurrences_without_group_count
+    return failed_features_count, occurrences_without_group_count, table_full_name
 
 def update_indexes(table_name):
     """

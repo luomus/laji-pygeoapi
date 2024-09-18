@@ -434,6 +434,35 @@ def get_title_name_from_table_name(table_name):
     
     return cleaned_value
 
+def get_biogeographical_region_from_id(id):
+    """
+    This function converts biogeographical area id to the corresponding name. E.g. "ML.251" to "Ahvenanmaa"
+    """
+    id_mapping = {
+        "ML.251": "Ahvenanmaa",
+        "ML.252": "Varsinais-Suomi",
+        "ML.253": "Uusimaa",
+        "ML.254": "Etelä-Karjala",
+        "ML.255": "Satakunta",
+        "ML.256": "Etelä-Häme",
+        "ML.257": "Etelä-Savo",
+        "ML.258": "Laatokan Karjala",
+        "ML.259": "Etelä-Pohjanmaa",
+        "ML.260": "Pohjois-Häme",
+        "ML.261": "Pohjois-Savo",
+        "ML.262": "Pohjois-Karjala",
+        "ML.263": "Keski-Pohjanmaa",
+        "ML.264": "Kainuu",
+        "ML.265": "Oulun Pohjanmaa",
+        "ML.266": "Perä-Pohjanmaa",
+        "ML.267": "Koillismaa",
+        "ML.268": "Kittilän Lappi",
+        "ML.269": "Sompion Lappi",
+        "ML.270": "Enontekiön Lappi",
+        "ML.271": "Inarin Lappi"
+    }
+    return id_mapping.get(id, "Empty biogeographical region")
+
 def compute_all(gdf, collection_names, municipal_geojson_path):
     '''
     Computes or translates variables that can not be directly accessed from the source API

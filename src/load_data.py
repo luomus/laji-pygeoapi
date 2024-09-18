@@ -1,9 +1,6 @@
 import geopandas as gpd
 import pandas as pd
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
-from sqlalchemy_utils import database_exists, create_database
-import requests, pyogrio, psycopg2, geoalchemy2, os, concurrent.futures
+import requests, concurrent.futures
 import urllib.error
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
