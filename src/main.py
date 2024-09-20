@@ -119,7 +119,7 @@ def main():
             gdf = process_data.combine_similar_columns(gdf)
             gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
             gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
-            gdf = process_data.convert_geometry_collection_to_multipolygon(gdf)
+            #gdf = process_data.convert_geometry_collection_to_multipolygon(gdf) # Commented out because I haven't seen any geometry collections so far
             gdf, edited_features = process_data.validate_geometry(gdf)
             edited_features_count += edited_features
 

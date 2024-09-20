@@ -129,32 +129,22 @@ def translate_column_names(gdf, lookup_table, style='virva'):
 def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
     """Convert GeometryCollection to MultiPolygon in the entire GeoDataFrame, buffering points and lines if necessary."""
 
-    # Iterate over each row in the GeoDataFrame
-    for idx in gdf.index:
-        geometry = gdf.at[idx, 'geometry']
-        
+    def process_geometry(geometry):
         if isinstance(geometry, GeometryCollection):
-            print("Geometry collection found")
-            polygons = []
+            polygons = [geom.buffer(buffer_distance) if isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)) 
+                        else geom 
+                        for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon, Point, LineString, MultiPoint, MultiLineString))]
 
-            # Extract Point, LineString, Polygon, MultiPoint, MultiLineString, and MultiPolygon geometries from GeometryCollections
-            for geom in geometry.geoms:
-                if isinstance(geom, (Polygon, MultiPolygon)):
-                    polygons.append(geom)
-                elif isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)):
-                    polygons.append(geom.buffer(buffer_distance))
-
-            # Convert polygons to MultiPolygon
             if len(polygons) == 1:
-                if isinstance(polygons[0], Polygon):
-                    gdf.at[idx, 'geometry'] = MultiPolygon(polygons)  # Convert single Polygon to MultiPolygon
-                else:
-                    gdf.at[idx, 'geometry'] = polygons[0]  # Keep the MultiPolygon as is
+                return MultiPolygon(polygons) if isinstance(polygons[0], Polygon) else polygons[0]
             elif len(polygons) > 1:
-                gdf.at[idx, 'geometry'] = MultiPolygon(polygons)  # Create MultiPolygon from multiple Polygons
+                return MultiPolygon(polygons)
             else:
-                gdf.at[idx, 'geometry'] = None  # Set to None if no valid geometries are found
+                return None
+        return geometry
 
+    gdf['geometry'] = gdf['geometry'].apply(process_geometry)
+    
     return gdf
 
 def merge_duplicates(gdf, lookup_table):

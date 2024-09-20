@@ -265,13 +265,13 @@ def update_indexes(table_name):
         reindex_table = text(f'REINDEX TABLE "{table_name}";')
         connection.execute(reindex_table)
 
-        reindex_id = text(f'CREATE INDEX "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");')
+        reindex_id = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");')
         connection.execute(reindex_id)
 
-        reindex_id2 = text(f'CREATE INDEX "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");')
+        reindex_id2 = text(f'CREATE INDEX IF NOT EXISTS  "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");')
         connection.execute(reindex_id2)
 
-        spatial_reindex_sql = text(f'CREATE INDEX "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);')
+        spatial_reindex_sql = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);')
         connection.execute(spatial_reindex_sql)
 
 def validate_geometries_postgis(table_name):
