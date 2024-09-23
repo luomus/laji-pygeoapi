@@ -106,6 +106,7 @@ def main():
 
             print(f"Loading {pages} pages of occurrences from the area {compute_variables.get_biogeographical_region_from_id(id)}")
             gdf = load_data.get_occurrence_data(occurrence_url, startpage=1, endpage=pages, multiprocessing=multiprocessing) 
+            pages = None
 
             # If occurrences were found, update the processed occurrences counter
             if len(gdf) > 0:
