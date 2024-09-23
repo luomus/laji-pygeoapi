@@ -1,11 +1,12 @@
 services:
   pygeoapi:
-    image: geopython/pygeoapi
+    build:
+      context: .
+      dockerfile: pygeoapi/Dockerfile
     ports:
       - "5000:80"
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
-      - ./custom/:/pygeoapi/custom/
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
     depends_on:
       postgres:
