@@ -461,7 +461,11 @@ def get_biogeographical_region_from_id(id):
         "ML.270": "Enontekiön Lappi",
         "ML.271": "Inarin Lappi"
     }
-    return id_mapping.get(id, "Empty biogeographical region")
+    
+    name = id_mapping.get(id, "Empty biogeographical region")
+    cleaned_name = name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean table name
+
+    return cleaned_name
 
 def compute_all(gdf, collection_names, municipal_geojson_path):
     '''
@@ -539,5 +543,8 @@ def compute_all(gdf, collection_names, municipal_geojson_path):
 
     # Concatenate computed columns to gdf
     gdf = pd.concat([gdf, computed_cols_df], axis=1)
+
+    # Create a local id
+    gdf['Paikallinen_tunniste'] = gdf['unit.unitId'].str.replace("http://tun.fi/", "").str.replace("#","_")
 
     return gdf

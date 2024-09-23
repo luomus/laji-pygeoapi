@@ -39,7 +39,6 @@ def main():
     edited_features_count = 0
     duplicates_count_by_id = 0
     processed_occurrences = 0
-    last_iteration = False
     pages_env = os.getenv('PAGES').lower()
     pages = None
     
@@ -76,13 +75,13 @@ def main():
         occurrence_url = f"{occurrence_url}&loadedSameOrAfter={last_update}" # Add the 'loadedSameOrAfter' parameter to the occurrence URL for filtering recent data
 
     # If 'PAGES' is set to 'all' or '0', drop all tables from the database (start fresh)    
-    elif pages_env == 'all' or pages_env == '0':
+    elif pages_env in ['all', '0']:
         edit_db.drop_all_tables()
 
     # If 'PAGES' is a specific number, parse it and drop all tables    
     else:
         try:
-            pages = int(os.getenv('PAGES'))
+            pages = int(pages_env)
             edit_db.drop_all_tables()
         except ValueError:
             raise Exception("Invalid 'PAGES' environment variable value. Choose 'latest', 'all', '0', or specify the number of pages you want to download (e.g., 10).")
@@ -96,43 +95,51 @@ def main():
         # Loop over each biogeographical province ID to load and process its occurrence data
         for idx, id in enumerate(biogeographical_province_ids):
             if 'biogeographicalProvinceId' not in occurrence_url:
-                occurrence_url = f"{occurrence_url}&biogeographicalProvinceId={id}"
+                occurrence_url += f"&biogeographicalProvinceId={id}"
             else:
                 occurrence_url = occurrence_url.replace(f'biogeographicalProvinceId={biogeographical_province_ids[idx-1]}', f'biogeographicalProvinceId={id}')
             
+            table_name = compute_variables.get_biogeographical_region_from_id(id)
+
             # If the number of pages to load is not set, calculate the last available page
-            if not pages:
+            if pages_env in ['all', 'latest']:
                 pages = load_data.get_last_page(occurrence_url)
 
-            print(f"Loading {pages} pages of occurrences from the area {compute_variables.get_biogeographical_region_from_id(id)}")
-            gdf = load_data.get_occurrence_data(occurrence_url, startpage=1, endpage=pages, multiprocessing=multiprocessing) 
-            pages = None
+            # Process data in batches
+            batch_size = 5
+            for startpage in range(1, pages+1, batch_size):
 
-            # If occurrences were found, update the processed occurrences counter
-            if len(gdf) > 0:
+                endpage = min(startpage + batch_size - 1, pages)
+
+                print(f"Loading pages {startpage}-{endpage} ({pages} in total) of occurrences from the area {table_name}")
+                gdf = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=multiprocessing) 
+
+                if gdf.empty:
+                    print(f"No occurrences found for pages {startpage}-{endpage}, skipping.")
+                    continue
+
                 processed_occurrences += len(gdf)
-            else:
-                continue # Skip further processing if no occurrences are found
 
-            print("Preparing data...")
-            gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-            gdf = process_data.process_facts(gdf)
-            gdf = process_data.combine_similar_columns(gdf)
-            gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
-            gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
-            #gdf = process_data.convert_geometry_collection_to_multipolygon(gdf) # Commented out because I haven't seen any geometry collections so far
-            gdf, edited_features = process_data.validate_geometry(gdf)
-            edited_features_count += edited_features
+                print("Preparing data...")
+                gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
+                gdf = process_data.process_facts(gdf)
+                gdf = process_data.combine_similar_columns(gdf)
+                gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
+                gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+                #gdf = process_data.convert_geometry_collection_to_multipolygon(gdf) # Commented out because I haven't seen any geometry collections so far
+                gdf, edited_features = process_data.validate_geometry(gdf)
+                edited_features_count += edited_features
 
-            print("Inserting data to the DB...")
-            failed_features_count, occurrences_without_group_count, table_name = edit_db.to_db(gdf, id, failed_features_count, occurrences_without_group_count, last_iteration)
+                print("Inserting data to the DB...")
+                failed, without_group = edit_db.to_db(gdf, table_name, failed_features_count, occurrences_without_group_count)
+                failed_features_count += failed
+                occurrences_without_group_count += without_group
 
-            print("Processing data in the DB...")
-            duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
-            edit_db.update_indexes(table_name)
 
-            del gdf
-        del taxon_df, collection_names
+    for table_name in edit_db.get_all_tables():
+        print(f"Processing table {table_name} in the DB...")
+        duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_name)
+        edit_db.update_indexes(table_name)
 
     edit_metadata.create_metadata(template_resource, metadata_db_path, pygeoapi_config_out)
  

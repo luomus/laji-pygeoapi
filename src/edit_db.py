@@ -210,27 +210,20 @@ def get_amount_of_all_occurrences():
 
     return number_of_all_occurrences
 
-def to_db(gdf, id, failed_features_count, occurrences_without_group_count, last_iteration=False):
+def to_db(gdf, table_name, failed_features_count, occurrences_without_group_count):
     """
     Process and insert geospatial data into a PostGIS database.
 
     Parameters:
     gdf (GeoDataFrame): The main GeoDataFrame containing occurrences.
-    id (str): Biogeographical province id (e.g. MVL.251)
+    table_name (str): DB table name
     failed_features_count (int): A counter for failed occurrence inserts.
     occurrences_without_group_count (int): A counter for occurrences without a group.
-    last_iteration (bool): Flag indicating whether this is the last iteration.
 
     Returns:
     failed_features_count  (int): An updated counter for failed occurrence inserts.
     occurrences_without_group_count (int): An updated counter for occurrences without a group.
-    full_table_name (str): The table name used in PostGIS database
     """
-
-    # Create a local id
-    gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")
-
-    table_name = compute_variables.get_biogeographical_region_from_id(id)
 
     # Separate by geometry type
     geom_types = {
@@ -244,14 +237,13 @@ def to_db(gdf, id, failed_features_count, occurrences_without_group_count, last_
         if not geom_gdf.empty:
             try:
                 with engine.connect() as conn:
-                    table_name = table_name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean table name
                     table_full_name = f"{table_name}_{geom_type}" # Add geom type to name
                     geom_gdf.to_postgis(table_full_name, conn, if_exists='append', schema='public', index=False)
             except Exception as e:
                 print(f"Error occurred: {e}")
                 failed_features_count += len(geom_gdf)
 
-    return failed_features_count, occurrences_without_group_count, table_full_name
+    return failed_features_count, occurrences_without_group_count
 
 def update_indexes(table_name):
     """

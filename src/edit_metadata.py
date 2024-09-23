@@ -74,7 +74,7 @@ def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
 
         edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
         add_JSON_metadata_to_DB(metadata_dict, metadata_db_path)
-        print(f"Everything ready for the table {table_name}")
+        print(f"Metadata ready for the table {table_name}")
 
 def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
     """
