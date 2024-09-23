@@ -26,6 +26,7 @@ PAGES=latest
 BRANCH=dev
 MULTIPROCESSING=False
 RUNNING_IN_OPENSHIFT=False
+LAJI_API_URL=https://apitest.laji.fi/v0/
 ACCESS_TOKEN=loremipsum12456789
 ```
 Where
