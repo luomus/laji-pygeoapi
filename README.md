@@ -49,6 +49,7 @@ Where
 ### 4. Init the database:
 ```
 ./scripts/init-db.sh
+./scripts/flask-command.sh db upgrade
 ```
 
 ### 5. Run docker command:

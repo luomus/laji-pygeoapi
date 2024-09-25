@@ -1,1 +1,4 @@
 flask_httpauth
+flask-sqlalchemy
+SQLAlchemy
+Flask-Migrate
