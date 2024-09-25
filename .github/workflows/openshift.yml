@@ -23,21 +23,42 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python_scripts
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-pygeoapi
           
-    - name: Buildah Action
-      id: build_image
+    # Build and push the python scripts image
+    - name: Buildah Action - python_scripts
+      id: build_python_scripts
       uses: redhat-actions/buildah-build@v2
       with:
-        image: ${{ env.IMAGE_NAME }}
+        image: ${{ env.IMAGE_NAME }}python_scripts
         tags: ${{ steps.meta.outputs.tags }}
         oci: true
         containerfiles: |
           ./Dockerfile
           
-    - name: Push To GHCR
+    - name: Push python_scripts Image To GHCR
       uses: redhat-actions/push-to-registry@v2
       with:
-        tags: ${{ steps.build_image.outputs.tags }}
+        tags: ${{ steps.build_python_scripts.outputs.tags }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.ACCESS_TOKEN }}
+
+    # Build and push the pygeoapi image
+    - name: Buildah Action - pygeoapi
+      id: build_pygeoapi
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_NAME }}-pygeoapi
+        tags: ${{ steps.meta.outputs.tags }}
+        oci: true
+        containerfiles: |
+          ./pygeoapi/Dockerfile
+          
+    - name: Push pygeoapi Image To GHCR
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        tags: ${{ steps.build_pygeoapi.outputs.tags }}
         username: ${{ github.actor }}
         password: ${{ secrets.ACCESS_TOKEN }}
