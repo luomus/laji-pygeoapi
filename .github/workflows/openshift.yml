@@ -19,39 +19,43 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Part 1: Build and push the python scripts image
     - name: Extract metadata (tags, labels) for Docker
-      id: meta
+      id: meta-python-scripts
       uses: docker/metadata-action@v5
       with:
-        images: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python_scripts
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-pygeoapi
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python-scripts
           
-    # Build and push the python scripts image
-    - name: Buildah Action - python_scripts
-      id: build_python_scripts
+    - name: Buildah Action - python-scripts
+      id: build_python-scripts
       uses: redhat-actions/buildah-build@v2
       with:
-        image: ${{ env.IMAGE_NAME }}python_scripts
-        tags: ${{ steps.meta.outputs.tags }}
+        image: ${{ env.IMAGE_NAME }}python-scripts
+        tags: ${{ steps.meta-python-scripts.outputs.tags }}
         oci: true
         containerfiles: |
           ./Dockerfile
           
-    - name: Push python_scripts Image To GHCR
+    - name: Push python-scripts Image To GHCR
       uses: redhat-actions/push-to-registry@v2
       with:
-        tags: ${{ steps.build_python_scripts.outputs.tags }}
+        tags: ${{ steps.build_python-scripts.outputs.tags }}
         username: ${{ github.actor }}
         password: ${{ secrets.ACCESS_TOKEN }}
 
-    # Build and push the pygeoapi image
+    # Part 2: Build and push the pygeoapi image
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta-pygeoapi
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-pygeoapi
+
     - name: Buildah Action - pygeoapi
       id: build_pygeoapi
       uses: redhat-actions/buildah-build@v2
       with:
         image: ${{ env.IMAGE_NAME }}-pygeoapi
-        tags: ${{ steps.meta.outputs.tags }}
+        tags: ${{ steps.meta-pygeoapi.outputs.tags }}
         oci: true
         containerfiles: |
           ./pygeoapi/Dockerfile
