@@ -2,6 +2,7 @@ import geopandas as gpd
 import pandas as pd
 import requests, concurrent.futures
 import urllib.error
+import time
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
@@ -26,24 +27,56 @@ def get_collection_names(api_url):
 
 def get_last_page(data_url):
     """
-    Get the last page number from the API response.
+    Get the last page number from the API response with retry logic.
 
     Parameters:
     data_url (str): The URL of the API endpoint.
 
     Returns:
-    int: The last page number.
+    int: The last page number. Returns None if all retries fail.
     """
+    attempt = 0
+    max_retries = 3
+    delay = 10
+    while attempt < max_retries:
+        try:
+            response = requests.get(data_url)
+            
+            # Check if the request was successful
+            if response.status_code != 200:
+                print(f"Request failed with status code {response.status_code}")
+                time.sleep(delay)
+                attempt += 1
+                continue
 
-    response = requests.get(data_url)
-    api_response = response.json()
-    last_page = api_response.get("lastPage")
-    return last_page
-
+            # Try parsing the response as JSON
+            try:
+                api_response = response.json()
+            except ValueError:  # Catch JSON decoding errors
+                print("Failed to parse JSON response")
+                print(f"Response text: {response.text}")
+                time.sleep(delay)
+                attempt += 1
+                continue
         
+            # Get the last page from the API response
+            last_page = api_response.get("lastPage")
+            if last_page is None:
+                print("No 'lastPage' key found in the response")
+            return last_page
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Error occurred during the request: {e}")
+            time.sleep(delay)
+            attempt += 1
+
+    # If all attempts fail, return None
+    print(f"All {max_retries} attempts failed.")
+    return None
+       
 def download_page(data_url, page_no):
     """
-    Download data from a specific page of the API. This is in separate function to speed up multiprocessing.
+    Download data from a specific page of the API with retry logic. This is in separate function to speed up multiprocessing.
 
     Parameters:
     data_url (str): The URL of the API endpoint.
@@ -53,18 +86,30 @@ def download_page(data_url, page_no):
     geopandas.GeoDataFrame: The downloaded data as a GeoDataFrame.
     """
     # Load data
-    try:
-        data_url = data_url.replace('page=1', f'page={page_no}')
-        gdf = gpd.read_file(data_url)   
-        return gdf 
-    except urllib.error.HTTPError as e:
-        print(f"HTTP Error {e.code}: {e.reason}. Could not access {data_url}.")
-    except Exception as e:
-        # Catch any other exceptions
-        print(f"An error occurred: {e}")
+    attempt = 0
+    max_retries = 3
+    delay = 10
+    data_url = data_url.replace('page=1', f'page={page_no}')
+    while attempt < max_retries:
+        try:
+            gdf = gpd.read_file(data_url)   
+            return gdf 
+        except urllib.error.HTTPError as e:
+            print(f"HTTP Error {e.code}: {e.reason}. Could not access {data_url}.")
+            print(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+            attempt += 1
+            continue
+        except Exception as e:
+            # Catch any other exceptions
+            print(f"An error occurred: {e}")
+            print(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+            attempt += 1
+            continue
 
-    # Return an empty GeoDataFrame in case of an error
-    print("Returning an empty geodataframe...")
+    # Return an empty GeoDataFrame in case of too many errors
+    print(f"Failed to download data from page {page_no} after {max_retries} attempts.")
     return gpd.GeoDataFrame()
 
 def get_occurrence_data(data_url, startpage, endpage, multiprocessing=False):

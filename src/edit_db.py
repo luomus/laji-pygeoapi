@@ -3,7 +3,8 @@ from sqlalchemy import create_engine, text, MetaData
 import pandas as pd
 import os
 from dotenv import load_dotenv
-import compute_variables
+import concurrent.futures
+import multiprocessing
 
 postgis_default_tables = ['spatial_ref_sys',
                             'topology',
@@ -84,6 +85,24 @@ def drop_all_tables():
     for table_name in all_tables:
         if table_name not in postgis_default_tables:
             metadata.tables[table_name].drop(engine)
+
+def drop_table(table_names):
+    """
+    Drops one table in the database.
+
+    Parameters:
+    table_names (list): The table names
+    """
+    
+    # Find all table names
+    metadata = MetaData()
+    metadata.reflect(engine)
+
+    for i in table_names:
+        try: 
+            metadata.tables[i].drop(engine)
+        except:
+            pass # If earlier data update didn't work, it's possible the table doesnt't exist and can't be dropped
 
 def get_all_tables():
     """
@@ -210,61 +229,71 @@ def get_amount_of_all_occurrences():
 
     return number_of_all_occurrences
 
-def to_db(gdf, table_name, failed_features_count, occurrences_without_group_count):
+def to_db(gdf, table_names):
     """
     Process and insert geospatial data into a PostGIS database.
 
     Parameters:
     gdf (GeoDataFrame): The main GeoDataFrame containing occurrences.
-    table_name (str): DB table name
-    failed_features_count (int): A counter for failed occurrence inserts.
-    occurrences_without_group_count (int): A counter for occurrences without a group.
+    table_names (list): DB table names
 
     Returns:
     failed_features_count  (int): An updated counter for failed occurrence inserts.
-    occurrences_without_group_count (int): An updated counter for occurrences without a group.
     """
 
     # Separate by geometry type
     geom_types = {
-        'points': gdf[gdf.geometry.geom_type.isin(['Point','MultiPoint'])],
-        'lines': gdf[gdf.geometry.geom_type.isin(['LineString', 'MultiLineString'])],
-        'polygons': gdf[gdf.geometry.geom_type.isin(['Polygon', 'MultiPolygon'])]
+        table_names[0]: gdf[gdf.geometry.geom_type.isin(['Point','MultiPoint'])],
+        table_names[1]: gdf[gdf.geometry.geom_type.isin(['LineString', 'MultiLineString'])],
+        table_names[2]: gdf[gdf.geometry.geom_type.isin(['Polygon', 'MultiPolygon'])]
     }
 
+    failed_features_count = 0
+
     # Loop over geometry types and corresponding geodataframes
-    for geom_type, geom_gdf in geom_types.items():
-        if not geom_gdf.empty:
-            try:
-                with engine.connect() as conn:
-                    table_full_name = f"{table_name}_{geom_type}" # Add geom type to name
-                    geom_gdf.to_postgis(table_full_name, conn, if_exists='append', schema='public', index=False)
-            except Exception as e:
-                print(f"Error occurred: {e}")
-                failed_features_count += len(geom_gdf)
+    for table_name, geom_gdf in geom_types.items():
+        try:
+            with engine.connect() as conn:
+                geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            failed_features_count = len(geom_gdf)
 
-    return failed_features_count, occurrences_without_group_count
+    return failed_features_count
 
-def update_indexes(table_name):
+def execute_sql(connection, sql):
+    """
+    Executes a SQL query using a connection.
+    """
+    connection.execute(sql)
+
+def update_indexes(table_names, use_multiprocessing=False):
     """
     Updates spatial and normal indexes for the given table
 
     Parameters:
-    table_name (str): A PostGIS table name to where indexes will be updated
+    table_names (list): A PostGIS table names to where indexes will be updated
     """
+    if table_names:
+        def update_single_table_indexes(table_name):
+            with engine.connect() as connection:
+                print(f"Updating indexes for table: {table_name}")
 
-    with engine.connect() as connection:
-        reindex_table = text(f'REINDEX TABLE "{table_name}";')
-        connection.execute(reindex_table)
+                reindex_id = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");')
+                connection.execute(reindex_id)
 
-        reindex_id = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");')
-        connection.execute(reindex_id)
+                reindex_id2 = text(f'CREATE INDEX IF NOT EXISTS  "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");')
+                connection.execute(reindex_id2)
 
-        reindex_id2 = text(f'CREATE INDEX IF NOT EXISTS  "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");')
-        connection.execute(reindex_id2)
-
-        spatial_reindex_sql = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);')
-        connection.execute(spatial_reindex_sql)
+                spatial_reindex_sql = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);')
+                connection.execute(spatial_reindex_sql)
+        
+        if use_multiprocessing:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                executor.map(update_single_table_indexes, table_names)
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.map(update_single_table_indexes, table_names)
 
 def validate_geometries_postgis(table_name):
     """
@@ -363,29 +392,36 @@ def collections_to_multis(table_name, buffer_distance=0.5):
         for notice in connection.connection.notices:
             print(notice.strip())
 
-def remove_duplicates_by_id(table_name):
+def remove_duplicates_by_id(table_names):
     """
     Remove duplicate rows from the specified table based on the 'Havainnon_tunniste' attribute.
     This is needed if data is updated and some pages have had occurrences that are already in the database.
+
     Parameters:
-    table_name (str): The name of the table to be checked for duplicates.
+    table_names (list): The names of the tables to be checked for duplicates.
+
     Returns:
     int: The number of duplicate rows removed.
     """
-    number_before_deletion = get_amount_of_occurrences(table_name)
+    if table_names:
+        removed_occurrences = 0
+        for table_name in table_names:
+            number_before_deletion = get_amount_of_occurrences(table_name)
 
-    with engine.connect() as connection:
-        # SQL to delete duplicate rows based on the Havainnon_tunniste attribute
-        remove_duplicates_sql = text(f'DELETE FROM "{table_name}" WHERE ctid NOT IN (SELECT MIN(ctid) FROM "{table_name}" GROUP BY "Havainnon_tunniste");')
+            with engine.connect() as connection:
+                # SQL to delete duplicate rows based on the Havainnon_tunniste attribute
+                remove_duplicates_sql = text(f'DELETE FROM "{table_name}" WHERE ctid NOT IN (SELECT MIN(ctid) FROM "{table_name}" GROUP BY "Havainnon_tunniste");')
 
-        # Execute the SQL to remove duplicates
-        connection.execute(remove_duplicates_sql)
-        connection.commit()
+                # Execute the SQL to remove duplicates
+                connection.execute(remove_duplicates_sql)
+                connection.commit()
 
-    number_after_deletion = get_amount_of_occurrences(table_name)
-    removed_occurrences = number_before_deletion - number_after_deletion
+            number_after_deletion = get_amount_of_occurrences(table_name)
+            removed_occurrences += number_before_deletion - number_after_deletion
 
-    return removed_occurrences
+        return removed_occurrences
+    else: 
+        return 0
 
 
 engine = connect_to_db()
