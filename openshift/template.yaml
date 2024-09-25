@@ -27,8 +27,7 @@ parameters:
   - name: PYGEOAPI_PORT
     required: true
     value: "5000"
-  - name: GITHUB_REPOSITORY_URL 
-    displayName: Source Repository URL 
+  - name: GITHUB_REPOSITORY_URL
     description: The URL of the repository with the application source code 
     value: https://github.com/luomus/laji-pygeoapi.git
     required: true 
@@ -39,7 +38,7 @@ parameters:
   - name: PAGES
     description: Defines the number of pages to download from the laji.fi occurrence API. Default is "all" but for testing purposes, use smaller number, for e.g. 2
     required: true
-    value: "3"
+    value: "1"
   - name: MULTIPROCESSING
     required: true
     value: "False"
@@ -49,11 +48,14 @@ parameters:
   - name: ACCESS_TOKEN
     description: API Access token for the source API. See https://api.laji.fi/explorer/.
     required: True
+  - name: LAJI_API_URL
+    required: true
+    value: 'https://api.laji.fi/v0/'
     
 metadata:
   name: template
   annotations:
-    openshift.io/display-name: "OGC API for laji.fi data"
+    openshift.io/display-name: "OGC API Features for laji.fi data"
     description: >-
         Pygeoapi based server implementation of the OGC API Features standard for the data from laji.fi
         More info: https://github.com/luomus/laji-pygeoapi
@@ -119,8 +121,8 @@ objects:
             pretty_print: true
             limit: 10
             templates:
-              path: /custom-templates-${BRANCH}
-              # static: /path/to/static/folder # css/js/img
+              path: custom/templates
+              static: pygeoapi/pygeoapi/static
             map:
                 url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
                 attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
@@ -174,171 +176,7 @@ objects:
                     fi: https://laji.fi/
                 role: pointOfContact
         resources:
-   
-  - kind: ConfigMap
-    apiVersion: v1
-    metadata:
-      name: custom-templates-${BRANCH}
-      labels:
-        app: pygeoapi-${BRANCH}
-    data:
-      landing_page.html: |-
-        {% extends "_base.html" %}
-        {% block title %}{{ super() }} {% trans %}Home{% endtrans %} {% endblock %}
-        {% block body %}
-        <br/>
-        <section id="collections">
-        <div class="row">
-          <div class="col-md-8 col-sm-12">
-          <section id="identification">
-            <h1>{{ config['metadata']['identification']['title'] }}</h1>
-            <p>{{ config['metadata']['identification']['description'] }}</p>
-            <p>
-                {% for kw in config['metadata']['identification']['keywords'] %}
-                  <span class="badge bg-primary text-bg-primary">{{ kw }}</span>
-                {% endfor %}
-            </p>
-            <div class="card bg-light mb-3">
-              <div class="card-body">
-                {% if config['metadata']['identification']['terms_of_service'] %}
-                  <div class="row">
-                      <div class="col-sm-4">
-                        {% trans %}Terms of service{% endtrans %}
-                      </div>
-                      <div class="col-sm-8">
-                        {{ config['metadata']['identification']['terms_of_service'] | urlize() }}
-                      </div>
-                  </div>
-                {% endif %}
-                {% if config['metadata']['license']['url'] %}
-                  <div class="row">
-                      <div class="col-sm-4">
-                        {% trans %}License{% endtrans %}
-                      </div>
-                      <div class="col-sm-8">
-                          <a href="{{ config['metadata']['license']['url'] }}">
-                            {{ config['metadata']['license']['name'] or config['metadata']['license']['url'] }}</a>
-                      </div>
-                  </div>
-                {% endif %}
-                  <div class="row">
-                      <div class="col-sm-4">
-                        {% trans %}URL{% endtrans %}
-                      </div>
-                      <div class="col-sm-8">
-                          <a href="{{ config['metadata']['identification']['url'] }}">
-                            {{ config['metadata']['identification']['url'] | truncate( 70 ) }}</a>
-                      </div>
-                  </div>
-              </div>
-            </div>
-          </section>
-          {% if data['collection'] %}
-          <section id="collections">
-            <h2>{% trans %}Collections{% endtrans %}</h2>
-            <p>
-              <a href="{{ config['server']['url'] }}/collections?f=html">{% trans %}View the collections in this service{% endtrans %}</a>
-            </p>
-          </section>
-        {% endif %}
-        {% if data['stac'] %}
-          <section id="collections">
-            <h2>{% trans %}SpatioTemporal Assets{% endtrans %}</h2>
-            <p>
-              <a href="{{ config['server']['url'] }}/stac?f=html">{% trans %}View the SpatioTemporal Assets in this service{% endtrans %}</a>
-            </p>
-          </section>
-        {% endif %}
-        {% if data['processes'] %}
-          <section id="processes">
-              <h2>{% trans %}Processes{% endtrans %}</h2>
-              <p>
-                <a href="{{ config['server']['url'] }}/processes?f=html">{% trans %}View the processes in this service{% endtrans %}</a>
-              </p>
-          </section>
-          <section id="jobs">
-              <h2>{% trans %}Jobs{% endtrans %}</h2>
-              <p>
-                <a title="Browse jobs" href="{{config.server.url}}/jobs">{% trans %}Browse jobs{% endtrans %}</a>
-              </p>
-          </section>
-        {% endif %}
-          <section id="openapi">
-              <h2>{% trans %}API Definition{% endtrans %}</h2>
-              <p>
-                {% trans %}Documentation{% endtrans %}: <a href="{{ config['server']['url'] }}/openapi?f=html">{% trans %}Swagger UI{% endtrans %}</a> <a href="{{ config['server']['url'] }}/openapi?f=html&ui=redoc">{% trans %}ReDoc{% endtrans %}</a>
-              </p>
-              <p>
-                <a href="{{ config['server']['url'] }}/openapi?f=json">{% trans %}OpenAPI Document{% endtrans %}</a>
-              </p>
-          </section>
-          <section id="conformance">
-              <h2>{% trans %}Conformance{% endtrans %}</h2>
-              <p>
-                <a href="{{ config['server']['url'] }}/conformance?f=html">{% trans %}View the conformance classes of this service{% endtrans %}</a>
-              </p>
-          </section>
-          <section id="API Documentation">
-            <h2>{% trans %}API Instructions and Documentation{% endtrans %}</h2>
-            <p>
-              <a href="https://info.laji.fi/etusivu/palvelut-ja-ohjeet/paikkatieto/rajapintayhteydet/ogc-api-paikkatietorajapinta-yleisesti/">{% trans %}View the instructions and documentation{% endtrans %}</a>
-            </p>
-        </section>
-          </div>
-          <div class="col-md-4 col-sm-12">
-            <div class="card mb-3">
-              <div class="card-header">
-              <b>{% trans %}Provider{% endtrans %}</b>
-              </div>
-              <div class="card-body">
-                <b>{{ config['metadata']['provider']['name'] }}</b><br/>
-                <a href="{{ config['metadata']['provider']['url'] }}">{{ config['metadata']['provider']['url'] }}</a><br/>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-header">
-                  <b>{% trans %}Contact point{% endtrans %}</b>
-              </div>
-              <div class="card-body">
-                <b>{% trans %}Address{% endtrans %}</b><br/>
-                <div class="section">
-                  <span>{{ config['metadata']['contact']['address'] }}</span><br/>
-                  <span>{{ config['metadata']['contact']['city'] }}</span>,
-                  <span>{{ config['metadata']['contact']['stateorprovince'] }}</span><br/>
-                  <span>{{ config['metadata']['contact']['postalcode'] }}</span><br/>
-                  <span>{{ config['metadata']['contact']['country'] }}</span>
-                </div>
-                <div>
-                  <b>{% trans %}Email{% endtrans %}</b><br/>
-                  <span><a href="mailto:{{ config['metadata']['contact']['email'] }}">{{ config['metadata']['contact']['email'] }}</a></span><br/>
-                  {% if config['metadata']['contact']['phone'] %}
-                    <b>{% trans %}Telephone{% endtrans %}</b><br/>
-                    <span><a href="tel:{{ config['metadata']['contact']['phone'] }}">{{ config['metadata']['contact']['phone'] }}</a></span><br/>
-                  {% endif %}
-                  {% if config['metadata']['contact']['fax'] %}
-                    <b>{% trans %}Fax{% endtrans %}</b><br/>
-                    <span><a href="tel:{{ config['metadata']['contact']['fax'] }}">{{ config['metadata']['contact']['fax'] }}</a></span><br/>
-                  {% endif %}
-                  {% if config['metadata']['contact']['url'] %}
-                    <b>{% trans %}Contact URL{% endtrans %}</b><br/>
-                    <span><a href="{{ config['metadata']['contact']['url'] }}">{{ config['metadata']['contact']['url'] }}</a></span><br/>
-                  {% endif %}
-                  {% if config['metadata']['contact']['hours'] %}
-                    <b>{% trans %}Hours{% endtrans %}</b><br/>
-                    <span>{{ config['metadata']['contact']['hours'] }}</span><br/>
-                  {% endif %}
-                  {% if config['metadata']['contact']['instructions'] %}
-                    <b>{% trans %}Contact instructions{% endtrans %}</b><br/>
-                    <span>{{ config['metadata']['contact']['instructions'] }}</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        </section>
-        {% endblock %}
-
+ 
   - kind: ServiceAccount
     apiVersion: v1
     metadata:
@@ -347,36 +185,7 @@ objects:
         app: python-scripts-${BRANCH}
     secrets:
       - name: ${DB_SECRET}-${BRANCH}
-   
-  - kind: BuildConfig
-    apiVersion: build.openshift.io/v1
-    metadata:
-      name: pygeoapi-build-${BRANCH}
-      labels:
-        app: pygeoapi-${BRANCH}
-    spec:
-      nodeSelector: null
-      output:
-        to:
-          kind: ImageStreamTag
-          name: pygeoapi-${BRANCH}:latest
-      resources: {}
-      successfulBuildsHistoryLimit: 1
-      failedBuildsHistoryLimit: 2
-      strategy:
-        type: Docker
-        dockerStrategy:
-          dockerfilePath: pygeoapi/Dockerfile
-      postCommit: {}
-      source:
-        type: Git
-        git:
-          uri: "${GITHUB_REPOSITORY_URL}"
-          ref: "${BRANCH}"
-      triggers:
-        - type: ConfigChange
-      runPolicy: Serial
-
+  
   - kind: ImageStream
     apiVersion: image.openshift.io/v1
     metadata:
@@ -392,23 +201,6 @@ objects:
           from:
             kind: DockerImage
             name: postgis/postgis
-          generation: 1
-          importPolicy:
-            importMode: Legacy
-          referencePolicy:
-            type: Source
-            
-  - kind: ImageStream
-    apiVersion: image.openshift.io/v1
-    metadata:
-      name: pygeoapi-${BRANCH} 
-      labels:
-        app:
-    spec:
-      lookupPolicy:
-        local: true
-      tags:
-        - name: latest
           generation: 1
           importPolicy:
             importMode: Legacy
@@ -473,6 +265,10 @@ objects:
                 claimName: postgres-claim-${BRANCH}
           containers:
             - name: postgres-${BRANCH}
+              resources:
+                limits:
+                  cpu: '2'
+                  memory: 2Gi
               env:
                 - name: POSTGRES_DB
                   valueFrom:
@@ -505,17 +301,6 @@ objects:
     apiVersion: apps/v1
     metadata:
       name: pygeoapi-${BRANCH}
-      annotations:
-        image.openshift.io/triggers: |-
-          [
-            {
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "pygeoapi-${BRANCH}:latest"
-              },
-              "fieldPath": "spec.template.spec.containers[0].image"
-            }
-          ]
       labels:
         io.kompose.service: pygeoapi-${BRANCH}
         app: pygeoapi-${BRANCH}
@@ -523,6 +308,8 @@ objects:
       selector:
         matchLabels:
           io.kompose.service: pygeoapi-${BRANCH}
+      strategy:
+        type: Recreate
       template:
         metadata:
           labels:
@@ -533,12 +320,11 @@ objects:
               configMap:
                 name: pygeoapi-config-${BRANCH}
                 defaultMode: 420
-            - name: custom-templates-${BRANCH}
-              configMap:
-                name: custom-templates-${BRANCH}
-                defaultMode: 420
           containers:
-            - resources: {}
+            - resources:
+                limits:
+                  cpu: 500m
+                  memory: 1000m
               terminationMessagePath: /dev/termination-log
               name: pygeoapi-${BRANCH}
               env:
@@ -551,18 +337,16 @@ objects:
               ports:
                 - containerPort: 5000
                   protocol: TCP
-              #imagePullPolicy: Always
+              imagePullPolicy: Always
               volumeMounts:
                 - name: pygeoapi-config-${BRANCH}
                   mountPath: /pygeoapi/local.config.yml
                   subPath: pygeoapi-config.yml
-                - name: custom-templates-${BRANCH}
-                  mountPath: /custom-templates-${BRANCH}
                 - name: pygeoapi-config-${BRANCH}
-                  mountPath: /app/catalogue.tinydb
+                  mountPath: /pygeoapi/catalogue.tinydb
                   subPath: catalogue.tinydb
               terminationMessagePolicy: File
-              image: pygeoapi-${BRANCH}:latest
+              image: ghcr.io/luomus/laji-pygeoapi-pygeoapi:${BRANCH}
           restartPolicy: Always
           terminationGracePeriodSeconds: 30
           dnsPolicy: ClusterFirst
@@ -594,7 +378,7 @@ objects:
               securityContext: {}
               containers:
                 - name: python-scripts
-                  image: 'ghcr.io/luomus/laji-pygeoapi:${BRANCH}'
+                  image: 'ghcr.io/luomus/laji-pygeoapi-python-scripts:${BRANCH}'
                   env:
                     - name: POSTGRES_DB
                       valueFrom:
@@ -615,6 +399,8 @@ objects:
                       value: postgres-${BRANCH}
                     - name: PAGES
                       value: ${PAGES}
+                    - name: LAJI_API_URL
+                      value: ${LAJI_API_URL}
                     - name: BRANCH
                       value: ${BRANCH}
                     - name: MULTIPROCESSING
@@ -627,9 +413,8 @@ objects:
                       value: '1'
                   resources: 
                     limits:
+                      cpu: 500m
                       memory: 2Gi
-                    requests:
-                      memory: 1Gi
                   volumeMounts:
                     - name: pygeoapi-config-${BRANCH}
                       mountPath: /app/pygeoapi-config.yml
