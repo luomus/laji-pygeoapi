@@ -1,3 +1,4 @@
+name: laji-pygeoapi-python-scripts
 services:
   python_scripts:
     build:

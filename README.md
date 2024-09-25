@@ -28,6 +28,10 @@ MULTIPROCESSING=False
 RUNNING_IN_OPENSHIFT=False
 LAJI_API_URL=https://apitest.laji.fi/v0/
 ACCESS_TOKEN=loremipsum12456789
+INTERNAL_POSTGRES_DB=my_internal_db
+INTERNAL_POSTGRES_USER=pygeoapi
+INTERNAL_POSTGRES_PASSWORD=admin456
+INTERNAL_POSTGRES_HOST=postgres
 ```
 Where
 | Variable name | Definition | Default value |
@@ -44,7 +48,7 @@ Where
 
 ### 4. Init the database:
 ```
-./scripts/init_db.sh
+./scripts/init-db.sh
 ```
 
 ### 5. Run docker command:

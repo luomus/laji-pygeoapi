@@ -5,6 +5,11 @@ services:
       dockerfile: pygeoapi/Dockerfile
     ports:
       - "5000:80"
+    environment:
+      POSTGRES_DB: ${INTERNAL_POSTGRES_DB}
+      POSTGRES_USER: ${INTERNAL_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${INTERNAL_POSTGRES_HOST}
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
@@ -23,9 +28,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      INTERNAL_POSTGRES_DB: ${INTERNAL_POSTGRES_DB}
+      INTERNAL_POSTGRES_USER: ${INTERNAL_POSTGRES_USER}
+      INTERNAL_POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
     networks:
       - pygeoapinet
     volumes:
+      - ./init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
       - postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
