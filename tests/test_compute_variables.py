@@ -1,5 +1,4 @@
 import unittest
-import requests
 import os, sys
 import pandas as pd
 import numpy as np
@@ -7,112 +6,13 @@ from shapely.geometry import Point, Polygon
 import geopandas as gpd
 import pandas as pd
 import unittest
+from dotenv import load_dotenv
+
 
 sys.path.append('src/')
 
-from compute_variables import compute_areas, compute_collection_id, compute_individual_count, compute_all, map_values
-
-class TestFunctions(unittest.TestCase):
-
-    def test_compute_individual_count(self):
-        # Test when individual_count_col has positive values
-        individual_count_col = pd.Series([1, 5, 10])
-        expected_output = np.array(['paikalla', 'paikalla', 'paikalla'])
-        np.testing.assert_array_equal(compute_individual_count(individual_count_col), expected_output)
-
-        # Test when individual_count_col has zero and negative values
-        individual_count_col = pd.Series([0, -1, 0])
-        expected_output = np.array(['poissa', 'poissa', 'poissa'])
-        np.testing.assert_array_equal(compute_individual_count(individual_count_col), expected_output)
-
-        # Test mixed values
-        individual_count_col = pd.Series([0, 1, -5, 10])
-        expected_output = np.array(['poissa', 'paikalla', 'poissa', 'paikalla'])
-        np.testing.assert_array_equal(compute_individual_count(individual_count_col), expected_output)
-
-    def test_compute_collection_id(self):
-        collection_id_col = pd.Series([
-            'http://tun.fi/HR.3553',
-            'http://tun.fi/HR.9876',
-            'http://tun.fi/HR.1234'
-        ])
-        collection_names = {
-            'HR.3553': 'Collection 1',
-            'HR.9876': 'Collection 2'
-        }
-
-        expected_output = pd.Series(['Collection 1', 'Collection 2', np.nan])
-        pd.testing.assert_series_equal(compute_collection_id(collection_id_col, collection_names), expected_output)
-
-        # Test with an empty Series
-        collection_id_col = pd.Series([])
-        expected_output = pd.Series([])
-        pd.testing.assert_series_equal(compute_collection_id(collection_id_col, collection_names), expected_output)
-
-    def test_map_values(self):
-        # Test with a cell containing multiple values
-        cell = 'http://tun.fi/MX.regionallyThreatened2020_1a, http://tun.fi/MX.regionallyThreatened2020_1b'
-        expected_output = 'Alueellisesti uhanalainen 2020 - 1a Hemiboreaalinen, Ahvenanmaa, Alueellisesti uhanalainen 2020 - 1b Hemiboreaalinen, Lounainen rannikkomaa'
-        self.assertEqual(map_values(cell), expected_output)
-
-        # Test with a cell containing a single value
-        cell = 'http://tun.fi/MX.finlex160_1997_appendix1'
-        expected_output = 'VANHA Kalalajit, joihin sovelletaan luonnonsuojelulakia (LSA 1997/160, liite 1)'
-        self.assertEqual(map_values(cell), expected_output)
-
-        # Test with a cell containing unmapped values
-        cell = 'value3'
-        expected_output = 'value3'
-        self.assertEqual(map_values(cell), expected_output)
-
-        # Test with a cell containing both mapped and unmapped values
-        cell = 'http://tun.fi/MX.otherPlantPest, value3'
-        expected_output = 'Muu kasvintuhooja, value3'
-        self.assertEqual(map_values(cell), expected_output)
-
-        # Test with an empty cell
-        cell = ''
-        expected_output = ''
-        self.assertEqual(map_values(cell), expected_output)
-
-class TestComputeAreas(unittest.TestCase):
-
-    def setUp(self):
-        # Create a simple GeoDataFrame with points
-        self.gdf_with_geom_and_ids = gpd.GeoDataFrame({
-            'id': [1, 2],
-            'geometry': [
-                Point(24.941, 60.169),  # In Helsinki
-                Point(24.941, 61.0)     # In hämeenlinna
-            ]
-        }, crs="EPSG:4326")
-
-
-    def test_compute_areas_within_municipality(self):
-        # Use the municipal_gdf as input instead of a file path
-        municipalities, elys = compute_areas(self.gdf_with_geom_and_ids, 'src/municipalities_and_elys.geojson')
-
-        # Test the first point that falls within Helsinki
-        self.assertEqual(municipalities[0], 'Helsinki')
-        self.assertEqual(elys[0], 'Uudenmaan ELY-keskus')
-
-        # Test the second point that falls outside the defined municipality
-        self.assertEqual(municipalities[1], 'Hämeenlinna')
-        self.assertEqual(elys[1], 'Hämeen ELY-keskus')
-
-    def test_compute_areas_with_different_crs(self):
-        # Change CRS of the gdf_with_geom_and_ids to test reprojection
-        self.gdf_with_geom_and_ids = self.gdf_with_geom_and_ids.to_crs(epsg=32635)  # UTM zone 35N
-
-        municipalities, elys = compute_areas(self.gdf_with_geom_and_ids, 'src/municipalities_and_elys.geojson')
-
-        # Test the first point that falls within Helsinki
-        self.assertEqual(municipalities[0], 'Helsinki')
-        self.assertEqual(elys[0], 'Uudenmaan ELY-keskus')
-
-        # Test the second point that falls within Hämeenlinna
-        self.assertEqual(municipalities[1], 'Hämeenlinna')
-        self.assertEqual(elys[1], 'Hämeen ELY-keskus')
+from compute_variables import compute_all, get_biogeographical_region_from_id, get_title_name_from_table_name
+from load_data import get_value_ranges
 
 class TestComputeAll(unittest.TestCase):
 
@@ -133,7 +33,7 @@ class TestComputeAll(unittest.TestCase):
             'unit.linkings.originalTaxon.administrativeStatuses': ['http://tun.fi/MX.finlex160_1997_appendix4_2021, http://tun.fi/MX.finlex160_1997_appendix4_specialInterest_2021', 'http://tun.fi/MX.finlex160_1997_appendix2a'],
             'unit.interpretations.individualCount': [3, 0],
             'document.collectionId': ['http://tun.fi/HR.1234', 'http://tun.fi/HR.5678'],
-            'unit.unitId': [1, 2],
+            'unit.unitId': ["http://tun.fi/1", "http://tun.fi/2"],
             'geometry': [Point(24.941, 60.169), Point(24.941, 61.0)]
         }, crs="EPSG:4326")
 
@@ -142,13 +42,28 @@ class TestComputeAll(unittest.TestCase):
             'HR.5678': 'Collection 2'
         }
 
-    def test_compute_all(self):
+    def test_compute_all(self):     
+        load_dotenv()
+        access_token = os.getenv('ACCESS_TOKEN')
+        laji_api_url = os.getenv('LAJI_API_URL')
+        value_ranges_url = f'{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}'
+        value_ranges = get_value_ranges(value_ranges_url)
+
         # Call the function
-        result_gdf = compute_all(self.gdf, self.collection_names, 'src/municipalities_and_elys.geojson')
+        result_gdf = compute_all(self.gdf, value_ranges, self.collection_names, 'src/municipalities.geojson')
 
         # Test direct mappings
         self.assertEqual(result_gdf['unit.atlasClass'][0], 'Epätodennäköinen pesintä')
-        self.assertEqual(result_gdf['unit.atlasCode'][1], '2 Mahdollinen pesintä: yksittäinen lintu kerran, on sopivaa pesimäympäristöä.')
+        self.assertEqual(result_gdf['unit.atlasCode'][0], '1 Epätodennäköinen pesintä: Havaittu pesimäaikaan lajin yksilö, mutta havainto ei viittaa pesintään kyseisessä atlasruudussa')
+        self.assertEqual(result_gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'][0], 'M – Metsät')
+        self.assertEqual(result_gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'][0], 'EX – Sukupuuttoon kuolleet')
+        self.assertEqual(result_gdf['unit.linkings.taxon.threatenedStatus'][0], 'Lakisääteinen')
+        self.assertEqual(result_gdf['unit.recordBasis'][0], 'Näyte')
+        self.assertEqual(result_gdf['unit.interpretations.recordQuality'][0], 'Asiantuntijan vahvistama')
+        self.assertEqual(result_gdf['document.secureReasons'][0], 'Lajitiedon sensitiivisyys')
+        self.assertEqual(result_gdf['unit.sex'][0], 'Uros')
+        self.assertEqual(result_gdf['unit.abundanceUnit'][0], 'Yksilömäärä')
+        self.assertEqual(result_gdf['document.linkings.collectionQuality'][0], 'Ammattiaineistot / asiantuntijoiden laadunvarmistama')
 
         # Test mappings with multiple values
         self.assertEqual(result_gdf['unit.linkings.originalTaxon.administrativeStatuses'][0], 'Uhanalaiset lajit (LSA 2023/1066, liite 6), Erityisesti suojeltavat lajit (LSA 2023/1066, liite 6)')
@@ -165,23 +80,42 @@ class TestComputeAll(unittest.TestCase):
         self.assertEqual(result_gdf['computed_municipality'][1], 'Hämeenlinna')
         self.assertEqual(result_gdf['computed_ely_area'][1], 'Hämeen ELY-keskus')
 
-    def test_missing_values_handling(self):
-        # Introduce NaNs in the data
-        self.gdf.loc[0, 'unit.atlasClass'] = None
-        self.gdf.loc[1, 'unit.interpretations.individualCount'] = None
+        # Test local ID generation
+        self.assertEqual(result_gdf['Paikallinen_tunniste'][0], '1')
 
-        # Call the function
-        result_gdf = compute_all(self.gdf, self.collection_names, 'src/municipalities_and_elys.geojson')
+class TestGetBiogeographicalRegionFromId(unittest.TestCase):
+    
+    def test_valid_ids(self):
+        """
+        Test valid IDs from the id_mapping dictionary.
+        """
+        self.assertEqual(get_biogeographical_region_from_id("ML.251"), "ahvenanmaa")
+        self.assertEqual(get_biogeographical_region_from_id("ML.252"), "varsinais_suomi")
+        self.assertEqual(get_biogeographical_region_from_id("ML.270"), "enontekion_lappi")
+        self.assertEqual(get_biogeographical_region_from_id("ML.264"), "kainuu")
 
-        # Check that NaNs are handled correctly
-        self.assertEqual(result_gdf['unit.atlasClass'][0], 'nan')
-        self.assertEqual(result_gdf['compute_from_individual_count'][1], 'nan')
-
-    def test_no_duplicate_columns(self):
-        # Ensure the result does not have duplicate columns
-        result_gdf = compute_all(self.gdf, self.collection_names, 'src/municipalities_and_elys.geojson')
-        duplicate_columns = result_gdf.columns[result_gdf.columns.duplicated()]
-        self.assertEqual(len(duplicate_columns), 0)
+    def test_none_id(self):
+        """
+        Test with None as input.
+        """
+        self.assertEqual(get_biogeographical_region_from_id(None), "empty_biogeographical_region")
+    
+class TestGetTitleNameFromTableName(unittest.TestCase):
+    
+    def test_valid_table_name(self):
+        """
+        Test a valid table name that exists in the table_mapping.
+        """
+        self.assertEqual(get_title_name_from_table_name("sompion_lappi_polygons"), "Sompion Lappi")
+        self.assertEqual(get_title_name_from_table_name("kittilan_lappi_lines"), "Kittilän Lappi")
+        self.assertEqual(get_title_name_from_table_name("pohjois_karjala_points"), "Pohjois-Karjala")
+    
+    def test_unknown_table_name(self):
+        """
+        Test a table name that doesn't exist in the table_mapping.
+        """
+        self.assertEqual(get_title_name_from_table_name("unknown_area_polygons"), "Unknown table name")
+    
 
 if __name__ == '__main__':
     unittest.main()

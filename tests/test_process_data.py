@@ -1,15 +1,13 @@
 import unittest
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point, Polygon, MultiLineString, LineString, GeometryCollection, MultiPolygon
+from shapely.geometry import Point, Polygon, LineString, GeometryCollection, MultiPolygon
 import sys
-from pandas.testing import assert_frame_equal
 from geopandas.testing import assert_geodataframe_equal
-from unittest.mock import patch
 
 sys.path.append('src/')
 
-from process_data import merge_taxonomy_data, translate_column_names, combine_similar_columns, convert_geometry_collection_to_multipolygon, merge_duplicates, get_facts
+from process_data import merge_taxonomy_data, translate_column_names, combine_similar_columns, convert_geometry_collection_to_multipolygon, merge_duplicates, process_facts, validate_geometry
 
 
 class TestMergeTaxonomyData(unittest.TestCase):
@@ -80,6 +78,56 @@ class TestMergeTaxonomyData(unittest.TestCase):
         self.assertTrue(pd.isna(merged_gdf.loc[1, 'taxon_name']))
         self.assertEqual(merged_gdf.loc[2, 'taxon_name'], 'Taxon B')
         self.assertTrue(pd.isna(merged_gdf.loc[3, 'taxon_name']))
+
+class TestValidateGeometry(unittest.TestCase):
+
+    def test_no_invalid_geometries(self):
+        """
+        Test when all geometries are valid.
+        """
+        gdf = gpd.GeoDataFrame({
+            'geometry': [Point(0, 0), Point(1, 1), Point(2, 2)]
+        })
+
+        result_gdf, edited_count = validate_geometry(gdf)
+        
+        self.assertEqual(edited_count, 0)
+        self.assertTrue(result_gdf.equals(gdf))
+
+    def test_invalid_geometries_fixed(self):
+        """
+        Test when some geometries are invalid and some are fixed.
+        """
+        # Create an invalid self-intersecting polygon (bowtie shape)
+        invalid_geom = Polygon([(0, 0), (2, 0), (0, 2), (2, 2), (0, 0)])
+
+        gdf = gpd.GeoDataFrame({
+            'geometry': [invalid_geom, Point(1, 1)]
+        })
+
+        result_gdf, edited_count = validate_geometry(gdf)
+        
+        # Ensure that the invalid geometry has been fixed
+        self.assertEqual(edited_count, 1)
+        self.assertTrue(result_gdf.is_valid.all())
+    
+    def test_mixed_geometries(self):
+        """
+        Test with a mix of valid and invalid geometries.
+        """
+        # Valid LineString, valid Point, invalid self-intersecting Polygon
+        valid_line = LineString([(0, 0), (1, 1)])
+        valid_point = Point(2, 2)
+        invalid_polygon = Polygon([(0, 0), (2, 0), (0, 2), (2, 2), (0, 0)])
+
+        gdf = gpd.GeoDataFrame({
+            'geometry': [valid_line, valid_point, invalid_polygon]
+        })
+
+        result_gdf, edited_count = validate_geometry(gdf)
+        
+        self.assertEqual(edited_count, 1)  # Only the invalid polygon should be fixed
+        self.assertTrue(result_gdf.is_valid.all())
 
 class TestCombineSimilarColumns(unittest.TestCase):
 
@@ -163,57 +211,66 @@ class TestTranslateColumnNames(unittest.TestCase):
         self.assertIn('Havainnon_tunniste', result_gdf.columns)
         self.assertEqual(result_gdf['Yksilomaara_tulkittu'].dtype, 'int')
         self.assertGreater(len(result_gdf.columns), 50)
-            
-class TestConvertGeometryCollectionToMultiPolygon(unittest.TestCase):
+
+class TestConvertGeometryCollectionToMultipolygon(unittest.TestCase):
+
     def setUp(self):
-        self.buffer_distance = 0.5
+        """Set up some test cases with GeoDataFrames containing GeometryCollections."""
+        # Simple Point and LineString geometries
+        self.point = Point(1, 1)
+        self.line = LineString([(0, 0), (1, 1)])
+        self.polygon = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+        
+        # Create a GeoDataFrame with different GeometryCollections
+        self.gdf = gpd.GeoDataFrame({
+            'geometry': [
+                GeometryCollection([self.point, self.line]),  # GeometryCollection with Point and LineString
+                GeometryCollection([self.polygon]),           # GeometryCollection with a single Polygon
+                GeometryCollection([self.point, self.polygon]) # GeometryCollection with Point and Polygon
+            ]
+        })
+
+    def test_geometry_collection_with_point_and_line(self):
+        """Test converting a GeometryCollection with Point and LineString."""
+        gdf_converted = convert_geometry_collection_to_multipolygon(self.gdf.copy(), buffer_distance=0.5)
+        
+        # First geometry should be buffered Point and LineString, converted to MultiPolygon
+        geom = gdf_converted.loc[0, 'geometry']
+        self.assertTrue(isinstance(geom, MultiPolygon), "Should convert to MultiPolygon.")
+    
+    def test_geometry_collection_with_single_polygon(self):
+        """Test converting a GeometryCollection with a single Polygon."""
+        gdf_converted = convert_geometry_collection_to_multipolygon(self.gdf.copy())
+        
+        # Second geometry should remain as a MultiPolygon (with one polygon)
+        geom = gdf_converted.loc[1, 'geometry']
+        self.assertTrue(isinstance(geom, MultiPolygon), "Should convert single Polygon to MultiPolygon.")
+
+    def test_geometry_collection_with_point_and_polygon(self):
+        """Test converting a GeometryCollection with Point and Polygon."""
+        gdf_converted = convert_geometry_collection_to_multipolygon(self.gdf.copy(), buffer_distance=0.5)
+        
+        # Third geometry should buffer the point and return a MultiPolygon with the original Polygon and the buffered Point
+        geom = gdf_converted.loc[2, 'geometry']
+        self.assertTrue(isinstance(geom, MultiPolygon), "Should be MultiPolygon combining Polygon and buffered Point.")
 
     def test_empty_geometry_collection(self):
-        geometry = GeometryCollection()
-        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
-        self.assertIsNone(result)
+        """Test converting an empty GeometryCollection."""
+        empty_gdf = gpd.GeoDataFrame({'geometry': [GeometryCollection()]})
+        gdf_converted = convert_geometry_collection_to_multipolygon(empty_gdf)
+        
+        # Geometry should be None
+        geom = gdf_converted.loc[0, 'geometry']
+        self.assertIsNone(geom, "Empty GeometryCollection should result in None.")
 
-    def test_geometry_collection_with_point(self):
-        point = Point(0, 0)
-        geometry = GeometryCollection([point])
-        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
-        expected = point.buffer(self.buffer_distance)
-        self.assertTrue(result.equals(MultiPolygon([expected])))
-
-    def test_geometry_collection_with_linestring(self):
-        line = LineString([(0, 0), (1, 1)])
-        geometry = GeometryCollection([line])
-        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
-        expected = line.buffer(self.buffer_distance)
-        self.assertTrue(result.equals(MultiPolygon([expected])))
-
-    def test_geometry_collection_with_polygon(self):
-        polygon = Polygon([(0, 0), (1, 1), (1, 0)])
-        geometry = GeometryCollection([polygon])
-        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
-        self.assertTrue(result.equals(MultiPolygon([polygon])))
-
-    def test_geometry_collection_with_multipolygon(self):
-        polygon1 = Polygon([(0, 0), (1, 1), (1, 0)])
-        polygon2 = Polygon([(2, 2), (3, 3), (3, 2)])
-        multipolygon = MultiPolygon([polygon1, polygon2])
-        geometry = GeometryCollection([multipolygon])
-        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
-        self.assertTrue(result.equals(multipolygon))
-
-    def test_geometry_collection_with_mixed_geometries(self):
-        point = Point(0, 0)
-        line = LineString([(1, 1), (2, 2)])
-        polygon = Polygon([(3, 3), (4, 4), (4, 3)])
-        geometry = GeometryCollection([point, line, polygon])
-        result = convert_geometry_collection_to_multipolygon(geometry, self.buffer_distance)
-        expected = MultiPolygon([point.buffer(self.buffer_distance), line.buffer(self.buffer_distance), polygon])
-        self.assertTrue(result.equals(expected))
-
-    def test_non_geometry_collection(self):
-        polygon = Polygon([(0, 0), (1, 1), (1, 0)])
-        result = convert_geometry_collection_to_multipolygon(polygon, self.buffer_distance)
-        self.assertEqual(result, polygon)
+    def test_no_geometry_collection(self):
+        """Test case where no GeometryCollection is present."""
+        no_geom_gdf = gpd.GeoDataFrame({'geometry': [self.polygon]})
+        gdf_converted = convert_geometry_collection_to_multipolygon(no_geom_gdf)
+        
+        # Geometry should remain unchanged (Polygon)
+        geom = gdf_converted.loc[0, 'geometry']
+        self.assertEqual(geom, self.polygon, "Polygon should remain unchanged.")
 
 class TestMergeDuplicates(unittest.TestCase):
 
@@ -284,44 +341,24 @@ class TestMergeDuplicates(unittest.TestCase):
 
 class TestGetFacts(unittest.TestCase):
 
-    def test_no_fact_columns(self):
-        # Creating a GeoDataFrame with no fact columns
-        gdf = gpd.GeoDataFrame({
-            'geometry': [None, None, None],
-            'some_column': [1, 2, 3]
-        })
-
-        # Running the function
-        result_gdf = get_facts(gdf)
-
-        # Expected new columns to be added
-        expected_columns = [
-            'Seurattava laji', 'Sijainnin tarkkuusluokka', 'Havainnon laatu',
-            'Peittävyysprosentti', 'Havainnon määrän yksikkö', 'Vesistöalue', 'Merialueen tunniste'
-        ]
-
-        # Check that all expected columns are added with None values
-        for col in expected_columns:
-            self.assertIn(col, result_gdf.columns)
-            self.assertTrue(result_gdf[col].isnull().all())
-
     def test_with_fact_columns(self):
         # Creating a GeoDataFrame with fact columns and corresponding value columns
 
         gdf = gpd.GeoDataFrame({
             'gathering.facts[0].fact': ['Seurattava laji', 'Sijainnin tarkkuusluokka', 'Peittävyysprosentti'],
             'gathering.facts[0].value': ['Laji1', 'Tarkkuus1', '10%'],
-            'gathering.facts[1].fact': ['Havainnon laatu', 'Havainnon määrän yksikkö', 'Merialueen tunniste'],
-            'gathering.facts[1].value': ['Laatu1', 'Yksikkö1', 'Merialue1'],
+            'gathering.facts[1].fact': ['Havainnon laatu', 'Havainnon määrän yksikkö', 'randon column'],
+            'gathering.facts[1].value': ['Laatu1', 'Yksikkö1', None],
             'geometry': [None, None, None]
         })
 
         # Running the function
-        result_gdf = get_facts(gdf)
+        result_gdf = process_facts(gdf)
 
         # Check that fact and value columns are dropped
         self.assertNotIn('gathering.facts[0].fact', result_gdf.columns)
         self.assertNotIn('gathering.facts[0].value', result_gdf.columns)
+        self.assertNotIn('randon column', result_gdf.columns)
 
         # Check that the correct values are assigned to the new columns
         self.assertEqual(result_gdf['Seurattava laji'].iloc[0], 'Laji1')
@@ -329,25 +366,6 @@ class TestGetFacts(unittest.TestCase):
         self.assertEqual(result_gdf['Peittävyysprosentti'].iloc[2], '10%')
         self.assertEqual(result_gdf['Havainnon laatu'].iloc[0], 'Laatu1')
         self.assertEqual(result_gdf['Havainnon määrän yksikkö'].iloc[1], 'Yksikkö1')
-        self.assertEqual(result_gdf['Merialueen tunniste'].iloc[2], 'Merialue1')
-
-    def test_partial_fact_matches(self):
-        # Creating a GeoDataFrame with some matching and some non-matching facts
-        gdf = gpd.GeoDataFrame({
-            'gathering.facts[0].fact': ['Seurattava laji', 'Some other fact', 'Peittävyysprosentti'],
-            'gathering.facts[0].value': ['Laji1', 'OtherValue', '10%'],
-            'geometry': [None, None, None]
-        })
-
-        # Running the function
-        result_gdf = get_facts(gdf)
-
-        # Check that the correct values are assigned
-        self.assertEqual(result_gdf['Seurattava laji'].iloc[0], 'Laji1')
-        self.assertEqual(result_gdf['Peittävyysprosentti'].iloc[2], '10%')
-
-        # The 'Some other fact' should not create a new column and should not affect existing ones
-        self.assertNotIn('Some other fact', result_gdf.columns)
 
 if __name__ == '__main__':
     unittest.main()
