@@ -6,31 +6,55 @@ import time
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
-def get_collection_names(api_url):
+def fetch_json_with_retry(url, max_retries=3, delay=10):
+    """
+    Fetches JSON data from an API URL with retry logic.
+    
+    Parameters:
+    url (str): The API URL to fetch JSON data from.
+    max_retries (int): The maximum number of retry attempts in case of failure.
+    delay (int): The delay between retries in seconds.
+    
+    Returns:
+    dict: Parsed JSON data from the API as a dictionary, or None if the request fails.
+    """
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching data from {url}: {e}. Retrying in {delay} seconds...")
+            time.sleep(delay)
+            attempt += 1
+    print(f"Failed to retrieve data from {url} after {max_retries} attempts.")
+    return None
+
+def get_collection_names(url):
     """
     Get collection names in Finnish from the API
 
     Parameters:
-    api_url (str): The URL of the API endpoint.
+    url (str): The URL of the Collection API endpoint.
 
     Returns:
-    ids_and_names (dictionary): The dictionary containing all collection IDs and their long names
+    (dictionary): The dictionary containing all collection IDs and their long names
     """
-    # Fetching the JSON data from the API
-    response = requests.get(api_url)
-    data = response.json()
+
+    data = fetch_json_with_retry(url)
 
     # Extracting collection ids and longNames and storing them in a dictionary
-    ids_and_names = {item['id']: item['longName'] for item in data['results']}
+    if data:
+        return {item['id']: item['longName'] for item in data['results']}
+    return {}
 
-    return ids_and_names
-
-def get_last_page(data_url):
+def get_last_page(url):
     """
     Get the last page number from the API response with retry logic.
 
     Parameters:
-    data_url (str): The URL of the API endpoint.
+    url (str): The URL of the Warehouse API endpoint.
 
     Returns:
     int: The last page number. Returns None if all retries fail.
@@ -40,46 +64,23 @@ def get_last_page(data_url):
     delay = 10
     while attempt < max_retries:
         try:
-            response = requests.get(data_url)
-            
-            # Check if the request was successful
-            if response.status_code != 200:
-                print(f"Request failed with status code {response.status_code}")
-                time.sleep(delay)
-                attempt += 1
-                continue
-
-            # Try parsing the response as JSON
-            try:
-                api_response = response.json()
-            except ValueError:  # Catch JSON decoding errors
-                print("Failed to parse JSON response")
-                print(f"Response text: {response.text}")
-                time.sleep(delay)
-                attempt += 1
-                continue
-        
-            # Get the last page from the API response
-            last_page = api_response.get("lastPage")
-            if last_page is None:
-                print("No 'lastPage' key found in the response")
-            return last_page
-        
-        except requests.exceptions.RequestException as e:
-            print(f"Error occurred during the request: {e}")
+            response = requests.get(url)
+            response.raise_for_status()
+            api_response = response.json()
+            return api_response.get("lastPage", None)
+        except (requests.exceptions.RequestException, ValueError) as e:
+            print(f"Error retrieving last page from {url}: {e}. Retrying in {delay} seconds...")
             time.sleep(delay)
             attempt += 1
-
-    # If all attempts fail, return None
-    print(f"All {max_retries} attempts failed.")
+    print(f"Failed to retrieve last page from {url} after {max_retries} attempts.")
     return None
        
-def download_page(data_url, page_no):
+def download_page(url, page_no):
     """
     Download data from a specific page of the API with retry logic. This is in separate function to speed up multiprocessing.
 
     Parameters:
-    data_url (str): The URL of the API endpoint.
+    url (str): The URL of the Warehouse API endpoint.
     page_no (int): The page number to download.
 
     Returns:
@@ -89,35 +90,28 @@ def download_page(data_url, page_no):
     attempt = 0
     max_retries = 3
     delay = 10
-    data_url = data_url.replace('page=1', f'page={page_no}')
+    url = url.replace('page=1', f'page={page_no}')
     while attempt < max_retries:
         try:
-            gdf = gpd.read_file(data_url)   
+            gdf = gpd.read_file(url)   
             return gdf 
         except urllib.error.HTTPError as e:
-            print(f"HTTP Error {e.code}: {e.reason}. Could not access {data_url}.")
-            print(f"Retrying in {delay} seconds...")
-            time.sleep(delay)
-            attempt += 1
-            continue
+            print(f"HTTP Error {e.code}: {e.reason} for {url}. Retrying in {delay} seconds...")
         except Exception as e:
-            # Catch any other exceptions
-            print(f"An error occurred: {e}")
-            print(f"Retrying in {delay} seconds...")
-            time.sleep(delay)
-            attempt += 1
-            continue
+            print(f"Error downloading page {page_no}: {e}. Retrying in {delay} seconds...")
+        time.sleep(delay)
+        attempt += 1
 
     # Return an empty GeoDataFrame in case of too many errors
     print(f"Failed to download data from page {page_no} after {max_retries} attempts.")
     return gpd.GeoDataFrame()
 
-def get_occurrence_data(data_url, startpage, endpage, multiprocessing=False):
+def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     """
     Retrieve occurrence data from the API.
 
     Parameters:
-    data_url (str): The URL of the API endpoint.
+    url (str): The URL of the Warehouse API endpoint.
     multiprocessing (bool, optional): Whether to use multiprocessing. Defaults to False.
     startpage (int): First page to retrieve. 
     endpage (int): Last page to retrieve 
@@ -131,13 +125,13 @@ def get_occurrence_data(data_url, startpage, endpage, multiprocessing=False):
     if multiprocessing==True or multiprocessing=="True":
         # Use multiprocessing to retrieve page by page. Finally merge all pages into one geodataframe
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(download_page, data_url, page_no) for page_no in range(startpage, endpage + 1)]
+            futures = [executor.submit(download_page, url, page_no) for page_no in range(startpage, endpage + 1)]
             for future in concurrent.futures.as_completed(futures):
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(startpage,endpage+1):
-            next_gdf = download_page(data_url, page_no)
+            next_gdf = download_page(url, page_no)
             gdf = pd.concat([gdf, next_gdf], ignore_index=True)
 
     return gdf
@@ -160,20 +154,32 @@ def find_main_taxon(row):
 
     return min_value
 
-def get_taxon_data(taxon_name_url):
+def get_value_ranges(url):
+    """
+    Fetches JSON data from an API URL and returns it as a Python dictionary.
+
+    Parameters:
+    url (str): The URL of the metadata API endpoint.
+
+    Returns:
+    dict: A dictionary containing the JSON data from the API.
+    """
+    return fetch_json_with_retry(url)
+
+def get_taxon_data(url):
     """
     Retrieve taxon data from the API. Will be merged to occurrence data later.
 
     Parameters:
-    taxon_name_url (str): The URL of the taxon name API endpoint.
+    url (str): The URL of the taxon name API endpoint.
 
     Returns:
     pandas.DataFrame: The retrieved taxon data.
     """
 
     # Get the another taxon data
-    response = requests.get(taxon_name_url)
-    json_data_results = response.json().get('results', [])
-    df = pd.json_normalize(json_data_results)
-
-    return df
+    data = fetch_json_with_retry(url)
+    if data:
+        json_data_results = data.get('results', [])
+        return pd.json_normalize(json_data_results)
+    return pd.DataFrame()

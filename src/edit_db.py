@@ -102,7 +102,7 @@ def drop_table(table_names):
         try: 
             metadata.tables[i].drop(engine)
         except:
-            pass # If earlier data update didn't work, it's possible the table doesnt't exist and can't be dropped
+            pass # If data update didn't succeed last time, it's possible the table doesnt't exist and can't be dropped
 
 def get_all_tables():
     """
@@ -279,14 +279,15 @@ def update_indexes(table_names, use_multiprocessing=False):
             with engine.connect() as connection:
                 print(f"Updating indexes for table: {table_name}")
 
-                reindex_id = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");')
-                connection.execute(reindex_id)
+                # Combine all index creation queries into a single execution
+                index_creation_sql = text(f'''
+                    CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
+                    CREATE INDEX IF NOT EXISTS "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");
+                    CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
+                ''')
 
-                reindex_id2 = text(f'CREATE INDEX IF NOT EXISTS  "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");')
-                connection.execute(reindex_id2)
-
-                spatial_reindex_sql = text(f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);')
-                connection.execute(spatial_reindex_sql)
+                # Execute the combined index creation block
+                connection.execute(index_creation_sql)
         
         if use_multiprocessing:
             with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -318,79 +319,6 @@ def validate_geometries_postgis(table_name):
         return edited_features_count
     else:
         return 0
-
-def collections_to_multis(table_name, buffer_distance=0.5):
-    """
-    Convert GeometryCollections to MultiPolygons with a specified buffer distance.
-
-    Args:
-        table_name (str): The name of the table containing geometry data.
-        buffer_distance (float): The buffer distance to apply to non-polygon geometries.
-
-    Returns:
-        None
-    """
-    
-    # This SQL converts GeometryCollections to MultiPolygons and counts modified features
-    sql = f"""
-        DO $$
-        DECLARE
-            rec RECORD;
-            polygons GEOMETRY[];
-            geom GEOMETRY;
-            new_geom GEOMETRY;
-            modified_count INTEGER := 0;
-        BEGIN
-            -- Iterate over each row in the table
-            FOR rec IN SELECT "Paikallinen_tunniste", geometry FROM "{table_name}" LOOP
-                -- Initialize an empty array for polygons
-                polygons := ARRAY[]::GEOMETRY[];
-                
-                -- Check if the geometry is a GeometryCollection
-                IF ST_GeometryType(rec.geometry) = 'ST_GeometryCollection' THEN
-                    
-                    -- Iterate over each geometry in the collection
-                    FOR geom IN SELECT (ST_Dump(rec.geometry)).geom LOOP
-                        -- Check the type of each geometry and process accordingly
-                        CASE ST_GeometryType(geom)
-                            WHEN 'ST_Polygon', 'ST_MultiPolygon' THEN
-                                -- Add Polygon or MultiPolygon directly to the array
-                                polygons := array_append(polygons, geom);
-                            WHEN 'ST_Point', 'ST_MultiPoint', 'ST_LineString', 'ST_MultiLineString' THEN
-                                -- Buffer Point, MultiPoint, LineString, and MultiLineString
-                                polygons := array_append(polygons, ST_Buffer(geom, {buffer_distance}));
-                        END CASE;
-                    END LOOP;
-                    
-                    -- Create MultiPolygon from collected geometries if any valid polygons exist
-                    IF array_length(polygons, 1) > 0 THEN
-                        new_geom := ST_Multi(ST_Collect(polygons));
-                        
-                        -- Update the table with the new geometry
-                        UPDATE "{table_name}"
-                        SET geometry = new_geom
-                        WHERE "Paikallinen_tunniste" = "rec.Paikallinen_tunniste";
-                        
-                        -- Increment the modified count
-                        modified_count := modified_count + 1;
-                    END IF;
-                END IF;
-            END LOOP;
-            
-            -- Output the number of modified features
-            RAISE NOTICE 'Number of features modified: %', modified_count;
-        END
-        $$;
-    """
-
-    # Execute the SQL code block
-    with engine.connect() as connection:
-        connection.execute(text(sql))
-        connection.commit()
-        
-        # Print out any notices (such as the modification count) from the SQL execution
-        for notice in connection.connection.notices:
-            print(notice.strip())
 
 def remove_duplicates_by_id(table_names):
     """

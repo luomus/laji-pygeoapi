@@ -20,6 +20,8 @@ def main():
 
     # URLs and file paths
     taxon_name_url = f'{laji_api_url}informal-taxon-groups?lang=fi&pageSize=1000&access_token={access_token}'
+    collection_names_url = f"{laji_api_url}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}"
+    value_ranges_url = f'{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}'
     template_resource = r'template_resource.txt'
     pygeoapi_config = r'pygeoapi-config.yml'
     municipal_geojson_path = r'municipalities.geojson'
@@ -53,9 +55,10 @@ def main():
     else:
 
         # Get other data sets
-        print("Loading taxon and collection data...")
+        print("Loading taxon data, collection data and value ranges...")
         taxon_df = load_data.get_taxon_data(taxon_name_url)
-        collection_names = load_data.get_collection_names(f"{laji_api_url}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}")
+        collection_names = load_data.get_collection_names(collection_names_url)
+        value_ranges = load_data.get_value_ranges(value_ranges_url)
 
         # Create an URL for occurrence data
         base_url = f"{laji_api_url}warehouse/query/unit/list?"
@@ -130,7 +133,7 @@ def main():
                 gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
                 gdf = process_data.process_facts(gdf)
                 gdf = process_data.combine_similar_columns(gdf)
-                gdf = compute_variables.compute_all(gdf, collection_names, municipal_geojson_path)
+                gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipal_geojson_path)
                 gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
                 gdf, edited_features = process_data.validate_geometry(gdf)
                 edited_features_count += edited_features
@@ -148,7 +151,6 @@ def main():
     
         # Print statistics
         number_of_occurrences_after_updating = edit_db.get_amount_of_all_occurrences()
-        print(f"Number of occurrences after updating: {number_of_occurrences_after_updating}")
         print(f"So, in total, {processed_occurrences} occurrences were processed:")
         print(f" -> {edited_features_count} of them had invalid geometries that were fixed")
         print(f" -> {duplicates_count_by_id} of them were not inserted as they were already in the database")
