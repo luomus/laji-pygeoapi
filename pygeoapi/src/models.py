@@ -6,9 +6,25 @@ from datetime import datetime
 class APIKey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    key_hash = db.Column(db.String(162), nullable=False)
     created_date = db.Column(db.DateTime(), nullable=False, default=datetime.now)
     expire_date = db.Column(db.DateTime(), nullable=False)
+
+    # Custom property getter
+    @property
+    def key(self):
+        raise AttributeError('key is not a readable attribute')
+
+    # Custom property setter
+    @key.setter
+    def key(self, key):
+        self.key_hash = generate_password_hash(key)
+
+
+class AdminAPIUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    system_id = db.Column(db.String(50), nullable=False)
+    password_hash = db.Column(db.String(162), nullable=False)
 
     # Custom property getter
     @property
