@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: pygeoapi/Dockerfile
+    entrypoint: /pygeoapi/entrypoint-dev.sh
     ports:
       - "5000:80"
     environment:
