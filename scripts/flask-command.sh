@@ -2,7 +2,11 @@
 
 . ./scripts/utils.sh
 
-docker compose up --build --no-recreate postgres &
+postgres_running_at_start = $(is_running postgres)
+
+if [ -n "$postgres_running_at_start" ]; then
+    docker compose up --build postgres &
+fi
 
 C='. /pygeoapi/setup.sh && flask --app src.app'
 # parse command line arguments, escape double quotes
@@ -12,10 +16,10 @@ for i in "$@"; do
 done
 
 echo "waiting for postgres..."
-
 while ! is_healthy postgres; do sleep 1; done
 
 docker compose run --rm --no-deps --build --entrypoint="/bin/bash -c '$C'" pygeoapi
 
-docker compose down
-
+if [ -n "$postgres_running_at_start" ]; then
+    docker compose down
+fi

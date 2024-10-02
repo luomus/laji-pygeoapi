@@ -18,3 +18,4 @@ services:
 networks:
   pygeoapinet:
     name: pygeoapi_network
+    external: true
