@@ -3,9 +3,9 @@ is_running() {
     container_id="$(docker compose ps -q "$service")"
 
     if [ -z "$container_id" ] || [ -z $(docker ps -q --no-trunc | grep "$container_id") ]; then
-        return 0
-    else
         return 1
+    else
+        return 0
     fi
 }
 

@@ -1,10 +1,11 @@
 #!/bin/bash
 
-. ./scripts/utils.sh
+source ./scripts/utils.sh
 
-postgres_running_at_start = $(is_running postgres)
+postgres_running_at_start=$(is_running postgres; echo $?)
 
-if [ -n "$postgres_running_at_start" ]; then
+if [ "$postgres_running_at_start" -ne 0 ]; then
+    echo "starting postgres"
     docker compose up --build postgres &
 fi
 
@@ -20,6 +21,6 @@ while ! is_healthy postgres; do sleep 1; done
 
 docker compose run --rm --no-deps --build --entrypoint="/bin/bash -c '$C'" pygeoapi
 
-if [ -n "$postgres_running_at_start" ]; then
+if [ "$postgres_running_at_start" -ne 0 ]; then
     docker compose down
 fi
