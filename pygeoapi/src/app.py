@@ -16,15 +16,21 @@ migrate = Migrate(app, db, include_schemas=True)
 import src.basic_auth
 
 
+# a dummy callable to execute the login_required logic
+login_required_dummy_view = auth.login_required(lambda: None)
+
+
 @app.before_request
 def before_request():
-    if request.endpoint in ['static', 'pygeoapi.landing_page', 'admin_api.post_api_key_request']:
+    if not request.endpoint:
         return
 
-    if not auth.current_user():
-        resp = Response('Unauthorized', 401)
-        resp.headers['WWW-Authenticate'] = auth.authenticate_header()
-        return resp
+    endpoint_root = request.endpoint.split('.', 1)[0]
+
+    if request.endpoint in ['static', 'pygeoapi.landing_page'] or endpoint_root in ['admin_api']:
+        return
+
+    return login_required_dummy_view()
 
 
 from pygeoapi.flask_app import BLUEPRINT as pygeoapi_blueprint

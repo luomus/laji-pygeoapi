@@ -1,15 +1,23 @@
 from src.app import auth, admin_api_auth
 from src.models import APIKey, AdminAPIUser
 from datetime import datetime
-from werkzeug.security import generate_password_hash
 
 
 @auth.verify_password
 def verify_password(username, password):
-    key_hash = generate_password_hash(username)
+    api_key_parts = username.split('-', 1)
+    if len(api_key_parts) != 2:
+        return
 
-    api_key = APIKey.query.filter(APIKey.key_hash == key_hash).first()
-    if api_key is not None and api_key.expire_date < datetime.now():
+    try:
+        api_key_id = int(api_key_parts[0])
+    except ValueError:
+        return
+
+    api_key_value = api_key_parts[1]
+
+    api_key = APIKey.query.filter(APIKey.id == api_key_id).first()
+    if api_key is not None and api_key.verify_key(api_key_value) and api_key.expires > datetime.now():
         return api_key
 
 

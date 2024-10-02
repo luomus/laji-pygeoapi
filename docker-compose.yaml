@@ -11,10 +11,12 @@ services:
       POSTGRES_USER: ${INTERNAL_POSTGRES_USER}
       POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
       POSTGRES_HOST: ${INTERNAL_POSTGRES_HOST}
+      LAJI_AUTH_URL: ${LAJI_AUTH_URL}
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
       - ./pygeoapi/migrations:/pygeoapi/migrations
+      - ./pygeoapi/src:/pygeoapi/src
     networks:
       - pygeoapinet
     depends_on:
