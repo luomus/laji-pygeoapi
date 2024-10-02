@@ -2,12 +2,12 @@ from flask import Blueprint, request, abort
 from src.app import admin_api_auth
 from src.app import app
 from src.services.laji_auth import get_user_info
-from src.services.api_key_generator import generate_api_key
+from src.services import api_key_service
 
 admin_api_blueprint = Blueprint('admin_api', __name__)
 
 
-@admin_api_blueprint.route('apiKeyRequest', methods=['POST'])
+@admin_api_blueprint.route('api-key-request', methods=['POST'])
 @admin_api_auth.login_required
 def post_api_key_request():
     person_token = request.json.get('personToken', None)
@@ -30,6 +30,33 @@ def post_api_key_request():
     ):
         return abort(400)
 
-    key = generate_api_key(user_info['qname'], api_key_expires, data_use_purpose)
+    key = api_key_service.generate_api_key(user_info['qname'], api_key_expires, data_use_purpose)
 
     return {'apiKey': key}
+
+
+@admin_api_blueprint.route('api-keys', methods=['GET'])
+@admin_api_auth.login_required
+def get_api_keys():
+    person_token = request.args.get('personToken', None)
+
+    user_id = None
+
+    if person_token is not None:
+        user_info = get_user_info(person_token)
+
+        if user_info is None:
+            return abort(400)
+
+        user_id = user_info['qname']
+
+    api_keys = api_key_service.get_api_keys(user_id)
+
+    result = [{
+        'userId': key.user_id,
+        'created': key.created,
+        'expires': key.expires,
+        'dataUsePurpose': key.data_use_purpose
+    } for key in api_keys]
+
+    return result
