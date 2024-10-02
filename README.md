@@ -28,6 +28,12 @@ MULTIPROCESSING=False
 RUNNING_IN_OPENSHIFT=False
 LAJI_API_URL=https://apitest.laji.fi/v0/
 ACCESS_TOKEN=loremipsum12456789
+INTERNAL_POSTGRES_DB=my_internal_db
+INTERNAL_POSTGRES_USER=pygeoapi
+INTERNAL_POSTGRES_PASSWORD=admin456
+INTERNAL_POSTGRES_HOST=postgres
+LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
+RESTRICT_ACCESS=False
 ```
 Where
 | Variable name | Definition | Default value |
@@ -42,14 +48,18 @@ Where
 | RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in a Docker.| False |
 | ACCESS_TOKEN| API Access token needed for using the source APIs. See instruction: https://api.laji.fi/explorer/ | loremipsum12456789 |
 
+### 4. Init the database:
+```
+./scripts/init-db.sh
+./scripts/flask-command.sh db upgrade
+```
 
-
-### 4. Run docker command:
+### 5. Run docker command:
 ```
 docker compose up --build
 ```
 
-5. That's it! Your Pygeoapi instance with the PostGIS  database should now be up and running.
+6. That's it! Your Pygeoapi instance with the PostGIS  database should now be up and running.
 
 ## Usage
 Once the Docker container is up and running, you can access the Pygeoapi service through your web browser. By default, the service is available at [http://localhost:5000](http://localhost:5000).

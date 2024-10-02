@@ -3,17 +3,26 @@ services:
     build:
       context: .
       dockerfile: pygeoapi/Dockerfile
+    entrypoint: /pygeoapi/entrypoint-dev.sh
     ports:
       - "5000:80"
+    environment:
+      POSTGRES_DB: ${INTERNAL_POSTGRES_DB}
+      POSTGRES_USER: ${INTERNAL_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${INTERNAL_POSTGRES_HOST}
+      LAJI_AUTH_URL: ${LAJI_AUTH_URL}
+      RESTRICT_ACCESS: ${RESTRICT_ACCESS}
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
+      - ./pygeoapi/migrations:/pygeoapi/migrations
+      - ./pygeoapi/src:/pygeoapi/src
+    networks:
+      - pygeoapinet
     depends_on:
       postgres:
         condition: service_healthy
-      python_scripts:
-        condition: service_completed_successfully
-      
 
   postgres:
     image: postgis/postgis
@@ -24,23 +33,20 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      INTERNAL_POSTGRES_DB: ${INTERNAL_POSTGRES_DB}
+      INTERNAL_POSTGRES_USER: ${INTERNAL_POSTGRES_USER}
+      INTERNAL_POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
+    networks:
+      - pygeoapinet
     volumes:
-      - /var/lib/postgresql/data
+      - ./init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
+      - postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
-  python_scripts:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./pygeoapi-config.yml:/app/pygeoapi-config.yml
-      - ./.env:/.env
-      - ./catalogue.tinydb:/app/catalogue.tinydb
+volumes:
+  postgres:
+
+networks:
+  pygeoapinet:
+    name: pygeoapi_network
