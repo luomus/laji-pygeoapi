@@ -13,30 +13,16 @@ app.config.from_object(Config)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db, include_schemas=True)
 
-import src.basic_auth
+
+if app.config['RESTRICT_ACCESS']:
+    import src.basic_auth # noqa
+    from src.views import admin_api_blueprint
+
+    app.register_blueprint(admin_api_blueprint, url_prefix='/admin/api')
 
 
-# a dummy callable to execute the login_required logic
-login_required_dummy_view = auth.login_required(lambda: None)
-
-
-@app.before_request
-def before_request():
-    if not request.endpoint:
-        return
-
-    endpoint_root = request.endpoint.split('.', 1)[0]
-
-    if request.endpoint in ['static', 'pygeoapi.landing_page'] or endpoint_root in ['admin_api']:
-        return
-
-    return login_required_dummy_view()
-
-
-from pygeoapi.flask_app import BLUEPRINT as pygeoapi_blueprint
-from src.views import admin_api_blueprint
+from pygeoapi.flask_app import BLUEPRINT as pygeoapi_blueprint # noqa
 
 app.register_blueprint(pygeoapi_blueprint, url_prefix='/')
-app.register_blueprint(admin_api_blueprint, url_prefix='/admin/api')
 
-from src.commands import *
+from src.commands import * # noqa

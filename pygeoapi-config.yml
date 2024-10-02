@@ -30,8 +30,8 @@ metadata:
             en: FinBIF occurrence data OGC API
             fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
         description:
-            en: This portal allows you to query and fetch virva-filtered openly available occurrence data from the Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-09-18. 
-            fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja avoimesti saatavilla olevia lajitietokeskuksen lajihavaintoja. Päivitetty 2024-09-18.            
+            en: This portal allows you to query and fetch virva-filtered openly available occurrence data from the Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-09-26. 
+            fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja avoimesti saatavilla olevia lajitietokeskuksen lajihavaintoja. Päivitetty 2024-09-26.            
         keywords:
             en:
                 - occurrence data
@@ -71,6 +71,105 @@ metadata:
 
 resources:
 
+    ahvenanmaa_points:
+        type: collection
+        title: ahvenanmaa_points 
+        description: 1683 points from the Ahvenanmaa biogeographical area. 
+        keywords:
+            en:
+                - Ahvenanmaa
+                - occurrence data
+        extents:
+            spatial:
+                bbox: [19.31766, 59.833332, 21.126104, 60.715543]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 1990-05-01T00:00:00Z
+                end: 2024-06-20T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: Paikallinen_tunniste
+            uri: Havainnon_tunniste
+            table: ahvenanmaa_points
+            geom_field: geometry
+            time_field: Keruu_aloitus_pvm
+            title_field: Suomenkielinen_nimi
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+    ahvenanmaa_lines:
+        type: collection
+        title: ahvenanmaa_lines 
+        description: 184 lines from the Ahvenanmaa biogeographical area. 
+        keywords:
+            en:
+                - Ahvenanmaa
+                - occurrence data
+        extents:
+            spatial:
+                bbox: [19.990032, 60.006174, 20.107237, 60.127607]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 2001-06-03T00:00:00Z
+                end: 2016-06-07T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: Paikallinen_tunniste
+            uri: Havainnon_tunniste
+            table: ahvenanmaa_lines
+            geom_field: geometry
+            time_field: Keruu_aloitus_pvm
+            title_field: Suomenkielinen_nimi
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+    ahvenanmaa_polygons:
+        type: collection
+        title: ahvenanmaa_polygons 
+        description: 2277 polygons from the Ahvenanmaa biogeographical area. 
+        keywords:
+            en:
+                - Ahvenanmaa
+                - occurrence data
+        extents:
+            spatial:
+                bbox: [19.315952, 59.826241, 21.104812, 60.603286]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: 1990-01-01T00:00:00Z
+                end: 2018-09-02T00:00:00Z
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: postgres
+                port: 5432
+                dbname: my_geospatial_db
+                user: postgres
+                password: admin123
+            id_field: Paikallinen_tunniste
+            uri: Havainnon_tunniste
+            table: ahvenanmaa_polygons
+            geom_field: geometry
+            time_field: Keruu_aloitus_pvm
+            title_field: Suomenkielinen_nimi
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
     occurrence-metadata:
         type: collection
         title: Occurrence Metadata 
@@ -85,7 +184,7 @@ resources:
                 crs: https://www.opengis.net/def/crs/EPSG/0/3067
             temporal: 
                 begin: 1990-01-01T00:00:00Z
-                end: 2024-09-18T00:00:00Z
+                end: 2024-09-26T00:00:00Z
         providers:
           - type: record
             name: TinyDBCatalogue
