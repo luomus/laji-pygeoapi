@@ -29,4 +29,4 @@ def generate_api_key(user_id, api_key_expires, data_use_purpose):
     db.session.add(api_key)
     db.session.commit()
 
-    return api_key.id + '-' + key
+    return '{}-{}'.format(api_key.id, key)
