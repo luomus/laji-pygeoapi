@@ -53,9 +53,9 @@ def get_api_keys():
     api_keys = api_key_service.get_api_keys(user_id)
 
     result = [{
-        'userId': key.user_id,
-        'created': key.created,
-        'expires': key.expires,
+        'personId': key.user_id,
+        'requested': str(key.created),
+        'apiKeyExpires': str(key.expires),
         'dataUsePurpose': key.data_use_purpose
     } for key in api_keys]
 
