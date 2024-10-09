@@ -3,3 +3,4 @@ flask-sqlalchemy
 SQLAlchemy
 Flask-Migrate
 requests
+cryptography

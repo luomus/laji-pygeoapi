@@ -1,24 +1,15 @@
 from src.app import app, auth, admin_api_auth
-from src.models import APIKey, AdminAPIUser
+from src.services import api_key_service
+from src.models import AdminAPIUser
 from datetime import datetime
 from flask import request
 
 
 @auth.verify_password
 def verify_password(username, password):
-    api_key_parts = username.split('-', 1)
-    if len(api_key_parts) != 2:
-        return
+    api_key = api_key_service.api_key_string_to_object(username)
 
-    try:
-        api_key_id = int(api_key_parts[0])
-    except ValueError:
-        return
-
-    api_key_value = api_key_parts[1]
-
-    api_key = APIKey.query.filter(APIKey.id == api_key_id).first()
-    if api_key is not None and api_key.verify_key(api_key_value) and api_key.expires > datetime.now():
+    if api_key is not None and api_key.expires > datetime.now():
         return api_key
 
 

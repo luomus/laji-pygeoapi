@@ -6,6 +6,9 @@ class Config(object):
     TESTING = False
 
     RESTRICT_ACCESS = os.environ['RESTRICT_ACCESS'] == "True"
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if RESTRICT_ACCESS is True and not SECRET_KEY:
+        raise ValueError('SECRET_KEY is required when RESTRICT_ACCESS is True')
 
     SQLALCHEMY_DATABASE_URI = 'postgresql://{}:{}@{}:{}/{}'.format(
         os.environ['POSTGRES_USER'],

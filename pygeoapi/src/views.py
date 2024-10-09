@@ -30,9 +30,10 @@ def post_api_key_request():
     ):
         return abort(400)
 
-    key = api_key_service.generate_api_key(user_info['qname'], api_key_expires, data_use_purpose)
+    user_id = user_info['qname']
+    api_key = api_key_service.generate_api_key(user_id, api_key_expires, data_use_purpose)
 
-    return {'apiKey': key}
+    return _api_key_to_json(api_key, user_id)
 
 
 @admin_api_blueprint.route('api-keys', methods=['GET'])
@@ -52,11 +53,20 @@ def get_api_keys():
 
     api_keys = api_key_service.get_api_keys(user_id)
 
-    result = [{
-        'personId': key.user_id,
-        'requested': key.created.strftime('%Y-%m-%d'),
-        'apiKeyExpires': key.expires.strftime('%Y-%m-%d'),
-        'dataUsePurpose': key.data_use_purpose
-    } for key in api_keys]
+    result = [_api_key_to_json(key, user_id) for key in api_keys]
+
+    return result
+
+
+def _api_key_to_json(api_key, user_id):
+    result = {
+        'personId': api_key.user_id,
+        'requested': api_key.created.strftime('%Y-%m-%d'),
+        'apiKeyExpires': api_key.expires.strftime('%Y-%m-%d'),
+        'dataUsePurpose': api_key.data_use_purpose
+    }
+
+    if api_key.user_id == user_id:
+        result['apiKey'] = api_key_service.api_key_object_to_string(api_key)
 
     return result

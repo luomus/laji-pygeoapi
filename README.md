@@ -34,6 +34,7 @@ INTERNAL_POSTGRES_PASSWORD=admin456
 INTERNAL_POSTGRES_HOST=postgres
 LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
 RESTRICT_ACCESS=False
+SECRECT_KEY=secret
 ```
 Where
 | Variable name | Definition | Default value |
