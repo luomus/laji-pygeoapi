@@ -28,20 +28,10 @@ echo -n yourpostgresdb | base64 # Encode POSTGRES_DB
 
 ## 4. Process the Template
 
-Use the encoded parameters to process the template and create a list of objects.
+Use the encoded parameters and create an env file (you can take example.env file as an example). Then process the template and create a list of objects.
 
 ```
-oc process -f template.yaml -p |
- POSTGRES_PASSWORD=<encoded yourpostgrespassword>
- POSTGRES_USER=<encoded yourpostgresuser>
- POSTGRES_DB=<encoded yourpostgresdb>
- HOST_URL=<yourhosturl>
- ACCESS_TOKEN=<yourapitoken>
- > processed-template.yaml
-```
-For example:
-```
-oc process -f template.yaml -p POSTGRES_PASSWORD=YWRtaW4xMjM= POSTGRES_USER=cG9zdGdyZXM= POSTGRES_DB=bXlfZ2Vvc3BhdGlhbF9kYg== HOST_URL="pygeoapi-route-laji-pygeoapi-main.2.rahtiapp.fi" ACCESS_TOKEN=ftmCFaEjHNgCUWgW8rPriwDQOxuUr > processed-template.yaml
+oc process -f template.yaml --param-file=test.env > processed-template.yaml
 ```
 
 
