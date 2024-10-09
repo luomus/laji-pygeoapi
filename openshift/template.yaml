@@ -506,8 +506,10 @@ objects:
                       value: ${PAGES}
                     - name: LAJI_API_URL
                       value: ${LAJI_API_URL}
-                    - name: BRANCH
-                      value: ${BRANCH}
+                    - name: CONFIG_MAP_NAME
+                      value: "pygeoapi-config-${PREFIX}${BRANCH}"
+                    - name: SERVICE_NAME
+                      value: "pygeoapi-${PREFIX}${BRANCH}"
                     - name: MULTIPROCESSING
                       value: ${MULTIPROCESSING}
                     - name: RUNNING_IN_OPENSHIFT

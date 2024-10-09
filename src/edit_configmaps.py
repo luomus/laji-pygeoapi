@@ -90,11 +90,15 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
     
     api_url, namespace = get_kubernetes_info()
 
-    # Get branch
     load_dotenv()
-    branch = os.getenv('BRANCH')
-    if branch is None:
-        raise ValueError("BRANCH environment variable is not set")
+    config_map_name = os.getenv("CONFIG_MAP_NAME")
+    if config_map_name is None:
+        raise ValueError("CONFIG_MAP_NAME environment variable is not set")
+
+    service_name = os.getenv("SERVICE_NAME")
+    if service_name is None:
+        raise ValueError("SERVICE_NAME environment variable is not set")
+
     
     # Read the CA certificate
     ca_cert = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
@@ -105,7 +109,7 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
 
     # Update the config map
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
-    configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/pygeoapi-config-{branch}"
+    configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/{config_map_name}"
 
     update_configmap(configmap_url, headers, ca_cert, pygeoapi_config_out, "/data/pygeoapi-config.yml")
     update_configmap(configmap_url, headers, ca_cert, metadata_db_path, "/data/catalogue.tinydb")
@@ -119,7 +123,6 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
 
-    service_name = "pygeoapi-"+branch
     try:
         # Find pods with the label io.kompose.service set to pygeoapi-branch
         target_pods = [
