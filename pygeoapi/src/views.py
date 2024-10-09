@@ -54,8 +54,8 @@ def get_api_keys():
 
     result = [{
         'personId': key.user_id,
-        'requested': str(key.created),
-        'apiKeyExpires': str(key.expires),
+        'requested': key.created.strftime('%Y-%m-%d'),
+        'apiKeyExpires': key.expires.strftime('%Y-%m-%d'),
         'dataUsePurpose': key.data_use_purpose
     } for key in api_keys]
 
