@@ -26,7 +26,6 @@ services:
 
   postgres:
     image: postgis/postgis
-    restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
     environment:
