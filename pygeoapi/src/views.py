@@ -12,15 +12,18 @@ admin_api_blueprint = Blueprint('admin_api', __name__)
 def post_api_key_request():
     person_token = request.json.get('personToken', None)
     if person_token is None:
-        return abort(400)
+        return _error_response(400, 'Field "personToken" is missing')
 
     user_info = get_user_info(person_token)
-    if user_info is None or not any(role in app.config['API_KEY_ALLOWED_ROLES'] for role in user_info['roles']):
-        return abort(400)
+    if user_info is None:
+        return _error_response(400, 'Person token is invalid')
+
+    if not any(role in app.config['API_KEY_ALLOWED_ROLES'] for role in user_info['roles']):
+        return _error_response(403, 'Person is missing a required role')
 
     data_use_purpose = request.json.get('dataUsePurpose', None)
     if data_use_purpose is None:
-        return abort(400)
+        return _error_response(400, 'Field "dataUsePurpose" is missing')
 
     api_key_expires = request.json.get('apiKeyExpires', 90)
     if (
@@ -28,7 +31,7 @@ def post_api_key_request():
         api_key_expires < 1 or
         api_key_expires > app.config['API_KEY_MAX_DURATION']
     ):
-        return abort(400)
+        return _error_response(400, 'Field "apiKeyMissing" is missing or has an invalid value')
 
     user_id = user_info['qname']
     api_key = api_key_service.generate_api_key(user_id, api_key_expires, data_use_purpose)
@@ -47,7 +50,7 @@ def get_api_keys():
         user_info = get_user_info(person_token)
 
         if user_info is None:
-            return abort(400)
+            return _error_response(400, 'Person token is invalid')
 
         user_id = user_info['qname']
 
@@ -70,3 +73,10 @@ def _api_key_to_json(api_key, user_id):
         result['apiKey'] = api_key_service.api_key_object_to_string(api_key)
 
     return result
+
+
+def _error_response(code, message):
+    return {
+        'code': code,
+        'message': message
+    }, code

@@ -152,7 +152,7 @@ objects:
             bind:
                 host: 0.0.0.0
                 port: ${PYGEOAPI_PORT}
-            url: https://${HOST_URL}{HOST_PATH}
+            url: https://${HOST_URL}${HOST_PATH}
             mimetype: application/json; charset=UTF-8
             encoding: utf-8
             gzip: false
