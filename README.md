@@ -33,7 +33,7 @@ INTERNAL_POSTGRES_USER=pygeoapi
 INTERNAL_POSTGRES_PASSWORD=admin456
 INTERNAL_POSTGRES_HOST=postgres
 LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
-RESTRICT_ACCESS=False
+SENSITIVE_DATA=False
 SECRECT_KEY=secret
 ```
 Where
@@ -48,6 +48,13 @@ Where
 | MULTIPROCESSING| Enables (*"True"*) or disables (*"False"*) multiprocessing when downloading data from the source APIs| False               |
 | RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in a Docker.| False |
 | ACCESS_TOKEN| API Access token needed for using the source APIs. See instruction: https://api.laji.fi/explorer/ | loremipsum12456789 |
+| INTERNAL_POSTGRES_DB| Name for the internal database | my_internal_db |
+| INTERNAL_POSTGRES_USER| Username for the internal database | pygeoapi |
+| INTERNAL_POSTGRES_PASSWORD| Password for the internal database | admin456 |
+| INTERNAL_POSTGRES_HOST| Hostname for the internal database | postgres |
+| LAJI_AUTH_URL| URL to connect laji.fi auth system | https://fmnh-ws-test.it.helsinki.fi/laji-auth/ |
+| SENSITIVE_DATA| True for sensitive, not coarsened data. Needs permissions to query from private data warehouse. | False |
+| SECRECT_KEY| Static random secret key | secret |
 
 ### 4. Init the database:
 ```

@@ -40,10 +40,6 @@ parameters:
     description: The URL of the repository with the application source code 
     value: https://github.com/luomus/laji-pygeoapi.git
     required: true 
-  - name: GITHUB_SECRET
-    required: true
-    generate: expression
-    from: "[a-zA-Z0-9]{20}"
   - name: PAGES
     description: Defines the number of pages to download from the laji.fi occurrence API. Default is "all" but for testing purposes, use smaller number, for e.g. 2
     required: true

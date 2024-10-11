@@ -82,13 +82,17 @@ def main():
         # Check if 'PAGES' is set to 'latest' and 'last_update' is available
         if pages_env == 'latest' and last_update:
             occurrence_url = f"{occurrence_url}&loadedSameOrAfter={last_update}" # Add the 'loadedSameOrAfter' parameter to the occurrence URL for filtering recent data
-
-        # If 'PAGES' is a specific number, parse it 
-        elif pages_env != 'all':
+        elif pages_env != 'all': # Else if the 'PAGES' is a specific number, parse it 
             try:
                 pages = int(pages_env)
             except ValueError:
                 raise Exception("Invalid 'PAGES' environment variable value. Choose 'latest', 'all', '0', or specify the number of pages you want to download (e.g., 10).")
+
+        # Check if using private queries
+        if os.getenv('SENSITIVE_DATA') == 'True':
+            occurrence_url = occurrence_url.replace('/query/', '/private-query/')
+            access_email = os.getenv('ACCESS_EMAIL')
+            occurrence_url = f"{occurrence_url}&personEmail={access_email}" 
 
         # Loop over each biogeographical province ID to load and process its occurrence data
         for idx, id in enumerate(biogeographical_province_ids):

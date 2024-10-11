@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
       POSTGRES_HOST: ${INTERNAL_POSTGRES_HOST}
       LAJI_AUTH_URL: ${LAJI_AUTH_URL}
-      RESTRICT_ACCESS: ${RESTRICT_ACCESS}
+      SENSITIVE_DATA: ${SENSITIVE_DATA}
       SECRET_KEY: ${SECRET_KEY}
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
