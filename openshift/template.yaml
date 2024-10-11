@@ -135,6 +135,14 @@ objects:
       SECRET_KEY: ${SECRET_KEY}
     type: Opaque
 
+  - kind: Secret
+    apiVersion: v1
+    metadata:
+      name: finbif-access-token-${PREFIX}${BRANCH}
+    data:
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+    type: Opaque
+
   - kind: ConfigMap
     apiVersion: v1
     metadata:
@@ -511,7 +519,10 @@ objects:
                     - name: RUNNING_IN_OPENSHIFT
                       value: ${RUNNING_IN_OPENSHIFT}
                     - name: ACCESS_TOKEN
-                      value: ${ACCESS_TOKEN}
+                      valueFrom:
+                        secretKeyRef:
+                          name: finbif-access-token-${PREFIX}${BRANCH}
+                          key: ACCESS_TOKEN
                     - name: PYTHONUNBUFFERED
                       value: '1'
                   resources: 
