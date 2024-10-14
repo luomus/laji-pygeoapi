@@ -35,7 +35,10 @@ def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
         min_date, max_date = edit_db.get_table_dates(table_name)
         no_of_occurrences = edit_db.get_amount_of_occurrences(table_name)
         quality_dict = edit_db.get_quality_frequency(table_name)
-        title_name = compute_variables.get_title_name_from_table_name(table_name) 
+        title_name = compute_variables.get_title_name_from_table_name(table_name)
+
+        if no_of_occurrences == 0:
+            continue
 
         if 'polygon' in table_name:
             geom_type = 'polygon'
