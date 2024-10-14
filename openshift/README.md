@@ -20,7 +20,7 @@ oc project your-project-name
 
 Create an env file (for example test.env) and fill in the values, you can take example.env as an example. If there is
 already a running version in the Openshift, make sure you use the same values especially for the database secrets and
-the "SECRET_KEY" parameter. The database credentials, "ACCESS_TOKEN" and "SECRET_KEY" need to be base64 encoded. You
+the "SECRET_KEY" parameter. The database credentials, "ACCESS_TOKEN", "ACCESS_EMAIL" and "SECRET_KEY" need to be base64 encoded. You
 can get the encoded value with this command:
 
 ```
@@ -52,7 +52,7 @@ oc apply -f processed-template.yaml
 
 ## 6. Verify CronJob
 
-If you are deploying the app for the first time or need to check it the CronJob is working is, change the schedule of the
+If you are deploying the app for the first time or need to check if the CronJob is working, change the schedule of the
 CronJob to ```schedule:  "*/1 * * * *"``` for example so that it runs the job every minute. After the job has started running,
 you can change the schedule back to normal.
 
@@ -78,7 +78,7 @@ Fill the system id as a username, you can leave the password empty so that it wi
 
 ## 9. Add Route Certificate
 
-Edit the route and add the certificate (only needed when deploying for the first time)
+Edit the route and add the certificate (only needed when deploying the app for the first time).
 
 ## Done!
 
@@ -86,7 +86,8 @@ Your pygeoapi server and postgis database should now be set up and running. Go t
 
 ## Deleting All Resources
 
-If you need to remove the dev (or virva-dev) version to save resources, you can delete all resources with this command
+If you need to remove the dev (or virva-dev) version to save resources, you can delete all resources that are associated
+with that version with this command
 
 ```
 oc delete all,configmap,secret,pvc,serviceaccount,role,rolebinding --selector version=dev
