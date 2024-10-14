@@ -31,7 +31,7 @@ def post_api_key_request():
         api_key_expires < 1 or
         api_key_expires > app.config['API_KEY_MAX_DURATION']
     ):
-        return _error_response(400, 'Field "apiKeyMissing" is missing or has an invalid value')
+        return _error_response(400, 'Field "apiKeyExpires" is missing or has an invalid value')
 
     user_id = user_info['qname']
     api_key = api_key_service.generate_api_key(user_id, api_key_expires, data_use_purpose)
