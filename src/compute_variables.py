@@ -162,6 +162,7 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
 
     # Perform spatial join to find which areas each row is within
     joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, municipal_gdf, how="left", predicate="intersects")
+    joined_gdf[['Municipal_Name', 'ELY_Area_Name']] = joined_gdf[['Municipal_Name', 'ELY_Area_Name']].fillna(value='')
 
     # Group by the original indices and aggregate the area names
     municipalities = joined_gdf.groupby(joined_gdf.index)['Municipal_Name'].agg(', '.join)
