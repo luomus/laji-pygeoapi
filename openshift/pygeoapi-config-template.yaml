@@ -1,0 +1,98 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+  - name: BRANCH
+    required: true
+    value: dev
+  - name: NAME_PREFIX
+    required: false
+    value: ""
+  - name: HOST_URL
+    required: true
+  - name: HOST_PATH
+    required: true
+    value: /
+  - name: PYGEOAPI_PORT
+    required: true
+    value: "5000"
+objects:
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
+      labels:
+        app: pygeoapi-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
+    data:
+      catalogue.tinydb: Empty for now. Python scripts will fill this metadata catalogue.
+      pygeoapi-config.yml: |-
+        server:
+            bind:
+                host: 0.0.0.0
+                port: ${PYGEOAPI_PORT}
+            url: https://${HOST_URL}${HOST_PATH}
+            mimetype: application/json; charset=UTF-8
+            encoding: utf-8
+            gzip: false
+            languages:
+                - en-US
+                - fi-FI
+            # cors: true
+            pretty_print: true
+            limit: 10
+            templates:
+              path: custom/templates
+              static: pygeoapi/pygeoapi/static
+            map:
+                url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            # ogc_schemas_location: /opt/schemas.opengis.net
+
+        logging:
+            level: ERROR
+            #logfile: /tmp/pygeoapi.log
+        metadata:
+            identification:
+                title:
+                    en: FinBIF occurrence data OGC API
+                    fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
+                description:
+                    en: This portal allows you to query and fetch virva-filtered occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-01-01.
+                    fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja. Viimeisin päivitys 2024-01-0.
+                keywords:
+                    en:
+                        - occurrence
+                        - geospatial data
+                        - api
+                    fi:
+                        - lajitieto
+                        - paikkatieto
+                        - rajapinta
+                keywords_type: theme
+                terms_of_service: https://creativecommons.org/licenses/by/4.0/
+                url: https://example.org
+            license:
+                name: CC-BY 4.0 license
+                url: https://creativecommons.org/licenses/by/4.0/
+            provider:
+                name: Luomus
+                url: https://laji.fi/
+            contact:
+                name: Alpo, Turunen
+                position: 
+                    en: Spatial Data Specialist
+                    fi: Paikkatietoasiantuntija
+                address: Pohjoinen Rautatiekatu 13 
+                city: Helsinki
+                stateorprovince: Uusimaa
+                postalcode: FI-00100
+                country: 
+                    en: Finland
+                    fi: Suomi
+                phone: +358 29 412 8819
+                email: alpo.turunen@helsinki.fi
+                url: 
+                    en: https://laji.fi/en
+                    fi: https://laji.fi/
+                role: pointOfContact
+        resources:

@@ -1,17 +1,14 @@
 kind: Template
 apiVersion: template.openshift.io/v1
 parameters:
-  - name: DB_SECRET
-    required: true
-    value: db-secret
   - name: NAMESPACE
     required: true
     value: laji-pygeoapi
   - name: BRANCH
     required: true
     value: dev
-  - name: PREFIX
-    required: true
+  - name: NAME_PREFIX
+    required: false
     value: ""
   - name: POSTGRES_PASSWORD
     required: true
@@ -39,7 +36,7 @@ parameters:
   - name: GITHUB_REPOSITORY_URL
     description: The URL of the repository with the application source code 
     value: https://github.com/luomus/laji-pygeoapi.git
-    required: true 
+    required: true
   - name: PAGES
     description: Defines the number of pages to download from the laji.fi occurrence API. Default is "all" but for testing purposes, use smaller number, for e.g. 2
     required: true
@@ -47,11 +44,11 @@ parameters:
   - name: MULTIPROCESSING
     required: true
     value: "False"
-  - name: RUNNING_IN_OPENSHIFT
-    required: true
-    value: "True"
   - name: ACCESS_TOKEN
     description: API Access token for the source API. See https://api.laji.fi/explorer/.
+    required: True
+  - name: ACCESS_EMAIL
+    description: API Access email for the source API. See https://api.laji.fi/explorer/.
     required: True
   - name: LAJI_API_URL
     required: true
@@ -65,7 +62,7 @@ parameters:
   - name: LAJI_AUTH_URL
     required: true
     value: "https://login.laji.fi/laji-auth/"
-  - name: RESTRICT_ACCESS
+  - name: SENSITIVE_DATA
     required: true
     value: "False"
   - name: SECRET_KEY
@@ -101,10 +98,11 @@ objects:
   - kind: PersistentVolumeClaim
     apiVersion: v1
     metadata:
-      name: postgres-claim-${PREFIX}${BRANCH}
+      name: postgres-claim-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: postgres-claim-${PREFIX}${BRANCH}
-        app: postgres-${PREFIX}${BRANCH}
+        io.kompose.service: postgres-claim-${NAME_PREFIX}${BRANCH}
+        app: postgres-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       accessModes:
         - ReadWriteOnce
@@ -117,7 +115,9 @@ objects:
   - kind: Secret
     apiVersion: v1
     metadata:
-      name: ${DB_SECRET}-${PREFIX}${BRANCH}
+      name: db-secret-${NAME_PREFIX}${BRANCH}
+      labels:
+        version: ${NAME_PREFIX}${BRANCH}
     data:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -130,105 +130,22 @@ objects:
   - kind: Secret
     apiVersion: v1
     metadata:
-      name: pygeoapi-secret-${PREFIX}${BRANCH}
+      name: pygeoapi-secret-${NAME_PREFIX}${BRANCH}
+      labels:
+        version: ${NAME_PREFIX}${BRANCH}
     data:
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+      ACCESS_EMAIL: ${ACCESS_EMAIL}
       SECRET_KEY: ${SECRET_KEY}
     type: Opaque
 
-  - kind: Secret
-    apiVersion: v1
-    metadata:
-      name: finbif-access-token-${PREFIX}${BRANCH}
-    data:
-      ACCESS_TOKEN: ${ACCESS_TOKEN}
-    type: Opaque
-
   - kind: ConfigMap
     apiVersion: v1
     metadata:
-      name: pygeoapi-config-${PREFIX}${BRANCH}
+      name: init-database-${NAME_PREFIX}${BRANCH}
       labels:
-        app: pygeoapi-${PREFIX}${BRANCH}
-    data:
-      catalogue.tinydb: Empty for now. Python scripts will fill this metadata catalogue.
-      pygeoapi-config.yml: |-
-        server:
-            bind:
-                host: 0.0.0.0
-                port: ${PYGEOAPI_PORT}
-            url: https://${HOST_URL}${HOST_PATH}
-            mimetype: application/json; charset=UTF-8
-            encoding: utf-8
-            gzip: false
-            languages:
-                - en-US
-                - fi-FI
-            # cors: true
-            pretty_print: true
-            limit: 10
-            templates:
-              path: custom/templates
-              static: pygeoapi/pygeoapi/static
-            map:
-                url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
-                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-            # ogc_schemas_location: /opt/schemas.opengis.net
-            
-        logging:
-            level: ERROR
-            #logfile: /tmp/pygeoapi.log
-        metadata:
-            identification:
-                title:
-                    en: FinBIF occurrence data OGC API
-                    fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
-                description:
-                    en: This portal allows you to query and fetch virva-filtered occurrence data from the repositories of Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-01-01.
-                    fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja lajitietokeskuksen lajihavaintoja. Viimeisin päivitys 2024-01-0.
-                keywords:
-                    en:
-                        - occurrence
-                        - geospatial data
-                        - api
-                    fi:
-                        - lajitieto
-                        - paikkatieto
-                        - rajapinta
-                keywords_type: theme
-                terms_of_service: https://creativecommons.org/licenses/by/4.0/
-                url: https://example.org
-            license:
-                name: CC-BY 4.0 license
-                url: https://creativecommons.org/licenses/by/4.0/
-            provider:
-                name: Luomus
-                url: https://laji.fi/
-            contact:
-                name: Alpo, Turunen
-                position: 
-                    en: Spatial Data Specialist
-                    fi: Paikkatietoasiantuntija
-                address: Pohjoinen Rautatiekatu 13 
-                city: Helsinki
-                stateorprovince: Uusimaa
-                postalcode: FI-00100
-                country: 
-                    en: Finland
-                    fi: Suomi
-                phone: +358 29 412 8819
-                email: alpo.turunen@helsinki.fi
-                url: 
-                    en: https://laji.fi/en
-                    fi: https://laji.fi/
-                role: pointOfContact
-        resources:
-
-  - kind: ConfigMap
-    apiVersion: v1
-    metadata:
-      name: init-database-${PREFIX}${BRANCH}
-      labels:
-        app: pygeoapi-${PREFIX}${BRANCH}
+        app: pygeoapi-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     data:
       init-database.sh: |-
         #!/bin/bash
@@ -244,19 +161,21 @@ objects:
   - kind: ServiceAccount
     apiVersion: v1
     metadata:
-      name: configmap-update-sa-${PREFIX}${BRANCH}
+      name: configmap-update-sa-${NAME_PREFIX}${BRANCH}
       labels:
-        app: python-scripts-${PREFIX}${BRANCH}
+        app: python-scripts-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     secrets:
-      - name: ${DB_SECRET}-${PREFIX}${BRANCH}
+      - name: db-secret-${NAME_PREFIX}${BRANCH}
   
   - kind: ImageStream
     apiVersion: image.openshift.io/v1
     metadata:
-      name: postgres-${PREFIX}${BRANCH}
+      name: postgres-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: postgres-${PREFIX}${BRANCH}
-        app: postgres-${PREFIX}${BRANCH}
+        io.kompose.service: postgres-${NAME_PREFIX}${BRANCH}
+        app: postgres-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       lookupPolicy:
         local: false
@@ -274,9 +193,10 @@ objects:
   - kind: Role
     apiVersion: rbac.authorization.k8s.io/v1
     metadata:
-      name: configmap-update-role-${PREFIX}${BRANCH}
+      name: configmap-update-role-${NAME_PREFIX}${BRANCH}
       labels:
-        app: python-scripts-${PREFIX}${BRANCH}
+        app: python-scripts-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     rules:
       - verbs:
           - patch
@@ -285,7 +205,7 @@ objects:
         resources:
           - configmaps
         resourceNames:
-          - pygeoapi-config-${PREFIX}${BRANCH}
+          - pygeoapi-config-${NAME_PREFIX}${BRANCH}
       - verbs:
           - delete
           - list
@@ -297,42 +217,45 @@ objects:
   - kind: RoleBinding
     apiVersion: rbac.authorization.k8s.io/v1
     metadata:
-      name: configmap-update-binding-${PREFIX}${BRANCH}
+      name: configmap-update-binding-${NAME_PREFIX}${BRANCH}
+      labels:
+        version: ${NAME_PREFIX}${BRANCH}
     subjects:
       - kind: ServiceAccount
-        name: configmap-update-sa-${PREFIX}${BRANCH}
+        name: configmap-update-sa-${NAME_PREFIX}${BRANCH}
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
-      name: configmap-update-role-${PREFIX}${BRANCH}
+      name: configmap-update-role-${NAME_PREFIX}${BRANCH}
 
   - kind: Deployment
     apiVersion: apps/v1
     metadata:
-      name: postgres-${PREFIX}${BRANCH}
+      name: postgres-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: postgres-${PREFIX}${BRANCH}
-        app: postgres-${PREFIX}${BRANCH}
+        io.kompose.service: postgres-${NAME_PREFIX}${BRANCH}
+        app: postgres-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       selector:
         matchLabels:
-          io.kompose.service: postgres-${PREFIX}${BRANCH}
+          io.kompose.service: postgres-${NAME_PREFIX}${BRANCH}
       template:
         metadata:
           labels:
-            io.kompose.network/${NAMESPACE}-default-${PREFIX}${BRANCH}: 'true'
-            io.kompose.service: postgres-${PREFIX}${BRANCH}
+            io.kompose.network/${NAMESPACE}-default-${NAME_PREFIX}${BRANCH}: 'true'
+            io.kompose.service: postgres-${NAME_PREFIX}${BRANCH}
         spec:
           volumes:
-            - name: postgres-claim-${PREFIX}${BRANCH}
+            - name: postgres-claim-${NAME_PREFIX}${BRANCH}
               persistentVolumeClaim:
-                claimName: postgres-claim-${PREFIX}${BRANCH}
-            - name: init-database-${PREFIX}${BRANCH}
+                claimName: postgres-claim-${NAME_PREFIX}${BRANCH}
+            - name: init-database-${NAME_PREFIX}${BRANCH}
               configMap:
-                name: init-database-${PREFIX}${BRANCH}
+                name: init-database-${NAME_PREFIX}${BRANCH}
                 defaultMode: 420
           containers:
-            - name: postgres-${PREFIX}${BRANCH}
+            - name: postgres-${NAME_PREFIX}${BRANCH}
               resources:
                 limits:
                   cpu: ${POSTGRES_CPU_LIMIT}
@@ -341,32 +264,32 @@ objects:
                 - name: POSTGRES_DB
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: POSTGRES_DB
                 - name: POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: POSTGRES_PASSWORD
                 - name: POSTGRES_USER
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: POSTGRES_USER
                 - name: INTERNAL_POSTGRES_DB
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: INTERNAL_POSTGRES_DB
                 - name: INTERNAL_POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: INTERNAL_POSTGRES_PASSWORD
                 - name: INTERNAL_POSTGRES_USER
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: INTERNAL_POSTGRES_USER
                 - name: PGDATA
                   value: /var/lib/postgresql/data/pgdata
@@ -375,9 +298,9 @@ objects:
                   protocol: TCP
               imagePullPolicy: IfNotPresent
               volumeMounts:
-                - name: postgres-claim-${PREFIX}${BRANCH}
+                - name: postgres-claim-${NAME_PREFIX}${BRANCH}
                   mountPath: /pgdata
-                - name: init-database-${PREFIX}${BRANCH}
+                - name: init-database-${NAME_PREFIX}${BRANCH}
                   mountPath: /docker-entrypoint-initdb.d/init-database.sh
                   subPath: init-database.sh
               terminationMessagePolicy: File
@@ -386,25 +309,26 @@ objects:
   - kind: Deployment
     apiVersion: apps/v1
     metadata:
-      name: pygeoapi-${PREFIX}${BRANCH}
+      name: pygeoapi-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: pygeoapi-${PREFIX}${BRANCH}
-        app: pygeoapi-${PREFIX}${BRANCH}
+        io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
+        app: pygeoapi-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       selector:
         matchLabels:
-          io.kompose.service: pygeoapi-${PREFIX}${BRANCH}
+          io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
       strategy:
         type: Recreate
       template:
         metadata:
           labels:
-            io.kompose.service: pygeoapi-${PREFIX}${BRANCH}
+            io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
         spec:
           volumes:
-            - name: pygeoapi-config-${PREFIX}${BRANCH}
+            - name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
               configMap:
-                name: pygeoapi-config-${PREFIX}${BRANCH}
+                name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                 defaultMode: 420
           containers:
             - resources:
@@ -412,45 +336,45 @@ objects:
                   cpu: ${PYGEOAPI_CPU_LIMIT}
                   memory: ${PYGEOAPI_MEMORY_LIMIT}
               terminationMessagePath: /dev/termination-log
-              name: pygeoapi-${PREFIX}${BRANCH}
+              name: pygeoapi-${NAME_PREFIX}${BRANCH}
               env:
                 - name: CONTAINER_PORT
                   value: '5000'
                 - name: POSTGRES_DB
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: INTERNAL_POSTGRES_DB
                 - name: POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: INTERNAL_POSTGRES_PASSWORD
                 - name: POSTGRES_USER
                   valueFrom:
                     secretKeyRef:
-                      name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                      name: "db-secret-${NAME_PREFIX}${BRANCH}"
                       key: INTERNAL_POSTGRES_USER
                 - name: POSTGRES_HOST
-                  value: postgres-${PREFIX}${BRANCH}
+                  value: postgres-${NAME_PREFIX}${BRANCH}
                 - name: LAJI_AUTH_URL
                   value: ${LAJI_AUTH_URL}
-                - name: RESTRICT_ACCESS
-                  value: ${RESTRICT_ACCESS}
+                - name: SENSITIVE_DATA
+                  value: ${SENSITIVE_DATA}
                 - name: SECRET_KEY
                   valueFrom:
                     secretKeyRef:
-                      name: "pygeoapi-secret-${PREFIX}${BRANCH}"
+                      name: "pygeoapi-secret-${NAME_PREFIX}${BRANCH}"
                       key: SECRET_KEY
               ports:
                 - containerPort: 5000
                   protocol: TCP
               imagePullPolicy: Always
               volumeMounts:
-                - name: pygeoapi-config-${PREFIX}${BRANCH}
+                - name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                   mountPath: /pygeoapi/local.config.yml
                   subPath: pygeoapi-config.yml
-                - name: pygeoapi-config-${PREFIX}${BRANCH}
+                - name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                   mountPath: /pygeoapi/catalogue.tinydb
                   subPath: catalogue.tinydb
               terminationMessagePolicy: File
@@ -464,9 +388,10 @@ objects:
   - kind: CronJob
     apiVersion: batch/v1
     metadata:
-      name: python-scripts-${PREFIX}${BRANCH}
+      name: python-scripts-${NAME_PREFIX}${BRANCH}
       labels:
-        app: python-scripts-${PREFIX}${BRANCH}
+        app: python-scripts-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       schedule: "0 0 * * 6"
       startingDeadlineSeconds: 600
@@ -481,7 +406,7 @@ objects:
               creationTimestamp: null
             spec:
               restartPolicy: Never
-              serviceAccountName: configmap-update-sa-${PREFIX}${BRANCH}
+              serviceAccountName: configmap-update-sa-${NAME_PREFIX}${BRANCH}
               schedulerName: default-scheduler
               terminationGracePeriodSeconds: 30
               securityContext: {}
@@ -492,37 +417,44 @@ objects:
                     - name: POSTGRES_DB
                       valueFrom:
                         secretKeyRef:
-                          name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                          name: "db-secret-${NAME_PREFIX}${BRANCH}"
                           key: POSTGRES_DB
                     - name: POSTGRES_PASSWORD
                       valueFrom:
                         secretKeyRef:
-                          name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                          name: "db-secret-${NAME_PREFIX}${BRANCH}"
                           key: POSTGRES_PASSWORD
                     - name: POSTGRES_USER
                       valueFrom:
                         secretKeyRef:
-                          name: "${DB_SECRET}-${PREFIX}${BRANCH}"
+                          name: "db-secret-${NAME_PREFIX}${BRANCH}"
                           key: POSTGRES_USER
                     - name: POSTGRES_HOST
-                      value: postgres-${PREFIX}${BRANCH}
+                      value: postgres-${NAME_PREFIX}${BRANCH}
                     - name: PAGES
                       value: ${PAGES}
                     - name: LAJI_API_URL
                       value: ${LAJI_API_URL}
                     - name: CONFIG_MAP_NAME
-                      value: "pygeoapi-config-${PREFIX}${BRANCH}"
+                      value: "pygeoapi-config-${NAME_PREFIX}${BRANCH}"
                     - name: SERVICE_NAME
-                      value: "pygeoapi-${PREFIX}${BRANCH}"
+                      value: "pygeoapi-${NAME_PREFIX}${BRANCH}"
                     - name: MULTIPROCESSING
                       value: ${MULTIPROCESSING}
                     - name: RUNNING_IN_OPENSHIFT
-                      value: ${RUNNING_IN_OPENSHIFT}
+                      value: "True"
                     - name: ACCESS_TOKEN
                       valueFrom:
                         secretKeyRef:
-                          name: finbif-access-token-${PREFIX}${BRANCH}
+                          name: pygeoapi-secret-${NAME_PREFIX}${BRANCH}
                           key: ACCESS_TOKEN
+                    - name: ACCESS_EMAIL
+                      valueFrom:
+                        secretKeyRef:
+                          name: pygeoapi-secret-${NAME_PREFIX}${BRANCH}
+                          key: ACCESS_EMAIL
+                    - name: SENSITIVE_DATA
+                      value: ${SENSITIVE_DATA}
                     - name: PYTHONUNBUFFERED
                       value: '1'
                   resources: 
@@ -530,20 +462,20 @@ objects:
                       cpu: ${PYTHON_SCRIPTS_CPU_LIMIT}
                       memory: ${PYTHON_SCRIPTS_MEMORY_LIMIT}
                   volumeMounts:
-                    - name: pygeoapi-config-${PREFIX}${BRANCH}
+                    - name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                       mountPath: /app/pygeoapi-config.yml
                       subPath: pygeoapi-config.yml
-                    - name: pygeoapi-config-${PREFIX}${BRANCH}
+                    - name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                       mountPath: /app/catalogue.tinydb
                       subPath: catalogue.tinydb
                   terminationMessagePath: /dev/termination-log
                   terminationMessagePolicy: File
                   imagePullPolicy: Always
-              serviceAccount: configmap-update-sa-${PREFIX}${BRANCH}
+              serviceAccount: configmap-update-sa-${NAME_PREFIX}${BRANCH}
               volumes:
-                - name: pygeoapi-config-${PREFIX}${BRANCH}
+                - name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                   configMap:
-                    name: pygeoapi-config-${PREFIX}${BRANCH}
+                    name: pygeoapi-config-${NAME_PREFIX}${BRANCH}
                     defaultMode: 420
               dnsPolicy: ClusterFirst
       successfulJobsHistoryLimit: 1
@@ -552,9 +484,10 @@ objects:
   - kind: Service
     apiVersion: v1
     metadata:
-      name: postgres-${PREFIX}${BRANCH}
+      name: postgres-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: postgres-${PREFIX}${BRANCH}
+        io.kompose.service: postgres-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       ports:
         - name: ${DB_PORT}
@@ -562,14 +495,15 @@ objects:
           port: ${{DB_PORT}}
           targetPort: ${{DB_PORT}}
       selector:
-        io.kompose.service: postgres-${PREFIX}${BRANCH}
+        io.kompose.service: postgres-${NAME_PREFIX}${BRANCH}
 
   - kind: Service
     apiVersion: v1
     metadata:
-      name: pygeoapi-${PREFIX}${BRANCH}
+      name: pygeoapi-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: pygeoapi-${PREFIX}${BRANCH}
+        io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
     spec:
       ports:
         - name: ${PYGEOAPI_PORT}
@@ -577,15 +511,16 @@ objects:
           port: ${{PYGEOAPI_PORT}}
           targetPort: ${{PYGEOAPI_PORT}}
       selector:
-        io.kompose.service: pygeoapi-${PREFIX}${BRANCH}
+        io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
 
   - kind: Route
     apiVersion: route.openshift.io/v1
     metadata:
-      name: geoapi-laji-fi-${PREFIX}${BRANCH}
+      name: geoapi-laji-fi-${NAME_PREFIX}${BRANCH}
       labels:
-        io.kompose.service: pygeoapi-${PREFIX}${BRANCH}
-        app: pygeoapi-${PREFIX}${BRANCH}
+        io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
+        app: pygeoapi-${NAME_PREFIX}${BRANCH}
+        version: ${NAME_PREFIX}${BRANCH}
       annotations:
         haproxy.router.openshift.io/rewrite-target: /
         openshift.io/host.generated: 'true'
@@ -594,7 +529,7 @@ objects:
       path: "${HOST_PATH}"
       to:
         kind: Service
-        name: pygeoapi-${PREFIX}${BRANCH}
+        name: pygeoapi-${NAME_PREFIX}${BRANCH}
         weight: 100
       port:
         targetPort: ${{PYGEOAPI_PORT}}
