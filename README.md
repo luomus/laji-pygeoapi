@@ -35,6 +35,7 @@ INTERNAL_POSTGRES_HOST=postgres
 LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
 SENSITIVE_DATA=False
 SECRECT_KEY=secret
+ACCESS_EMAIL=your@email.com
 ```
 Where
 | Variable name | Definition | Default value |
@@ -44,9 +45,8 @@ Where
 | POSTGRES_PASSWORD| The password associated with the default user | *not set*|
 | POSTGRES_HOST| The host running the database| postgres |
 | PAGES| Integer to download a specific number of pages. *"0"* to empty the database. *"all"* to add all data (this takes a lot of time), *"latest"* to add only the latest data after the last update | latest |
-| BRANCH| The GitHub branch|dev|
-| MULTIPROCESSING| Enables (*"True"*) or disables (*"False"*) multiprocessing when downloading data from the source APIs| False               |
-| RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in a Docker.| False |
+| MULTIPROCESSING| Enables (*"True"*) or disables (*"False"*) multiprocessing when downloading data and calculating indexes| False |
+| RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in Docker.| False |
 | ACCESS_TOKEN| API Access token needed for using the source APIs. See instruction: https://api.laji.fi/explorer/ | loremipsum12456789 |
 | INTERNAL_POSTGRES_DB| Name for the internal database | my_internal_db |
 | INTERNAL_POSTGRES_USER| Username for the internal database | pygeoapi |
@@ -54,28 +54,29 @@ Where
 | INTERNAL_POSTGRES_HOST| Hostname for the internal database | postgres |
 | LAJI_AUTH_URL| URL to connect laji.fi auth system | https://fmnh-ws-test.it.helsinki.fi/laji-auth/ |
 | SENSITIVE_DATA| True for sensitive, not coarsened data. Needs permissions to query from private data warehouse. | False |
-| SECRECT_KEY| Static random secret key | secret |
 
 ### 4. Init the database:
+Assuming you are in the root directory, run:
 ```
 ./scripts/init-db.sh
 ./scripts/flask-command.sh db upgrade
 ```
+*Note*: On Windows, you may need to provide full paths and ensure that Docker Desktop is open.
 
 ### 5. Run docker command:
 ```
 docker compose up --build
 ```
 
-6. That's it! Your Pygeoapi instance with the PostGIS  database should now be up and running.
+6. That's it! Your Pygeoapi instance with the PostGIS  database should now be up and running. You can stop it by pressing CTRL + C. 
 
 ## Usage
-Once the Docker container is up and running, you can access the Pygeoapi service through your web browser. By default, the service is available at [http://localhost:5000](http://localhost:5000).
+Once the Docker container is running, you can access the Pygeoapi service through your web browser at [http://localhost:5000](http://localhost:5000).
 
 ## Configuration
-The configuration file for Pygeoapi is named `pygeoapi-config.yml`. You can modify these files in a text editor to customize the behavior of the Pygeoapi service or connect to a different PostGIS database tables.
+The configuration file for Pygeoapi is named `pygeoapi-config.yml`. You can modify these files in a text editor to customize the behavior of the Pygeoapi service or connect to a different PostGIS database tables. 
 
-To edit the data or database, see Python files in the `src` folder. 
+Note: the config file is generated mostly automatically by the Python scripts located in the `src` directory. 
 
 # Openshift Installation
 See https://github.com/luomus/laji-pygeoapi/blob/dev/openshift/README.md

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 sys.path.append('src/')
 
-from compute_variables import compute_all, get_biogeographical_region_from_id, get_title_name_from_table_name
+from compute_variables import compute_all, get_biogeographical_region_from_id, get_title_name_from_table_name, map_values, compute_collection_id, compute_individual_count
 from load_data import get_value_ranges
 
 class TestComputeAll(unittest.TestCase):
@@ -116,6 +116,66 @@ class TestGetTitleNameFromTableName(unittest.TestCase):
         """
         self.assertEqual(get_title_name_from_table_name("unknown_area_polygons"), "Unknown table name")
     
+class TestMapValues(unittest.TestCase):
+
+    def setUp(self):
+        load_dotenv()
+        access_token = os.getenv('ACCESS_TOKEN')
+        laji_api_url = os.getenv('LAJI_API_URL')
+        value_ranges_url = f'{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}'
+        self.value_ranges = get_value_ranges(value_ranges_url)
+
+    def test_all_mapped_values(self):
+        # Test when all values are mapped
+        col = pd.Series(['MX.regionallyThreatened2020_4d', 'http://tun.fi/MX.birdsDirectiveStatusAppendix2A'])
+        expected_result = pd.Series(['Alueellisesti uhanalainen 2020 - 4d Pohjoisboreaalinen, Tunturi-Lappi', 'EU:n lintudirektiivin II/A-liite'])
+        result = map_values(col, self.value_ranges)
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_partial_mapped_values_and_nones(self):
+        # Test when some values are mapped, some not
+        col = pd.Series(['http://tun.fi/MX.gameBird', 'MX.gameMammal', 'xyz123'])
+        expected_result = pd.Series(['Riistalintu (Metsästyslaki 1993/615)', 'Riistanisäkäs (Metsästyslaki 1993/615; 2019/683)', 'xyz123'])
+        result = map_values(col, self.value_ranges)
+        pd.testing.assert_series_equal(result, expected_result)
+
+class TestComputeCollectionId(unittest.TestCase):
+
+    def setUp(self):
+        # Sample dictionary for collection names
+        self.collection_names = {
+            'HR.3553': 'Collection A',
+            'HR.1245': 'Collection B',
+            'HR.9999': 'Collection C'
+        }
+
+    def test_all_mapped_ids(self):
+        # Test when all collection ids have corresponding names
+        collection_id_col = pd.Series(['http://tun.fi/HR.3553', 'http://tun.fi/HR.1245'])
+        expected_result = pd.Series(['Collection A', 'Collection B'])
+        result = compute_collection_id(collection_id_col, self.collection_names)
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_partial_mapped_ids(self):
+        # Test when some collection ids are missing in the dictionary
+        collection_id_col = pd.Series(['http://tun.fi/HR.3553', 'http://tun.fi/HR.0000'])
+        expected_result = pd.Series(['Collection A', None])  # HR.0000 is not mapped
+        result = compute_collection_id(collection_id_col, self.collection_names)
+        pd.testing.assert_series_equal(result, expected_result)
+
+    def test_mixed_ids(self):
+        # Test when ids contain URLs that should be stripped
+        collection_id_col = pd.Series(['http://tun.fi/HR.3553', 'HR.1245', '', None])
+        expected_result = pd.Series(['Collection A', 'Collection B', None, None])
+        result = compute_collection_id(collection_id_col, self.collection_names)
+        pd.testing.assert_series_equal(result, expected_result)
+
+class TestComputeIndividualCount(unittest.TestCase):
+    def test_all_mapped_ids(self):
+        collection_id_col = pd.Series([0, 1, 10])
+        expected_result = pd.Series(['poissa', 'paikalla', 'paikalla'])
+        result = pd.Series(compute_individual_count(collection_id_col))
+        pd.testing.assert_series_equal(result, expected_result)
 
 if __name__ == '__main__':
     unittest.main()
