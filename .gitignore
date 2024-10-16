@@ -8,6 +8,7 @@ venv/
 *.pyo
 catalogue.tinydb
 openshift/processed-template.yaml
+openshift/processed-config-template.yaml
 openshift/test.env
 openshift/prod.env
 openshift/virva-test.env
