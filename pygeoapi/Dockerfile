@@ -22,14 +22,14 @@ ENTRYPOINT ["/pygeoapi/entrypoint.sh"]
 
 FROM base AS laji-pygeoapi-default
 
-ENV SENSITIVE_DATA="False"
+ENV RESTRICT_ACCESS="False"
 
 COPY pygeoapi/custom/templates ./custom/templates/
 COPY pygeoapi/custom/static ./pygeoapi/static/
 
 FROM base AS laji-pygeoapi-virva
 
-ENV SENSITIVE_DATA="True"
+ENV RESTRICT_ACCESS="True"
 
 COPY pygeoapi/custom/virva-templates ./custom/templates/
 COPY pygeoapi/custom/virva-static ./pygeoapi/static/

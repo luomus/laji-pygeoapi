@@ -5,10 +5,10 @@ class Config(object):
     DEBUG = False
     TESTING = False
 
-    SENSITIVE_DATA = os.environ['SENSITIVE_DATA'] == "True"
+    RESTRICT_ACCESS = os.environ['RESTRICT_ACCESS'] == 'True'
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    if SENSITIVE_DATA is True and not SECRET_KEY:
-        raise ValueError('SECRET_KEY is required when SENSITIVE_DATA is True')
+    if RESTRICT_ACCESS is True and not SECRET_KEY:
+        raise ValueError('SECRET_KEY is required when RESTRICT_ACCESS is True')
 
     SQLALCHEMY_DATABASE_URI = 'postgresql://{}:{}@{}:{}/{}'.format(
         os.environ['POSTGRES_USER'],

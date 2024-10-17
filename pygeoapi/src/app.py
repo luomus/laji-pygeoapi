@@ -14,7 +14,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db, include_schemas=True)
 
 
-if app.config['SENSITIVE_DATA']:
+if app.config['RESTRICT_ACCESS']:
     import src.basic_auth # noqa
     from src.views import admin_api_blueprint
 
