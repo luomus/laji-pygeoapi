@@ -9,12 +9,10 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   
 jobs:
-  build-and-push-python-scripts:
+  build-and-push-images:
     strategy:
       matrix:
-        name: [ python-scripts, pygeoapi, pygeoapi-virva ]
-        dockerfile: [ Dockerfile, pygeoapi/Dockerfile, pygeoapi/Dockerfile ]
-        target: [ '', 'default', 'virva' ]
+        configuration: [ {name: python-scripts, dockerfile: Dockerfile, target: ''}, {name: pygeoapi, dockerfile: pygeoapi/Dockerfile, target: 'default'}, {name: pygeoapi, dockerfile: pygeoapi/Dockerfile, target: 'virva'} ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,7 +25,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.name }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.configuration.name }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -42,6 +40,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ matrix.dockerfile }}
+          file: ${{ matrix.configuration.dockerfile }}
           build-args: |
-            target: ${{ matrix.target }}
+            target: ${{ matrix.configuration.target }}
