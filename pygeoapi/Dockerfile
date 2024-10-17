@@ -1,4 +1,6 @@
-FROM geopython/pygeoapi:latest
+ARG target
+
+FROM geopython/pygeoapi:latest AS base
 
 ENV PYGEOAPI_HOME=/pygeoapi
 ENV PYGEOAPI_CONFIG="${PYGEOAPI_HOME}/local.config.yml"
@@ -10,8 +12,6 @@ RUN python3 -m pip install --no-cache-dir -r requirements-custom.txt
 COPY pygeoapi/setup.sh .
 COPY pygeoapi/entrypoint.sh .
 COPY pygeoapi/entrypoint-dev.sh .
-COPY pygeoapi/custom/templates ./custom/templates/
-COPY pygeoapi/custom/static ./pygeoapi/static/
 COPY pygeoapi/migrations ./migrations
 COPY pygeoapi/src ./src
 
@@ -19,3 +19,19 @@ RUN chgrp -R 0 /pygeoapi && chmod -R g=u /pygeoapi
 RUN chmod +x /pygeoapi/entrypoint.sh && chmod +x /pygeoapi/entrypoint-dev.sh
 
 ENTRYPOINT ["/pygeoapi/entrypoint.sh"]
+
+FROM base AS laji-pygeoapi-default
+
+ENV SENSITIVE_DATA="False"
+
+COPY pygeoapi/custom/templates ./custom/templates/
+COPY pygeoapi/custom/static ./pygeoapi/static/
+
+FROM base AS laji-pygeoapi-virva
+
+ENV SENSITIVE_DATA="True"
+
+COPY pygeoapi/custom/virva-templates ./custom/templates/
+COPY pygeoapi/custom/virva-static ./pygeoapi/static/
+
+FROM laji-pygeoapi-${target} AS final

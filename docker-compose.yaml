@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: pygeoapi/Dockerfile
+      args:
+        target: ${TARGET}
     entrypoint: /pygeoapi/entrypoint-dev.sh
     ports:
       - "5000:5000"
@@ -12,12 +14,12 @@ services:
       POSTGRES_PASSWORD: ${INTERNAL_POSTGRES_PASSWORD}
       POSTGRES_HOST: ${INTERNAL_POSTGRES_HOST}
       LAJI_AUTH_URL: ${LAJI_AUTH_URL}
-      SENSITIVE_DATA: ${SENSITIVE_DATA}
       SECRET_KEY: ${SECRET_KEY}
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
       - ./pygeoapi/migrations:/pygeoapi/migrations
+      - ./pygeoapi/custom/${TARGET}-templates:/pygeoapi/custom/templates
       - ./pygeoapi/src:/pygeoapi/src
     networks:
       - pygeoapinet

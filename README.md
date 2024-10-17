@@ -33,9 +33,9 @@ INTERNAL_POSTGRES_USER=pygeoapi
 INTERNAL_POSTGRES_PASSWORD=admin456
 INTERNAL_POSTGRES_HOST=postgres
 LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
-SENSITIVE_DATA=False
 SECRECT_KEY=secret
 ACCESS_EMAIL=your@email.com
+TARGET=default
 ```
 Where
 | Variable name | Definition | Default value |
@@ -53,15 +53,16 @@ Where
 | INTERNAL_POSTGRES_PASSWORD| Password for the internal database | admin456 |
 | INTERNAL_POSTGRES_HOST| Hostname for the internal database | postgres |
 | LAJI_AUTH_URL| URL to connect laji.fi auth system | https://fmnh-ws-test.it.helsinki.fi/laji-auth/ |
-| SENSITIVE_DATA| True for sensitive, not coarsened data. Needs permissions to query from private data warehouse. | False |
+| TARGET| Either "default" or "virva" | default |
 
 ### 4. Init the database:
-Assuming you are in the root directory, run:
+In the root directory, run:
 ```
 ./scripts/init-db.sh
 ./scripts/flask-command.sh db upgrade
 ```
-*Note*: On Windows, you may need to provide full paths and ensure that Docker Desktop is open.
+*Note*: If you get "Permissions denied" error, you may have to change the permissions of the file `init-database.sh`.
+On Windows, you may need to provide full paths and ensure that Docker Desktop is open.
 
 ### 5. Run docker command:
 ```

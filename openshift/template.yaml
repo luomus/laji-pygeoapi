@@ -62,9 +62,9 @@ parameters:
   - name: LAJI_AUTH_URL
     required: true
     value: "https://login.laji.fi/laji-auth/"
-  - name: SENSITIVE_DATA
+  - name: TARGET
     required: true
-    value: "False"
+    value: "default"
   - name: SECRET_KEY
     required: false
   - name: POSTGRES_CPU_LIMIT
@@ -359,8 +359,6 @@ objects:
                   value: postgres-${NAME_PREFIX}${BRANCH}
                 - name: LAJI_AUTH_URL
                   value: ${LAJI_AUTH_URL}
-                - name: SENSITIVE_DATA
-                  value: ${SENSITIVE_DATA}
                 - name: SECRET_KEY
                   valueFrom:
                     secretKeyRef:
@@ -378,7 +376,7 @@ objects:
                   mountPath: /pygeoapi/catalogue.tinydb
                   subPath: catalogue.tinydb
               terminationMessagePolicy: File
-              image: ghcr.io/luomus/laji-pygeoapi-pygeoapi:${BRANCH}
+              image: ghcr.io/luomus/laji-pygeoapi-pygeoapi-${TARGET}:${BRANCH}
           restartPolicy: Always
           terminationGracePeriodSeconds: 30
           dnsPolicy: ClusterFirst
@@ -453,8 +451,8 @@ objects:
                         secretKeyRef:
                           name: pygeoapi-secret-${NAME_PREFIX}${BRANCH}
                           key: ACCESS_EMAIL
-                    - name: SENSITIVE_DATA
-                      value: ${SENSITIVE_DATA}
+                    - name: TARGET
+                      value: ${TARGET}
                     - name: PYTHONUNBUFFERED
                       value: '1'
                   resources: 
