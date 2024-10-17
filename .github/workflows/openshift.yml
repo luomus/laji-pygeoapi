@@ -9,88 +9,39 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   
 jobs:
-  build-and-push-image:
+  build-and-push-python-scripts:
+    strategy:
+      matrix:
+        name: [ python-scripts, pygeoapi, pygeoapi-virva ]
+        dockerfile: [ Dockerfile, pygeoapi/Dockerfile, pygeoapi/Dockerfile ]
+        target: [ '', 'default', 'virva' ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # Part 1: Build and push the python scripts image
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta-python-scripts
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python-scripts
-          
-    - name: Buildah Action - python-scripts
-      id: build_python-scripts
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: ${{ env.IMAGE_NAME }}python-scripts
-        tags: ${{ steps.meta-python-scripts.outputs.tags }}
-        oci: true
-        containerfiles: |
-          ./Dockerfile
-          
-    - name: Push python-scripts Image To GHCR
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        tags: ${{ steps.build_python-scripts.outputs.tags }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.ACCESS_TOKEN }}
+      - name: Extract Metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.name }}
 
-    # Part 2: Build and push the pygeoapi image
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta-pygeoapi
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-pygeoapi
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.ACCESS_TOKEN }}
 
-    - name: Buildah Action - pygeoapi
-      id: build_pygeoapi
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: ${{ env.IMAGE_NAME }}-pygeoapi
-        tags: ${{ steps.meta-pygeoapi.outputs.tags }}
-        oci: true
-        containerfiles: |
-          ./pygeoapi/Dockerfile
-        build-args: |
-          target=default
-          
-    - name: Push pygeoapi Image To GHCR
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        tags: ${{ steps.build_pygeoapi.outputs.tags }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.ACCESS_TOKEN }}
-
-    # Part 3: Build and push the pygeoapi virva image
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta-pygeoapi-virva
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-pygeoapi-virva
-
-    - name: Buildah Action - pygeoapi virva
-      id: build_pygeoapi-virva
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: ${{ env.IMAGE_NAME }}-pygeoapi-virva
-        tags: ${{ steps.meta-pygeoapi-virva.outputs.tags }}
-        oci: true
-        containerfiles: |
-          ./pygeoapi/Dockerfile
-        build-args: |
-          target=virva
-
-    - name: Push pygeoapi virva Image To GHCR
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        tags: ${{ steps.build_pygeoapi-virva.outputs.tags }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.ACCESS_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ matrix.dockerfile }}
+          build-args: |
+            target: ${{ matrix.target }}
