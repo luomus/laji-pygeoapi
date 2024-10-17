@@ -42,4 +42,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ matrix.configuration.dockerfile }}
           build-args: |
-            target: ${{ matrix.configuration.target }}
+            target=${{ matrix.configuration.target }}
