@@ -12,7 +12,7 @@ jobs:
   build-and-push-images:
     strategy:
       matrix:
-        configuration: [ {name: python-scripts, dockerfile: Dockerfile, target: ''}, {name: pygeoapi, dockerfile: pygeoapi/Dockerfile, target: 'default'}, {name: pygeoapi, dockerfile: pygeoapi/Dockerfile, target: 'virva'} ]
+        configuration: [ {name: python-scripts, dockerfile: Dockerfile, target: ''}, {name: pygeoapi, dockerfile: pygeoapi/Dockerfile, target: 'default'}, {name: pygeoapi-virva, dockerfile: pygeoapi/Dockerfile, target: 'virva'} ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
