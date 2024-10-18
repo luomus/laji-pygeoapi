@@ -24,8 +24,8 @@ FROM base AS laji-pygeoapi-default
 
 ENV RESTRICT_ACCESS="False"
 
-COPY pygeoapi/custom/templates ./custom/templates/
-COPY pygeoapi/custom/static ./pygeoapi/static/
+COPY pygeoapi/custom/default-templates ./custom/templates/
+COPY pygeoapi/custom/default-static ./pygeoapi/static/
 
 FROM base AS laji-pygeoapi-virva
 

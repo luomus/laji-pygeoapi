@@ -20,6 +20,7 @@ services:
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
       - ./pygeoapi/migrations:/pygeoapi/migrations
       - ./pygeoapi/custom/${TARGET}-templates:/pygeoapi/custom/templates
+      - ./pygeoapi/custom/${TARGET}-static/custom:/pygeoapi/pygeoapi/static/custom
       - ./pygeoapi/src:/pygeoapi/src
     networks:
       - pygeoapinet
