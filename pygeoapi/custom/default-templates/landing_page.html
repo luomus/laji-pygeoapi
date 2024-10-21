@@ -8,7 +8,8 @@
   <div class="col-md-8 col-sm-12">
 
   <section id="identification">
-    <h1>{{ config['metadata']['identification']['title'] }}</h1>
+    <h1>{{"FinBIF OGC API Features for open data"}}</h1>
+    <p>{{"This portal allows you to query and fetch openly available virva-filtered occurrence data from the Finnish Biodiversity Information Facility (FinBIF)."}}</p>
     <p>{{ config['metadata']['identification']['description'] }}</p>
 
     <p>
@@ -42,7 +43,7 @@
         {% endif %}
           <div class="row">
               <div class="col-sm-4">
-                {% trans %}URL{% endtrans %}
+                {% trans %}More details{% endtrans %}
               </div>
               <div class="col-sm-8">
                   <a href="{{ config['metadata']['identification']['url'] }}">
@@ -60,6 +61,18 @@
     </p>
   </section>
  {% endif %}
+ <section id="API Documentation">
+  <h2>{% trans %}API Instructions{% endtrans %}</h2>
+  <p>
+    <a href="https://info.laji.fi/etusivu/palvelut-ja-ohjeet/paikkatieto/rajapintayhteydet/ogc-api-paikkatietorajapinta-yleisesti/">{% trans %}View the instructions and documentation{% endtrans %}</a>
+  </p>
+</section>
+<section id="Restricted data">
+  <h2>{% trans %}For public authorities{% endtrans %}</h2>
+  <p>
+    <a href="https://info.laji.fi/?page_id=1368&preview=true">{% trans %}See how to access the restricted version of this API{% endtrans %}</a>
+  </p>
+</section>
  {% if data['stac'] %}
   <section id="collections">
     <h2>{% trans %}SpatioTemporal Assets{% endtrans %}</h2>
@@ -97,12 +110,6 @@
         <a href="{{ config['server']['url'] }}/conformance?f=html">{% trans %}View the conformance classes of this service{% endtrans %}</a>
       </p>
   </section>
-  <section id="API Documentation">
-    <h2>{% trans %}API Instructions and Documentation{% endtrans %}</h2>
-    <p>
-      <a href="https://info.laji.fi/etusivu/palvelut-ja-ohjeet/paikkatieto/rajapintayhteydet/ogc-api-paikkatietorajapinta-yleisesti/">{% trans %}View the instructions and documentation{% endtrans %}</a>
-    </p>
-</section>
   </div>
   <div class="col-md-4 col-sm-12">
     <div class="card mb-3">
