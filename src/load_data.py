@@ -6,7 +6,7 @@ import time
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
-def fetch_json_with_retry(url, max_retries=3, delay=10):
+def fetch_json_with_retry(url, max_retries=5, delay=30):
     """
     Fetches JSON data from an API URL with retry logic.
     
@@ -88,8 +88,8 @@ def download_page(url, page_no):
     """
     # Load data
     attempt = 0
-    max_retries = 3
-    delay = 10
+    max_retries = 5
+    delay = 30
     url = url.replace('page=1', f'page={page_no}')
     while attempt < max_retries:
         try:

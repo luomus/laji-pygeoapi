@@ -267,7 +267,7 @@ def execute_sql(connection, sql):
     """
     connection.execute(sql)
 
-def update_indexes(table_names, use_multiprocessing=False):
+def update_indexes(table_names, use_multiprocessing=True):
     """
     Updates spatial and normal indexes for the given table
 
@@ -282,7 +282,6 @@ def update_indexes(table_names, use_multiprocessing=False):
                 # Combine all index creation queries into a single execution
                 index_creation_sql = text(f'''
                     CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
-                    CREATE INDEX IF NOT EXISTS "idx_{table_name}_Suomenkielinen_nimi" ON "{table_name}" ("Suomenkielinen_nimi");
                     CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
                 ''')
 
@@ -295,6 +294,8 @@ def update_indexes(table_names, use_multiprocessing=False):
         else:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 executor.map(update_single_table_indexes, table_names)
+    else:
+        print("No table names given, can't update table indexes")
 
 def validate_geometries_postgis(table_name):
     """
