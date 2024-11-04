@@ -1,5 +1,5 @@
 from src.app import app, auth, admin_api_auth
-from src.services import api_key_service
+from src.services import api_key_service, request_log_service
 from src.models import AdminAPIUser
 from datetime import datetime
 from flask import request
@@ -27,12 +27,29 @@ login_required_dummy_view = auth.login_required(lambda: None)
 
 @app.before_request
 def before_request():
-    if not request.endpoint:
-        return
-
-    endpoint_root = request.endpoint.split('.', 1)[0]
-
-    if request.endpoint in ['static', 'pygeoapi.landing_page'] or endpoint_root in ['admin_api']:
+    if not _endpoint_requires_login(request.endpoint):
         return
 
     return login_required_dummy_view()
+
+
+@app.after_request
+def after_request(response):
+    if not _endpoint_requires_login(request.endpoint):
+        return response
+
+    request_log_service.create_log_entry(request, response)
+
+    return response
+
+
+def _endpoint_requires_login(endpoint):
+    if not endpoint:
+        return False
+
+    endpoint_root = endpoint.split('.', 1)[0]
+
+    if endpoint in ['static', 'pygeoapi.landing_page'] or endpoint_root in ['admin_api']:
+        return False
+
+    return True
