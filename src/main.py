@@ -148,7 +148,7 @@ def main():
 
             print(f"Processing tables in the DB...")
             duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_names)
-            edit_db.update_indexes(table_names, multiprocessing)
+            #edit_db.update_indexes(table_names, multiprocessing)
 
         print("Creating metadata...")
         edit_metadata.create_metadata(template_resource, metadata_db_path, pygeoapi_config_out)
