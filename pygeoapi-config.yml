@@ -30,8 +30,8 @@ metadata:
             en: FinBIF occurrence data OGC API
             fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
         description:
-            en: This portal allows you to query and fetch virva-filtered openly available occurrence data from the Finnish Biodiversity Information Facility (FinBIF). Latest update 2024-09-18. 
-            fi: Tämän rajapinnan kautta voit hakea viranomaisrajauksin rajattuja avoimesti saatavilla olevia lajitietokeskuksen lajihavaintoja. Päivitetty 2024-09-18.            
+            en: Latest update 2024-11-18. 
+            fi: Päivitetty 2024-11-18.            
         keywords:
             en:
                 - occurrence data
@@ -60,6 +60,10 @@ metadata:
         city: Helsinki
         stateorprovince: Uusimaa
         postalcode: FI-00100
+        phone:
+        fax:
+        instructions:
+        hours:
         country: 
             en: Finland
             fi: Suomi
