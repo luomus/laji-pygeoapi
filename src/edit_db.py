@@ -5,6 +5,9 @@ import os
 from dotenv import load_dotenv
 import concurrent.futures
 import multiprocessing
+import time
+from sqlalchemy.dialects.postgresql import base
+from geoalchemy2.types import Geometry
 
 postgis_default_tables = ['spatial_ref_sys',
                             'topology',
@@ -67,6 +70,9 @@ def connect_to_db():
     with engine.connect() as connection:
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
         connection.commit()
+
+    # Register the Geometry type with SQLAlchemy
+    base.ischema_names['geometry'] = Geometry
 
     return engine
 
@@ -261,11 +267,19 @@ def to_db(gdf, table_names):
 
     return failed_features_count
 
-def execute_sql(connection, sql):
-    """
-    Executes a SQL query using a connection.
-    """
-    connection.execute(sql)
+def update_single_table_indexes(table_name):
+    with engine.connect() as connection:
+        print(f"Updating indexes for table: {table_name}")
+
+        # Combine all index creation queries into a single execution
+        index_creation_sql = text(f'''
+            CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
+            CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
+        ''')
+
+        # Execute the combined index creation block
+        connection.execute(index_creation_sql)
+        connection.commit()
 
 def update_indexes(table_names, use_multiprocessing=True):
     """
@@ -275,19 +289,7 @@ def update_indexes(table_names, use_multiprocessing=True):
     table_names (list): A PostGIS table names to where indexes will be updated
     """
     if table_names:
-        def update_single_table_indexes(table_name):
-            with engine.connect() as connection:
-                print(f"Updating indexes for table: {table_name}")
-
-                # Combine all index creation queries into a single execution
-                index_creation_sql = text(f'''
-                    CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
-                    CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
-                ''')
-
-                # Execute the combined index creation block
-                connection.execute(index_creation_sql)
-        
+       
         if use_multiprocessing:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 executor.map(update_single_table_indexes, table_names)
@@ -321,7 +323,7 @@ def validate_geometries_postgis(table_name):
     else:
         return 0
 
-def remove_duplicates_by_id(table_names):
+def remove_duplicates(table_names):
     """
     Remove duplicate rows from the specified table based on the 'Havainnon_tunniste' attribute.
     This is needed if data is updated and some pages have had occurrences that are already in the database.
@@ -338,8 +340,16 @@ def remove_duplicates_by_id(table_names):
             number_before_deletion = get_amount_of_occurrences(table_name)
 
             with engine.connect() as connection:
-                # SQL to delete duplicate rows based on the Havainnon_tunniste attribute
-                remove_duplicates_sql = text(f'DELETE FROM "{table_name}" WHERE ctid NOT IN (SELECT MIN(ctid) FROM "{table_name}" GROUP BY "Havainnon_tunniste");')
+                # SQL query to remove duplicates
+                remove_duplicates_sql = text(f'''
+                    DELETE FROM "{table_name}" t
+                    USING (
+                        SELECT "Havainnon_tunniste", MIN(ctid) AS keep_ctid
+                        FROM "{table_name}"
+                        GROUP BY "Havainnon_tunniste"
+                    ) cte
+                    WHERE t.ctid != cte.keep_ctid AND t."Havainnon_tunniste" = cte."Havainnon_tunniste";
+                ''')
 
                 # Execute the SQL to remove duplicates
                 connection.execute(remove_duplicates_sql)

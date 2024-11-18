@@ -67,8 +67,6 @@ def main():
         red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
         country_id = "ML.206"
         time_range = "1990-01-01/" 
-        only_count = "false"
-        individual_count_min = "0"
         coordinate_accuracy_max = "1000"
         page = "1"
         page_size = "10000"
@@ -77,7 +75,7 @@ def main():
         geo_json = "true"
         feature_type = "ORIGINAL_FEATURE"
         biogeographical_province_ids = ["ML.251","ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
-        occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&onlyCount={only_count}&individualCountMin={individual_count_min}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
+        occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&access_token={access_token}"
     
         # Check if 'PAGES' is set to 'latest' and 'last_update' is available
         if pages_env == 'latest' and last_update:
@@ -147,7 +145,7 @@ def main():
 
 
             print(f"Processing tables in the DB...")
-            duplicates_count_by_id += edit_db.remove_duplicates_by_id(table_names)
+            duplicates_count_by_id += edit_db.remove_duplicates(table_names)
             #edit_db.update_indexes(table_names, multiprocessing)
 
         print("Creating metadata...")
@@ -157,8 +155,8 @@ def main():
         number_of_occurrences_after_updating = edit_db.get_amount_of_all_occurrences()
         print(f"So, in total, {processed_occurrences} occurrences were processed:")
         print(f" -> {edited_features_count} of them had invalid geometries that were fixed")
-        print(f" -> {duplicates_count_by_id} of them were not inserted as they were already in the database")
         print(f" -> {failed_features_count} of them failed to add to the database")
+        print(f" -> {duplicates_count_by_id} duplicates were removed from the database")
         print(f"The database has now {number_of_occurrences_after_updating} occurrences")
 
         # Add metadata info to config file
