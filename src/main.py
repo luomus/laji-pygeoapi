@@ -21,8 +21,8 @@ def main():
     # URLs and file paths
     taxon_name_url = f'{laji_api_url}informal-taxon-groups?lang=fi&pageSize=1000&access_token={access_token}'
     collection_names_url = f"{laji_api_url}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={access_token}"
-    value_ranges_url = f'{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}'
-    enums_url = f'{laji_api_url}/warehouse/enumeration-labels?access_token={access_token}'
+    ranges1_url = f'{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}'
+    ranges2_url = f'{laji_api_url}/warehouse/enumeration-labels?access_token={access_token}'
     template_resource = r'template_resource.txt'
     pygeoapi_config = r'pygeoapi-config.yml'
     municipal_geojson_path = r'municipalities.geojson'
@@ -59,8 +59,9 @@ def main():
         print("Loading taxon data, collection data and value ranges...")
         taxon_df = load_data.get_taxon_data(taxon_name_url)
         collection_names = load_data.get_collection_names(collection_names_url)
-        value_ranges = load_data.get_value_ranges(value_ranges_url)
-        enums = load_data.get_enumerations(enums_url)
+        ranges1 = load_data.get_value_ranges(ranges1_url)
+        ranges2 = load_data.get_enumerations(ranges2_url)
+        all_value_ranges = ranges1 | ranges2 # Concenate dictionaries
 
         # Create an URL for occurrence data
         base_url = f"{laji_api_url}warehouse/query/unit/list?"
@@ -137,7 +138,7 @@ def main():
                 gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
                 gdf = process_data.process_facts(gdf)
                 gdf = process_data.combine_similar_columns(gdf)
-                gdf = compute_variables.compute_all(gdf, value_ranges, enums, collection_names, municipal_geojson_path)
+                gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipal_geojson_path)
                 gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
                 gdf, edited_features = process_data.validate_geometry(gdf)
                 edited_features_count += edited_features
