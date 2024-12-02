@@ -156,7 +156,7 @@ def get_biogeographical_region_from_id(id):
 
     return cleaned_name
 
-def compute_all(gdf, value_ranges, enums, collection_names, municipal_geojson_path):
+def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
     '''
     Computes or translates variables that can not be directly accessed from the source API
    
@@ -172,42 +172,35 @@ def compute_all(gdf, value_ranges, enums, collection_names, municipal_geojson_pa
     # Create a dictionary to store all new values
     all_cols = {}
 
-    # Direct mappings:
-    if 'unit.atlasClass' in gdf.columns:
-        all_cols['unit.atlasClass'] = gdf['unit.atlasClass'].str.strip("http://tun.fi/").map(value_ranges)
+    # Columns that need URL stripping
+    strip_url_columns = [
+        'unit.atlasClass',
+        'unit.atlasCode',
+        'unit.linkings.originalTaxon.primaryHabitat.habitat',
+        'unit.linkings.originalTaxon.latestRedListStatusFinland.status',
+        'unit.linkings.taxon.threatenedStatus',
+    ]
 
-    if 'unit.atlasCode' in gdf.columns:
-        all_cols['unit.atlasCode'] = gdf['unit.atlasCode'].str.strip("http://tun.fi/").map(value_ranges)
+    # Columns without URL stripping
+    direct_map_columns = [
+        'unit.recordBasis',
+        'unit.interpretations.recordQuality',
+        'document.secureReasons',
+        'unit.lifeStage',
+        'unit.sex',
+        'unit.abundanceUnit',
+        'document.linkings.collectionQuality',
+    ]
 
-    if 'unit.linkings.originalTaxon.primaryHabitat.habitat' in gdf.columns:
-        all_cols['unit.linkings.originalTaxon.primaryHabitat.habitat'] = gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'].str.strip("http://tun.fi/").map(value_ranges)
-   
-    if 'unit.linkings.originalTaxon.latestRedListStatusFinland.status' in gdf.columns:
-        all_cols['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'].str.strip("http://tun.fi/").map(value_ranges) 
-    
-    if 'unit.linkings.taxon.threatenedStatus' in gdf.columns:
-        all_cols['unit.linkings.taxon.threatenedStatus'] = gdf['unit.linkings.taxon.threatenedStatus'].str.strip("http://tun.fi/").map(value_ranges)
-    
-    if 'unit.recordBasis' in gdf.columns:
-        all_cols['unit.recordBasis'] = gdf['unit.recordBasis'].map(enums)
-    
-    if 'unit.interpretations.recordQuality' in gdf.columns:
-        all_cols['unit.interpretations.recordQuality'] = gdf['unit.interpretations.recordQuality'].map(enums)
-    
-    if 'document.secureReasons' in gdf.columns:
-        all_cols['document.secureReasons'] = gdf['document.secureReasons'].map(enums)
+    # Process columns that require stripping before mapping
+    for col in strip_url_columns:
+        if col in gdf.columns:
+            all_cols[col] = gdf[col].str.strip("http://tun.fi/").map(value_ranges)
 
-    if 'unit.lifeStage' in gdf.columns:
-        all_cols['unit.lifeStage'] = gdf['unit.lifeStage'].map(enums)
-    
-    if 'unit.sex' in gdf.columns:
-        all_cols['unit.sex'] = gdf['unit.sex'].map(enums)
-    
-    if 'unit.abundanceUnit' in gdf.columns:
-        all_cols['unit.abundanceUnit'] = gdf['unit.abundanceUnit'].map(enums)
-    
-    if 'document.linkings.collectionQuality' in gdf.columns:
-        all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(enums)
+    # Process columns that can be directly mapped
+    for col in direct_map_columns:
+        if col in gdf.columns:
+            all_cols[col] = gdf[col].map(value_ranges)
 
     # Mappings with multiple value in a cell:
     all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)
