@@ -2,100 +2,6 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 
-record_basis = {
-    "PRESERVED_SPECIMEN": "Näyte",
-    "LIVING_SPECIMEN": "Elävä näyte",
-    "FOSSIL_SPECIMEN": "Fossiili",
-    "SUBFOSSIL_SPECIMEN": "Subfossiili",
-    "SUBFOSSIL_AMBER_INCLUSION_SPECIMEN": "Meripihkafossiili",
-    "MICROBIAL_SPECIMEN": "Mikrobinäyte",
-    "HUMAN_OBSERVATION_UNSPECIFIED": "Havaittu",
-    "HUMAN_OBSERVATION_SEEN": "Nähty",
-    "HUMAN_OBSERVATION_HEARD": "Kuultu",
-    "HUMAN_OBSERVATION_PHOTO": "Valokuvattu",
-    "HUMAN_OBSERVATION_INDIRECT": "Epäsuora havainto (jäljet, ulosteet, yms)",
-    "HUMAN_OBSERVATION_HANDLED": "Käsitelty (otettu kiinni, ei näytettä)",
-    "HUMAN_OBSERVATION_VIDEO": "Videoitu",
-    "HUMAN_OBSERVATION_RECORDED_AUDIO": "Äänitetty",
-    "MACHINE_OBSERVATION_UNSPECIFIED": "Laitteen tekemä havainto",
-    "MACHINE_OBSERVATION_PHOTO": "Laitteen tekemä havainto, valokuva",
-    "MACHINE_OBSERVATION_VIDEO": "Laitteen tekemä havainto, video",
-    "MACHINE_OBSERVATION_AUDIO": "Laitteen tekemä havainto, ääni",
-    "MACHINE_OBSERVATION_GEOLOGGER": "Geopaikannin",
-    "MACHINE_OBSERVATION_SATELLITE_TRANSMITTER": "Satelliittipaikannus",
-    "LITERATURE": "Kirjallisuustieto",
-    "MATERIAL_SAMPLE": "Materiaalinäyte",
-    "MATERIAL_SAMPLE_AIR": "Materiaalinäyte: ilmanäyte",
-    "MATERIAL_SAMPLE_SOIL": "Materiaalinäyte: maaperänäyte",
-    "MATERIAL_SAMPLE_WATER": "Materiaalinäyte: vesinäyte"
-}
-
-record_qualities = {
-    "EXPERT_VERIFIED": "Asiantuntijan vahvistama",
-    "COMMUNITY_VERIFIED": "Yhteisön varmistama",
-    "NEUTRAL": "Ei arvioitu",
-    "UNCERTAIN": "Epävarma",
-    "ERRONEOUS": "Virheellinen"
-    }
-
-reasons = {
-    "DEFAULT_TAXON_CONSERVATION" :"Lajitiedon sensitiivisyys",
-    "NATURA_AREA_CONSERVATION":"Lajin paikkatiedot salataan Natura-alueella",
-    "WINTER_SEASON_TAXON_CONSERATION":"Talvehtimishavainnot",
-    "BREEDING_SEASON_TAXON_CONSERVATION":"Pesintäaika",
-    "CUSTOM":"Tiedon tuottajan rajoittama aineisto",
-    "USER_HIDDEN":"Käyttäjän karkeistamat nimi- ja/tai paikkatiedot",
-    "DATA_QUARANTINE_PERIOD":"Tutkimusaineiston karenssiaika",
-    "ONLY_PRIVATE":"Tiedon tuottaja on antanut aineiston vain viranomaiskäyttöön",
-    "ADMIN_HIDDEN":"Ylläpitäjän karkeistama",
-    "BREEDING_SITE_CONSERVATION":"Lisääntymispaikan sensitiivisyys (esimerkiksi pesä)",
-    "USER_HIDDEN_LOCATION":"Käyttäjän karkeistamat paikkatiedot",
-    "USER_HIDDEN_TIME":"Käyttäjän karkeistama aika",
-    "USER_PERSON_NAMES_HIDDEN":"Henkilönimet piiloitettu"
-    }
-
-abundance_units = {
-    "INDIVIDUAL_COUNT": "Yksilömäärä",
-    "PAIR_COUNT": "Parimäärä",
-    "NEST": "Pesien lukumäärä",
-    "BREEDING_SITE": "Lisääntymispaikkojen lukumäärä (kivi, kolo, ym)",
-    "FEEDING_SITE": "Ruokailupaikkojen lukumäärä",
-    "COLONY": "Yhdyskuntien lukumäärä",
-    "FRUIT_BODY": "Itiöemien lukumäärä",
-    "SPROUT": "Versojen lukumäärä",
-    "HUMMOCK": "Mättäiden/tuppaiden lukumäärä",
-    "THALLUS": "Sekovarsien lukumäärä",
-    "FLOWER": "Kukkien lukumäärä",
-    "SPOT": "Laikkujen lukumäärä",
-    "TRUNK": "Runkojen lukumäärä",
-    "QUEEN": "Kuningattarien lukumäärä",
-    "SHELL": "Kuorien lukumäärä",
-    "DROPPINGS": "Jätösten/papanakasojen lukumäärä",
-    "MARKS": "(Syömä)jälkien lukumäärä",
-    "INDIRECT": "Epäsuorien jälkien lukumäärä",
-    "SQUARE_DM": "Neliödesimetri (dm^2)",
-    "SQUARE_M": "Neliömetri (m^2)",
-    "RELATIVE_DENSITY": "Suhteellinen tiheys",
-    "OCCURS_DOES_NOT_OCCUR": "Esiintyy/ei esiinny"
-}
-
-sexes = {
-    'MALE': 'Uros',
-    'FEMALE': 'Naaras',
-    'WORKER': 'Työläinen',
-    'UNKNOWN': 'Tuntematon',
-    'NOT_APPLICABLE': 'Soveltumaton',
-    'GYNANDROMORPH': 'Gynandromorfi',
-    'MULTIPLE': 'Eri sukupuolia',
-    'CONFLICTING': 'Ristiriitainen'
-}
-
-collection_qualities = {
-    'PROFESSIONAL':'Ammattiaineistot / asiantuntijoiden laadunvarmistama',
-    'HOBBYIST':'Asiantuntevat harrastajat / asiantuntijoiden laadunvarmistama',
-    'AMATEUR':'Kansalaishavaintoja / ei laadunvarmistusta'
-}
-
 def compute_individual_count(individual_count_col):
     """
     Determine whether the column gets a value 'paikalla' or 'poissa'.
@@ -125,7 +31,7 @@ def compute_collection_id(collection_id_col, collection_names):
     ids = pd.Series(collection_id_col.str.split('/').str[-1])
 
     # Return mapped values
-    return ids.map(collection_names, na_action='ignore')
+    return ids.map(collection_names)
 
 def map_values(col, value_ranges):
     """
@@ -250,7 +156,7 @@ def get_biogeographical_region_from_id(id):
 
     return cleaned_name
 
-def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
+def compute_all(gdf, value_ranges, enums, collection_names, municipal_geojson_path):
     '''
     Computes or translates variables that can not be directly accessed from the source API
    
@@ -268,37 +174,40 @@ def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
 
     # Direct mappings:
     if 'unit.atlasClass' in gdf.columns:
-        all_cols['unit.atlasClass'] = gdf['unit.atlasClass'].str.strip("http://tun.fi/").map(value_ranges, na_action='ignore')
+        all_cols['unit.atlasClass'] = gdf['unit.atlasClass'].str.strip("http://tun.fi/").map(value_ranges)
 
     if 'unit.atlasCode' in gdf.columns:
-        all_cols['unit.atlasCode'] = gdf['unit.atlasCode'].str.strip("http://tun.fi/").map(value_ranges, na_action='ignore')
+        all_cols['unit.atlasCode'] = gdf['unit.atlasCode'].str.strip("http://tun.fi/").map(value_ranges)
 
     if 'unit.linkings.originalTaxon.primaryHabitat.habitat' in gdf.columns:
         all_cols['unit.linkings.originalTaxon.primaryHabitat.habitat'] = gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'].str.strip("http://tun.fi/").map(value_ranges)
    
     if 'unit.linkings.originalTaxon.latestRedListStatusFinland.status' in gdf.columns:
-        all_cols['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'].str.strip("http://tun.fi/").map(value_ranges, na_action='ignore') 
+        all_cols['unit.linkings.originalTaxon.latestRedListStatusFinland.status'] = gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'].str.strip("http://tun.fi/").map(value_ranges) 
     
     if 'unit.linkings.taxon.threatenedStatus' in gdf.columns:
-        all_cols['unit.linkings.taxon.threatenedStatus'] = gdf['unit.linkings.taxon.threatenedStatus'].str.strip("http://tun.fi/").map(value_ranges, na_action='ignore')
+        all_cols['unit.linkings.taxon.threatenedStatus'] = gdf['unit.linkings.taxon.threatenedStatus'].str.strip("http://tun.fi/").map(value_ranges)
     
     if 'unit.recordBasis' in gdf.columns:
-        all_cols['unit.recordBasis'] = gdf['unit.recordBasis'].map(record_basis, na_action='ignore')
+        all_cols['unit.recordBasis'] = gdf['unit.recordBasis'].map(enums)
     
     if 'unit.interpretations.recordQuality' in gdf.columns:
-        all_cols['unit.interpretations.recordQuality'] = gdf['unit.interpretations.recordQuality'].map(record_qualities, na_action='ignore')
+        all_cols['unit.interpretations.recordQuality'] = gdf['unit.interpretations.recordQuality'].map(enums)
     
     if 'document.secureReasons' in gdf.columns:
-        all_cols['document.secureReasons'] = gdf['document.secureReasons'].map(reasons, na_action='ignore')
+        all_cols['document.secureReasons'] = gdf['document.secureReasons'].map(enums)
+
+    if 'unit.lifeStage' in gdf.columns:
+        all_cols['unit.lifeStage'] = gdf['unit.lifeStage'].map(enums)
     
     if 'unit.sex' in gdf.columns:
-        all_cols['unit.sex'] = gdf['unit.sex'].map(sexes, na_action='ignore')
+        all_cols['unit.sex'] = gdf['unit.sex'].map(enums)
     
     if 'unit.abundanceUnit' in gdf.columns:
-        all_cols['unit.abundanceUnit'] = gdf['unit.abundanceUnit'].map(abundance_units, na_action='ignore')
+        all_cols['unit.abundanceUnit'] = gdf['unit.abundanceUnit'].map(enums)
     
     if 'document.linkings.collectionQuality' in gdf.columns:
-        all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(collection_qualities, na_action='ignore')
+        all_cols['document.linkings.collectionQuality'] = gdf['document.linkings.collectionQuality'].map(enums)
 
     # Mappings with multiple value in a cell:
     all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)

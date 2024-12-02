@@ -183,3 +183,26 @@ def get_taxon_data(url):
         json_data_results = data.get('results', [])
         return pd.json_normalize(json_data_results)
     return pd.DataFrame()
+
+def get_enumerations(url):
+    """
+    Fetches JSON data from an API URL and extracts a dictionary of enumerations 
+    with 'enumeration' as keys and 'fi' labels as values.
+
+    Parameters:
+    url (str): The URL of the data warehouse enumeration API endpoint.
+
+    Returns:
+    dict: A dictionary with enumeration values as keys and 'fi' labels as values.
+    """
+    json_data = fetch_json_with_retry(url)
+    if not json_data:
+        print("Error getting enumeration values.")
+        return {}
+
+    # Extract "enumeration" keys and "fi" labels
+    enumerations = {
+        item['enumeration']: item['label']['fi']
+        for item in json_data.get('results', [])
+    }
+    return enumerations
