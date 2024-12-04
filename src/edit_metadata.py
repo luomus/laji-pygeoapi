@@ -134,7 +134,7 @@ def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
             'updated': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
             'type': 'dataset',
             'title': f'{dataset_name}',
-            'description': f'This dataset has {no_of_occurrences} {geom_type} occurrence features from the area of {title_name} with 10 km buffers. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
+            'description': f'This dataset has {no_of_occurrences} {geom_type} occurrence features from the area of {title_name}. The data comes from multiple sources. Original data can be also found from laji.fi. The occurrences have been collected between {min_day} and {max_day}.',
             'providers': [{
                 'name': 'Finnish Biodiversity Information Facility (FinBIF)',
                 'roles': ['distributor', 'pointOfContact', 'publisher']

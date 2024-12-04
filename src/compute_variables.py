@@ -119,7 +119,7 @@ def get_title_name_from_table_name(table_name):
     base_name = table_name.rsplit('_', 1)[0]
     
     # Look up the cleaned value in the dictionary
-    cleaned_value = table_mapping.get(base_name, "Unknown table name")
+    cleaned_value = table_mapping.get(base_name, "Finland")
     
     return cleaned_value
 
