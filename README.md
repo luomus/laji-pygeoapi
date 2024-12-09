@@ -33,7 +33,6 @@ INTERNAL_POSTGRES_USER=pygeoapi
 INTERNAL_POSTGRES_PASSWORD=admin456
 INTERNAL_POSTGRES_HOST=postgres
 LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
-SECRECT_KEY=secret
 ACCESS_EMAIL=your@email.com
 TARGET=default
 ```

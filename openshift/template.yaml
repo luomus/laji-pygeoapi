@@ -65,8 +65,6 @@ parameters:
   - name: TARGET
     required: true
     value: "default"
-  - name: SECRET_KEY
-    required: false
   - name: POSTGRES_CPU_LIMIT
     required: true
     value: "1"
@@ -136,7 +134,6 @@ objects:
     data:
       ACCESS_TOKEN: ${ACCESS_TOKEN}
       ACCESS_EMAIL: ${ACCESS_EMAIL}
-      SECRET_KEY: ${SECRET_KEY}
     type: Opaque
 
   - kind: ConfigMap
@@ -359,11 +356,6 @@ objects:
                   value: postgres-${NAME_PREFIX}${BRANCH}
                 - name: LAJI_AUTH_URL
                   value: ${LAJI_AUTH_URL}
-                - name: SECRET_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: "pygeoapi-secret-${NAME_PREFIX}${BRANCH}"
-                      key: SECRET_KEY
               ports:
                 - containerPort: 5000
                   protocol: TCP

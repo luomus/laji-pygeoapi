@@ -6,7 +6,7 @@ def create_log_entry(request, response):
 
     log_entry = RequestLog(
         status_code=response.status_code,
-        api_key_id=current_user.id if current_user else None,
+        api_key_id=current_user,
         path=request.path,
         query_string=request.query_string.decode('utf-8'),
         ip_address=_get_request_ip_address(request)

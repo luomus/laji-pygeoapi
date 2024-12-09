@@ -24,7 +24,7 @@ objects:
         app: pygeoapi-${NAME_PREFIX}${BRANCH}
         version: ${NAME_PREFIX}${BRANCH}
     data:
-      catalogue.tinydb: Empty for now. Python scripts will fill this metadata catalogue.
+      catalogue.tinydb: ""
       pygeoapi-config.yml: |-
         server:
             bind:

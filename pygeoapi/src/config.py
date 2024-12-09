@@ -6,9 +6,6 @@ class Config(object):
     TESTING = False
 
     RESTRICT_ACCESS = os.environ['RESTRICT_ACCESS'] == 'True'
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    if RESTRICT_ACCESS is True and not SECRET_KEY:
-        raise ValueError('SECRET_KEY is required when RESTRICT_ACCESS is True')
 
     SQLALCHEMY_DATABASE_URI = 'postgresql://{}:{}@{}:{}/{}'.format(
         os.environ['POSTGRES_USER'],
@@ -19,8 +16,10 @@ class Config(object):
     )
 
     LAJI_AUTH_URL = os.environ['LAJI_AUTH_URL']
+    LAJI_API_URL = os.environ['LAJI_API_URL']
+    ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
 
-    API_KEY_MAX_DURATION = 365
-    API_KEY_ALLOWED_ROLES = ['MA.admin', 'MA.securePortalUser']
+    CACHE_TYPE = 'SimpleCache'
+    CACHE_DEFAULT_TIMEOUT = 300
 
-
+    API_KEY_TYPE = 'AUTHORITIES_VIRVA_GEOAPI_KEY'

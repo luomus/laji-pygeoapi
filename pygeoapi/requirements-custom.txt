@@ -1,6 +1,7 @@
-flask_httpauth
-flask-sqlalchemy
-SQLAlchemy
-Flask-Migrate
-requests
-cryptography
+flask_httpauth==4.8.0
+flask-sqlalchemy==3.1.1
+SQLAlchemy==2.0.36
+Flask-Migrate==4.0.7
+Flask-Caching==2.3.0
+requests==2.32.3
+tabulate==0.9.0

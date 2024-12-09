@@ -1,25 +1,21 @@
-from flask import Flask, Response, request
+from flask import Flask
 from flask_httpauth import HTTPBasicAuth
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_caching import Cache
 from src.config import Config
-
-auth = HTTPBasicAuth()
-admin_api_auth = HTTPBasicAuth()
 
 app = Flask(__name__, static_folder='/pygeoapi/pygeoapi/static', static_url_path='/static')
 app.config.from_object(Config)
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db, include_schemas=True)
-
-
 if app.config['RESTRICT_ACCESS']:
-    import src.basic_auth # noqa
-    from src.views import admin_api_blueprint
+    auth = HTTPBasicAuth()
 
-    app.register_blueprint(admin_api_blueprint, url_prefix='/admin/api')
+    db = SQLAlchemy(app)
+    migrate = Migrate(app, db, include_schemas=True)
+    cache = Cache(app)
 
+    import src.basic_auth_setup # noqa
 
 from pygeoapi.flask_app import BLUEPRINT as pygeoapi_blueprint # noqa
 

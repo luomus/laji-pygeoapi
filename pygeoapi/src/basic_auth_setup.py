@@ -1,24 +1,24 @@
-from src.app import app, auth, admin_api_auth
-from src.services import api_key_service, request_log_service
-from src.models import AdminAPIUser
+from src.app import app, auth
+from src.services import request_log_service, laji_api
 from datetime import datetime
 from flask import request
 
 
 @auth.verify_password
 def verify_password(username, password):
-    api_key = api_key_service.api_key_string_to_object(username)
+    api_key = username.strip()
+    if not api_key:
+        return
 
-    if api_key is not None and api_key.expires > datetime.now():
-        return api_key
+    api_key_info = laji_api.get_api_key_info(api_key)
 
-
-@admin_api_auth.verify_password
-def verify_password(username, password):
-    user = AdminAPIUser.query.filter(AdminAPIUser.system_id == username).first()
-
-    if user is not None and user.verify_password(password):
-        return user
+    if (
+        'found' in api_key_info and
+        api_key_info['found'] and
+        api_key_info['downloadType'] == app.config['API_KEY_TYPE'] and
+        datetime.strptime(api_key_info['apiKeyExpires'], "%Y-%m-%d") > datetime.now()
+    ):
+        return api_key_info['id']
 
 
 # a dummy callable to execute the login_required logic

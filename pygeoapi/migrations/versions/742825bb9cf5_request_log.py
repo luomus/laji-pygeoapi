@@ -1,8 +1,8 @@
-"""empty message
+"""request log
 
-Revision ID: dbdd8ce3c21a
-Revises: 258549f11f9d
-Create Date: 2024-11-01 12:42:06.709824
+Revision ID: 742825bb9cf5
+Revises: 
+Create Date: 2024-12-05 11:57:36.973176
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'dbdd8ce3c21a'
-down_revision = '258549f11f9d'
+revision = '742825bb9cf5'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('status_code', sa.Integer(), nullable=False),
     sa.Column('date', sa.DateTime(), nullable=False),
-    sa.Column('api_key_id', sa.Integer(), nullable=True),
+    sa.Column('api_key_id', sa.String(length=15), nullable=True),
     sa.Column('path', sa.Text(), nullable=False),
     sa.Column('query_string', sa.Text(), nullable=False),
     sa.Column('ip_address', sa.String(length=39), nullable=False),
