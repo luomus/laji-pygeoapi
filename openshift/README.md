@@ -39,7 +39,7 @@ If you are deploying the API for the first time, process also the pygeoapi confi
 shouldn't be updated manually since it can cause errors for the API.
 
 ```
-oc process -f pygeoapi-config-template.yaml --param-file=test.env --ignore-unknown-parameters=true > processed-config-template.yam
+oc process -f pygeoapi-config-template.yaml --param-file=test.env --ignore-unknown-parameters=true > processed-config-template.yaml
 ```
 
 
