@@ -32,7 +32,6 @@ INTERNAL_POSTGRES_DB=my_internal_db
 INTERNAL_POSTGRES_USER=pygeoapi
 INTERNAL_POSTGRES_PASSWORD=admin456
 INTERNAL_POSTGRES_HOST=postgres
-LAJI_AUTH_URL=https://fmnh-ws-test.it.helsinki.fi/laji-auth/
 ACCESS_EMAIL=your@email.com
 TARGET=default
 ```
@@ -51,7 +50,6 @@ Where
 | INTERNAL_POSTGRES_USER| Username for the internal database | pygeoapi |
 | INTERNAL_POSTGRES_PASSWORD| Password for the internal database | admin456 |
 | INTERNAL_POSTGRES_HOST| Hostname for the internal database | postgres |
-| LAJI_AUTH_URL| URL to connect laji.fi auth system | https://fmnh-ws-test.it.helsinki.fi/laji-auth/ |
 | TARGET| Either "default" or "virva" | default |
 
 ### 4. Init the database:

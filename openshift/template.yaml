@@ -59,9 +59,6 @@ parameters:
     required: true
   - name: INTERNAL_POSTGRES_DB
     required: true
-  - name: LAJI_AUTH_URL
-    required: true
-    value: "https://login.laji.fi/laji-auth/"
   - name: TARGET
     required: true
     value: "default"
@@ -354,8 +351,6 @@ objects:
                       key: INTERNAL_POSTGRES_USER
                 - name: POSTGRES_HOST
                   value: postgres-${NAME_PREFIX}${BRANCH}
-                - name: LAJI_AUTH_URL
-                  value: ${LAJI_AUTH_URL}
               ports:
                 - containerPort: 5000
                   protocol: TCP

@@ -15,7 +15,6 @@ class Config(object):
         os.environ['POSTGRES_DB']
     )
 
-    LAJI_AUTH_URL = os.environ['LAJI_AUTH_URL']
     LAJI_API_URL = os.environ['LAJI_API_URL']
     ACCESS_TOKEN = os.environ['ACCESS_TOKEN']
 
