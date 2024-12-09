@@ -351,6 +351,13 @@ objects:
                       key: INTERNAL_POSTGRES_USER
                 - name: POSTGRES_HOST
                   value: postgres-${NAME_PREFIX}${BRANCH}
+                - name: LAJI_API_URL
+                  value: ${LAJI_API_URL}
+                - name: ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: pygeoapi-secret-${NAME_PREFIX}${BRANCH}
+                      key: ACCESS_TOKEN
               ports:
                 - containerPort: 5000
                   protocol: TCP
