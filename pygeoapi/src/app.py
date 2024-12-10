@@ -8,13 +8,13 @@ from src.config import Config
 app = Flask(__name__, static_folder='/pygeoapi/pygeoapi/static', static_url_path='/static')
 app.config.from_object(Config)
 
+auth = HTTPBasicAuth()
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db, include_schemas=True)
+cache = Cache(app)
+
 if app.config['RESTRICT_ACCESS']:
-    auth = HTTPBasicAuth()
-
-    db = SQLAlchemy(app)
-    migrate = Migrate(app, db, include_schemas=True)
-    cache = Cache(app)
-
     import src.basic_auth_setup # noqa
 
 from pygeoapi.flask_app import BLUEPRINT as pygeoapi_blueprint # noqa
