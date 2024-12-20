@@ -18,33 +18,32 @@ def compute_individual_count(individual_count_col):
 
 def compute_collection_id(collection_id_col, collection_names):
     """
-    Computes collection names from collection ids
+    Computes collection names from collection ids.
 
     Parameters:
-    collection_id_col (Pandas.Series): Column to contain collection ids
-    collection_names (Dict): Dictionary derived from a json containing collection IDs and corresponding names
+    collection_id_col (pd.Series): Column containing collection ids.
+    collection_names (dict): Dictionary containing collection IDs and corresponding names.
 
     Returns:
-    ids (Pandas.Series): Corresponding collection names
+    pd.Series: Series with corresponding collection names.
     """
-    # Get only the IDs without URLs (e.g. 'http://tun.fi/HR.3553' to 'HR.3553')
-    ids = pd.Series(collection_id_col.str.split('/').str[-1])
+    # Get only the IDs without URLs (e.g., 'http://tun.fi/HR.3553' to 'HR.3553')
+    ids = collection_id_col.str.split('/').str[-1]
 
     # Return mapped values
     return ids.map(collection_names)
 
 def map_values(col, value_ranges):
     """
-    Function to map the values if more than 1 value in a cell
+    Function to map the values if more than one value in a cell.
 
     Parameters:
-    col (Series): Column with multiple values to map
-    value_ranges (Dictionary): Mapping dictionary
+    col (pd.Series): Column with multiple values to map.
+    value_ranges (dict): Mapping dictionary.
 
     Returns:
-    (str) Mapped values as a string
+    pd.Series: Series with mapped values as a string.
     """
-
     return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(value.strip("http://tun.fi/"), value) for value in values]))
 
 def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
@@ -52,12 +51,12 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
     Computes the municipalities and provinces for each row in the GeoDataFrame.
 
     Parameters:
-    gdf_with_geom_and_ids (geopandas.GeoDataFrame): GeoDataFrame with geometry and IDs.
+    gdf_with_geom_and_ids (gpd.GeoDataFrame): GeoDataFrame with geometry and IDs.
     municipal_geojson (str): Path to the GeoJSON file containing municipal geometries and corresponding ELY areas and provinces.
 
     Returns:
-    pandas.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
-    pandas.Series: Series with ely areas for each row, separated by ',' if there are multiple areas.
+    pd.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
+    pd.Series: Series with ELY areas for each row, separated by ',' if there are multiple areas.
     """
     # Read the GeoJSON data
     municipal_gdf = gpd.read_file(municipal_geojson)
@@ -82,13 +81,13 @@ def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
 
 def get_title_name_from_table_name(table_name):
     """
-    Converts table names back to the title names. E.g. 'sompion_lappi_polygons' -> 'Sompion Lappi'
+    Converts table names back to the title names. E.g., 'sompion_lappi_polygons' -> 'Sompion Lappi'.
 
-    Parameters: 
-    table_name (str): A PostGIS table name
+    Parameters:
+    table_name (str): A PostGIS table name.
 
-    Returns: 
-    cleaned_valuea (str): A cleaned version of a PostGIS table name
+    Returns:
+    str: A cleaned version of a PostGIS table name.
     """
     # Define a dictionary to map table names to cleaned values
     table_mapping = {
@@ -119,13 +118,17 @@ def get_title_name_from_table_name(table_name):
     base_name = table_name.rsplit('_', 1)[0]
     
     # Look up the cleaned value in the dictionary
-    cleaned_value = table_mapping.get(base_name, "Finland")
-    
-    return cleaned_value
+    return table_mapping.get(base_name, "Finland")
 
 def get_biogeographical_region_from_id(id):
     """
-    This function converts biogeographical area id to the corresponding name. E.g. "ML.251" to "Ahvenanmaa"
+    Converts biogeographical area id to the corresponding name. E.g., "ML.251" to "Ahvenanmaa".
+
+    Parameters:
+    id (str): Biogeographical area id.
+
+    Returns:
+    str: Corresponding name.
     """
     id_mapping = {
         "ML.251": "Ahvenanmaa",
@@ -152,23 +155,21 @@ def get_biogeographical_region_from_id(id):
     }
     
     name = id_mapping.get(id, "Empty biogeographical region")
-    cleaned_name = name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower() # Clean table name
-
-    return cleaned_name
+    return name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower()  # Clean table name
 
 def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
-    '''
-    Computes or translates variables that can not be directly accessed from the source API
-   
+    """
+    Computes or translates variables that cannot be directly accessed from the source API.
+
     Parameters:
-    gdf (geopandas.GeoDataFrame): GeoDataFrame containing occurrences.
-    value_ranges (dict): The dictionary containig all mapping keys and corresponding values
-    collection_names (dict): The dictionary containing all collection IDs and their long names
+    gdf (gpd.GeoDataFrame): GeoDataFrame containing occurrences.
+    value_ranges (dict): Dictionary containing all mapping keys and corresponding values.
+    collection_names (dict): Dictionary containing all collection IDs and their long names.
     municipal_geojson_path (str): Path to the GeoJSON file containing municipal geometries.
 
     Returns:
-    gdf (geopandas.GeoDataFrame): GeoDataFrame containing occurrences and computed columns.
-    '''
+    gpd.GeoDataFrame: GeoDataFrame containing occurrences and computed columns.
+    """
     # Create a dictionary to store all new values
     all_cols = {}
 
@@ -214,7 +215,7 @@ def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
     all_cols['computed_municipality'] = municipal_col.astype('str')
     all_cols['computed_ely_area'] = vastuualue_col.astype('str')
 
-    # Create a dataframe to join
+    # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")
 
     # Drop duplicate columns
@@ -224,6 +225,6 @@ def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
     gdf = pd.concat([gdf, computed_cols_df], axis=1)
 
     # Create a local id
-    gdf['Paikallinen_tunniste'] = gdf['unit.unitId'].str.replace("http://tun.fi/", "").str.replace("#","_")
+    gdf['Paikallinen_tunniste'] = gdf['unit.unitId'].str.replace("http://tun.fi/", "").str.replace("#", "_")
 
     return gdf

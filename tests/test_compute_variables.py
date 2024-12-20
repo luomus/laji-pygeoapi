@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 sys.path.append('src/')
 
 from compute_variables import compute_all, get_biogeographical_region_from_id, get_title_name_from_table_name, map_values, compute_collection_id, compute_individual_count
-from load_data import get_value_ranges
+from load_data import get_value_ranges, get_enumerations
 
 class TestComputeAll(unittest.TestCase):
 
@@ -46,8 +46,9 @@ class TestComputeAll(unittest.TestCase):
         load_dotenv()
         access_token = os.getenv('ACCESS_TOKEN')
         laji_api_url = os.getenv('LAJI_API_URL')
-        value_ranges_url = f'{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}'
-        value_ranges = get_value_ranges(value_ranges_url)
+        ranges1 = get_value_ranges(f"{laji_api_url}/metadata/ranges?lang=fi&asLookupObject=true&access_token={access_token}")
+        ranges2 = get_enumerations(f"{laji_api_url}/warehouse/enumeration-labels?access_token={access_token}")
+        value_ranges = ranges1 | ranges2
 
         # Call the function
         result_gdf = compute_all(self.gdf, value_ranges, self.collection_names, 'src/municipalities.geojson')
@@ -59,9 +60,9 @@ class TestComputeAll(unittest.TestCase):
         self.assertEqual(result_gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'][0], 'EX – Sukupuuttoon kuolleet')
         self.assertEqual(result_gdf['unit.linkings.taxon.threatenedStatus'][0], 'Lakisääteinen')
         self.assertEqual(result_gdf['unit.recordBasis'][0], 'Näyte')
-        self.assertEqual(result_gdf['unit.interpretations.recordQuality'][0], 'Asiantuntijan vahvistama')
+        self.assertEqual(result_gdf['unit.interpretations.recordQuality'][0], 'Asiantuntijan varmistama')
         self.assertEqual(result_gdf['document.secureReasons'][0], 'Lajitiedon sensitiivisyys')
-        self.assertEqual(result_gdf['unit.sex'][0], 'Uros')
+        self.assertEqual(result_gdf['unit.sex'][0], 'koiras')
         self.assertEqual(result_gdf['unit.abundanceUnit'][0], 'Yksilömäärä')
         self.assertEqual(result_gdf['document.linkings.collectionQuality'][0], 'Ammattiaineistot / asiantuntijoiden laadunvarmistama')
 
@@ -114,7 +115,7 @@ class TestGetTitleNameFromTableName(unittest.TestCase):
         """
         Test a table name that doesn't exist in the table_mapping.
         """
-        self.assertEqual(get_title_name_from_table_name("unknown_area_polygons"), "Unknown table name")
+        self.assertEqual(get_title_name_from_table_name("unknown_area_polygons"), "Finland")
     
 class TestMapValues(unittest.TestCase):
 

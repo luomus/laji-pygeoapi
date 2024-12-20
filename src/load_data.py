@@ -88,8 +88,8 @@ def download_page(url, page_no):
     """
     # Load data
     attempt = 0
-    max_retries = 5
-    delay = 30
+    max_retries = 10
+    delay = 60
     url = url.replace('page=1', f'page={page_no}')
     while attempt < max_retries:
         try:

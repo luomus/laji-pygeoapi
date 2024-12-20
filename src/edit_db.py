@@ -1,55 +1,25 @@
-from sqlalchemy import inspect
-from sqlalchemy import create_engine, text, MetaData
+from sqlalchemy import inspect, create_engine, text, MetaData
 import pandas as pd
 import os
 from dotenv import load_dotenv
 import concurrent.futures
-import multiprocessing
-import time
 from sqlalchemy.dialects.postgresql import base
 from geoalchemy2.types import Geometry
 
-postgis_default_tables = ['spatial_ref_sys',
-                            'topology',
-                            'layer',
-                            'featnames',
-                            'geocode_settings',
-                            'geocode_settings_default',
-                            'direction_lookup',
-                            'secondary_unit_lookup', 
-                            'state_lookup',
-                            'street_type_lookup',
-                            'place_lookup',
-                            'county_lookup',
-                            'countysub_lookup',
-                            'zip_lookup_all',
-                            'zip_lookup_base',
-                            'zip_lookup',
-                            'county',
-                            'state',
-                            'place',
-                            'zip_state',
-                            'zip_state_loc',
-                            'cousub',
-                            'edges',
-                            'addrfeat',
-                            'addr',
-                            'zcta5',
-                            'tabblock20',
-                            'faces',
-                            'loader_platform',
-                            'loader_variables',
-                            'loader_lookuptables',
-                            'tract',
-                            'tabblock',
-                            'bg',
-                            'pagc_gaz',
-                            'pagc_lex',
-                            'pagc_rules']
+postgis_default_tables = [
+    'spatial_ref_sys', 'topology', 'layer', 'featnames', 'geocode_settings',
+    'geocode_settings_default', 'direction_lookup', 'secondary_unit_lookup',
+    'state_lookup', 'street_type_lookup', 'place_lookup', 'county_lookup',
+    'countysub_lookup', 'zip_lookup_all', 'zip_lookup_base', 'zip_lookup',
+    'county', 'state', 'place', 'zip_state', 'zip_state_loc', 'cousub',
+    'edges', 'addrfeat', 'addr', 'zcta5', 'tabblock20', 'faces',
+    'loader_platform', 'loader_variables', 'loader_lookuptables', 'tract',
+    'tabblock', 'bg', 'pagc_gaz', 'pagc_lex', 'pagc_rules'
+]
 
 def connect_to_db():
     """
-    Creates connection to the PostGIS database using credentials store in .env file or parameters/secrets in openshift
+    Creates connection to the PostGIS database using credentials stored in .env file or parameters/secrets in openshift.
 
     Returns:
     engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine for database connection
@@ -85,16 +55,16 @@ def drop_all_tables():
     # Find all table names
     metadata = MetaData()
     metadata.reflect(engine)
-    all_tables =  metadata.tables.keys()
+    all_tables = metadata.tables.keys()
 
     # Loop over tables and try to drop them
     for table_name in all_tables:
         if table_name not in postgis_default_tables:
-            metadata.tables[table_name].drop(engine)
+            metadata.tables[table_name].drop(engine, checkfirst=True)
 
 def drop_table(table_names):
     """
-    Drops one table in the database.
+    Drops specified tables in the database.
 
     Parameters:
     table_names (list): The table names
@@ -105,10 +75,8 @@ def drop_table(table_names):
     metadata.reflect(engine)
 
     for i in table_names:
-        try: 
-            metadata.tables[i].drop(engine)
-        except:
-            pass # If data update didn't succeed last time, it's possible the table doesnt't exist and can't be dropped
+        if i in metadata.tables:
+            metadata.tables[i].drop(engine, checkfirst=True)
 
 def get_all_tables():
     """
@@ -116,9 +84,7 @@ def get_all_tables():
     """
     inspector = inspect(engine)
     tables = inspector.get_table_names()
-    tables_without_defaults = [i for i in tables if i not in postgis_default_tables]
-
-    return tables_without_defaults
+    return [table for table in tables if table not in postgis_default_tables]
 
 def get_table_bbox(table_name):
     """
@@ -132,15 +98,13 @@ def get_table_bbox(table_name):
     """
     sql = text(f'SELECT ST_Extent("geometry") FROM "{table_name}"')
     with engine.connect() as connection:
-        result = connection.execute(sql)
-        extent = result.scalar()
+        extent = connection.execute(sql).scalar()
 
     if extent:
         extent = extent.replace('BOX(', '').replace(')', '')
         min_x, min_y, max_x, max_y = map(float, extent.split(',')[0].split(' ') + extent.split(',')[1].split(' '))
         return [min_x, min_y, max_x, max_y]
-    else:
-        return None
+    return None
     
 def get_quality_frequency(table_name):
     """
@@ -149,6 +113,8 @@ def get_quality_frequency(table_name):
     Parameters:
     table_name (str): The name of the table to query.
 
+    Returns:
+    dict: A dictionary with quality values and their percentages.
     """
     sql = text(f'''
     SELECT
@@ -161,13 +127,11 @@ def get_quality_frequency(table_name):
     ''')
 
     quality_dict = {}
-    
     with engine.connect() as connection:
         result = connection.execute(sql)
-
-    for row in result:
-        quality_value, quality_percentage = row
-        quality_dict[quality_value] = float(quality_percentage)
+        for row in result:
+            quality_value, quality_percentage = row
+            quality_dict[quality_value] = float(quality_percentage)
 
     return quality_dict
 
@@ -198,42 +162,31 @@ def get_table_dates(table_name):
 
 def get_amount_of_occurrences(table_name):
     """
-    Retrieve the number of occurrences in a given table
+    Retrieve the number of occurrences in a given table.
 
     Parameters:
     table_name (str): The name of the table to query.
 
     Returns:
-    int: number of occurrences.
+    int: Number of occurrences.
     """
     # Specify the column that contains the occurrences. Replace 'occurrences_column' with the actual column name.
     sql = f'SELECT COUNT(*) as total_occurrences FROM "{table_name}"'
     
     # Read the result into a DataFrame
     result_df = pd.read_sql_query(sql, engine)
-    
-    # Get the total occurrences from the DataFrame
-    total_occurrences = result_df['total_occurrences'].iloc[0]
-
-    return total_occurrences  
+    return result_df['total_occurrences'].iloc[0]
 
 def get_amount_of_all_occurrences():
-    """The function to return the number of all occurrences from the database."""  
-    inspector = inspect(engine)
-    tables = inspector.get_table_names()
-    number_of_all_occurrences = 0
-    for table in tables:
-        if table not in postgis_default_tables:
-            # Specify the column that contains the occurrences. Replace 'occurrences_column' with the actual column name.
-            sql = f'SELECT COUNT(*) as total_occurrences FROM "{table}"'
+    """
+    Retrieve the number of all occurrences from the database.
 
-            # Read the result into a DataFrame
-            result_df = pd.read_sql_query(sql, engine)
-
-            # Get the total occurrences from the DataFrame
-            number_of_all_occurrences += result_df['total_occurrences'].iloc[0]
-
-    return number_of_all_occurrences
+    Returns:
+    int: Total number of occurrences.
+    """
+    tables = get_all_tables()
+    total_occurrences = sum(get_amount_of_occurrences(table) for table in tables)
+    return total_occurrences
 
 def to_db(gdf, table_names):
     """
@@ -244,7 +197,7 @@ def to_db(gdf, table_names):
     table_names (list): DB table names
 
     Returns:
-    failed_features_count  (int): An updated counter for failed occurrence inserts.
+    int: An updated counter for failed occurrence inserts.
     """
 
     # Separate by geometry type
@@ -263,51 +216,51 @@ def to_db(gdf, table_names):
                 geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
         except Exception as e:
             print(f"Error occurred: {e}")
-            failed_features_count = len(geom_gdf)
+            failed_features_count += len(geom_gdf)
 
     return failed_features_count
 
 def update_single_table_indexes(table_name):
+    """
+    Updates indexes for a single table.
+
+    Parameters:
+    table_name (str): The name of the table to update indexes for.
+    """
     with engine.connect() as connection:
         print(f"Updating indexes for table: {table_name}")
 
-        # Combine all index creation queries into a single execution
         index_creation_sql = text(f'''
             CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
             CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
         ''')
-
-        # Execute the combined index creation block
         connection.execute(index_creation_sql)
         connection.commit()
 
 def update_indexes(table_names, use_multiprocessing=True):
     """
-    Updates spatial and normal indexes for the given table
+    Updates spatial and normal indexes for the given tables.
 
     Parameters:
-    table_names (list): A PostGIS table names to where indexes will be updated
+    table_names (list): A list of PostGIS table names to update indexes for.
+    use_multiprocessing (bool): Whether to use multiprocessing for updating indexes.
     """
     if table_names:
-       
-        if use_multiprocessing:
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                executor.map(update_single_table_indexes, table_names)
-        else:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(update_single_table_indexes, table_names)
+        executor_class = concurrent.futures.ProcessPoolExecutor if use_multiprocessing else concurrent.futures.ThreadPoolExecutor
+        with executor_class() as executor:
+            executor.map(update_single_table_indexes, table_names)
     else:
         print("No table names given, can't update table indexes")
 
 def validate_geometries_postgis(table_name):
     """
-    Finds and fix invalid geometries 
+    Finds and fixes invalid geometries in a table.
 
     Parameters:
-    table_name (str): Table to be checked
+    table_name (str): The name of the table to check.
 
     Returns:
-    edited_features_count (int): the number of features that hav been fixed
+    int: The number of features that have been fixed.
     """
     if 'point' not in table_name:
         with engine.connect() as connection:
@@ -320,13 +273,11 @@ def validate_geometries_postgis(table_name):
                 print(e)
                 edited_features_count = 0
         return edited_features_count
-    else:
-        return 0
+    return 0
 
 def remove_duplicates(table_names):
     """
-    Remove duplicate rows from the specified table based on the 'Havainnon_tunniste' attribute.
-    This is needed if data is updated and some pages have had occurrences that are already in the database.
+    Remove duplicate rows from the specified tables based on the 'Havainnon_tunniste' attribute.
 
     Parameters:
     table_names (list): The names of the tables to be checked for duplicates.
@@ -334,33 +285,24 @@ def remove_duplicates(table_names):
     Returns:
     int: The number of duplicate rows removed.
     """
-    if table_names:
-        removed_occurrences = 0
-        for table_name in table_names:
-            number_before_deletion = get_amount_of_occurrences(table_name)
+    removed_occurrences = 0
+    for table_name in table_names:
+        number_before_deletion = get_amount_of_occurrences(table_name)
+        with engine.connect() as connection:
+            remove_duplicates_sql = text(f'''
+                DELETE FROM "{table_name}" t
+                USING (
+                    SELECT "Havainnon_tunniste", MIN(ctid) AS keep_ctid
+                    FROM "{table_name}"
+                    GROUP BY "Havainnon_tunniste"
+                ) cte
+                WHERE t.ctid != cte.keep_ctid AND t."Havainnon_tunniste" = cte."Havainnon_tunniste";
+            ''')
+            connection.execute(remove_duplicates_sql)
+            connection.commit()
+        number_after_deletion = get_amount_of_occurrences(table_name)
+        removed_occurrences += number_before_deletion - number_after_deletion
 
-            with engine.connect() as connection:
-                # SQL query to remove duplicates
-                remove_duplicates_sql = text(f'''
-                    DELETE FROM "{table_name}" t
-                    USING (
-                        SELECT "Havainnon_tunniste", MIN(ctid) AS keep_ctid
-                        FROM "{table_name}"
-                        GROUP BY "Havainnon_tunniste"
-                    ) cte
-                    WHERE t.ctid != cte.keep_ctid AND t."Havainnon_tunniste" = cte."Havainnon_tunniste";
-                ''')
-
-                # Execute the SQL to remove duplicates
-                connection.execute(remove_duplicates_sql)
-                connection.commit()
-
-            number_after_deletion = get_amount_of_occurrences(table_name)
-            removed_occurrences += number_before_deletion - number_after_deletion
-
-        return removed_occurrences
-    else: 
-        return 0
-
+    return removed_occurrences
 
 engine = connect_to_db()

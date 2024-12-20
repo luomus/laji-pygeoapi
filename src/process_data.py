@@ -88,41 +88,32 @@ def translate_column_names(gdf, lookup_table, style='virva'):
     # Load the lookup table CSV into a DataFrame
     lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
 
-    # Dictionary to hold the mapping of old column names to new column names and types
-    column_mapping = {}
-    column_types = {}
-    columns_to_keep = []
-    new_columns_df = pd.DataFrame(index=gdf.index)
-
-    for column in lookup_df['finbif_api_var']:
-        new_column_name = lookup_df.loc[lookup_df['finbif_api_var'] == column, style].iloc[0]
-        new_column_type = lookup_df.loc[lookup_df['finbif_api_var'] == column, 'type'].iloc[0]
-        column_types[new_column_name] = new_column_type
-        columns_to_keep.append(new_column_name)
-
-        if column in gdf.columns:
-            column_mapping[column] = new_column_name
-        else:
-            new_columns_df[new_column_name] = None
-            #print(f"Column {new_column_name} was not found so it is created with empty values")
+    # Create dictionaries for quick lookups
+    column_mapping = lookup_df.set_index('finbif_api_var')[style].to_dict()
+    column_types = lookup_df.set_index(style)['type'].to_dict()
+    columns_to_keep = lookup_df[style].tolist()
 
     # Rename existing columns
     gdf = gdf.rename(columns=column_mapping)
 
-    # Concatenate the new columns DataFrame with the original DataFrame
-    gdf = pd.concat([gdf, new_columns_df], axis=1)
+    # Add missing columns with None values
+    for col in columns_to_keep:
+        if col not in gdf.columns:
+            gdf[col] = None
 
     # Drop columns that are not in the lookup table
     gdf = gdf[columns_to_keep]
 
     # Change column types according to the table and fill NaNs for integer columns
-    for new_column_name, new_column_type in column_types.items():
-        if new_column_type == 'int':
-            gdf.fillna({new_column_name: 0}, inplace=True)
-        if new_column_type == 'datetime':
-            gdf[new_column_name] = pd.to_datetime(gdf[new_column_name], errors='coerce', format='%Y-%m-%d')
-        if new_column_type != 'geom' and new_column_type != 'datetime':
-            gdf[new_column_name] = gdf[new_column_name].astype(new_column_type)
+    for col, col_type in column_types.items():
+        if col_type == 'int':
+            gdf[col] = gdf[col].fillna(0).astype(int)
+        elif col_type == 'datetime':
+            gdf[col] = pd.to_datetime(gdf[col], errors='coerce', format='%Y-%m-%d')
+        elif col_type == 'bool':
+            gdf[col] = gdf[col].astype('boolean')
+        elif col_type != 'geom':
+            gdf[col] = gdf[col].astype(col_type)
 
     return gdf
 
