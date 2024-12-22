@@ -107,13 +107,17 @@ def translate_column_names(gdf, lookup_table, style='virva'):
     # Change column types according to the table and fill NaNs for integer columns
     for col, col_type in column_types.items():
         if col_type == 'int':
-            gdf[col] = gdf[col].fillna(0).astype(int)
+            gdf[col] = gdf[col].astype(pd.Int64Dtype())
         elif col_type == 'datetime':
             gdf[col] = pd.to_datetime(gdf[col], errors='coerce', format='%Y-%m-%d')
         elif col_type == 'bool':
-            gdf[col] = gdf[col].astype('boolean')
+            gdf[col] = gdf[col].astype(str).str.lower().map({'true': True, 'false': False, 'none': None})
+            gdf[col] = gdf[col].astype(pd.BooleanDtype())
         elif col_type != 'geom':
             gdf[col] = gdf[col].astype(col_type)
+
+    # Convert all NaN values to None
+    gdf = gdf.where(pd.notnull(gdf), None)
 
     return gdf
 
