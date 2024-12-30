@@ -119,7 +119,7 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     Returns:
     geopandas.GeoDataFrame: The retrieved occurrence data as a GeoDataFrame.
     """    
-    
+    failed_features_counter = 0
     gdf = gpd.GeoDataFrame()
 
     if multiprocessing==True or multiprocessing=="True":
@@ -128,13 +128,17 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
             futures = [executor.submit(download_page, url, page_no) for page_no in range(startpage, endpage + 1)]
             for future in concurrent.futures.as_completed(futures):
                 gdf = pd.concat([gdf, future.result()], ignore_index=True)
+                if gdf.empty:
+                    failed_features_counter += 10000
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(startpage,endpage+1):
             next_gdf = download_page(url, page_no)
             gdf = pd.concat([gdf, next_gdf], ignore_index=True)
+            if next_gdf.empty:
+                failed_features_counter += 10000
 
-    return gdf
+    return gdf, failed_features_counter
 
 def find_main_taxon(row):
     """

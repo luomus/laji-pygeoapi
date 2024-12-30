@@ -54,8 +54,9 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         endpage = min(startpage + batch_size - 1, pages)
         print(f"Loading {table_base_name} observations. Pages {startpage}-{endpage} ({pages} in total)")
         
-        gdf = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=config["multiprocessing"])
-        
+        gdf, failed_features = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=config["multiprocessing"])
+        failed_features_count += failed_features
+
         if gdf.empty:
             print(f"No occurrences found from {table_base_name}, skipping.")
             continue
@@ -167,7 +168,7 @@ def main():
     print("\n--- Summary Report ---")
     print(f" -> Total processed occurrences: {processed_occurrences}")
     print(f" -> Fixed geometries: {edited_features_count}")
-    print(f" -> Failed insertions: {failed_features_count}")
+    print(f" -> Failed insertions: {failed_features_count} (estimated)")
     print(f" -> Duplicates removed: {duplicates_count_by_id}")
     print(f" -> Final occurrences in database after processing: {total_occurrences}")
 
