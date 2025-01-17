@@ -60,4 +60,4 @@ Havainnon määrän yksikkö;;;Havainnon_maaran_yksikko;str;TRUE
 Vesistöalue;;;Vesistoalue;str;FALSE
 computed_ely_area;;;Vastuualue;str;FALSE
 Paikallinen_tunniste;;;Paikallinen_tunniste;str;False
-document.loadDate;;;Viimeisin_paivitys;datetime;FALSE
+document.loadDate;;;Lataus_pvm;datetime;FALSE
