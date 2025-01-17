@@ -29,6 +29,8 @@ def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
     - metadata_db_path (str): Path to the metadata database where JSON metadata for each table will be stored.
     - pygeoapi_config_out (str): Output path for the PyGeoAPI configuration file.
     """
+    empty_metadata_db(metadata_db_path)
+    
     table_names = edit_db.get_all_tables()
     for idx, table_name in enumerate(table_names):
         bbox = edit_db.get_table_bbox(table_name)

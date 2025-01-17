@@ -13,7 +13,7 @@ echo "waiting for postgres..."
 while ! is_healthy postgres; do sleep 1; done
 
 echo "running scripts"
-docker compose -f ./docker-compose-python-scripts.yaml up --build
+docker compose -f ./docker-compose-python-scripts.yaml up --build --force-recreate
 
 if [ "$postgres_running_at_start" -ne 0 ]; then
     echo "cleaning up"

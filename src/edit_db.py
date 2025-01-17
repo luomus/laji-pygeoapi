@@ -292,11 +292,11 @@ def remove_duplicates(table_names):
             remove_duplicates_sql = text(f'''
                 DELETE FROM "{table_name}" t
                 USING (
-                    SELECT "Havainnon_tunniste", MIN(ctid) AS keep_ctid
+                    SELECT "Havainnon_tunniste", MAX("Lataus_pvm") AS latest_date
                     FROM "{table_name}"
                     GROUP BY "Havainnon_tunniste"
                 ) cte
-                WHERE t.ctid != cte.keep_ctid AND t."Havainnon_tunniste" = cte."Havainnon_tunniste";
+                WHERE t."Havainnon_tunniste" = cte."Havainnon_tunniste" AND t."Lataus_pvm" < cte."latest_date";
             ''')
             connection.execute(remove_duplicates_sql)
             connection.commit()

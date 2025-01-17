@@ -49,7 +49,7 @@ def get_collection_names(url):
         return {item['id']: item['longName'] for item in data['results']}
     return {}
 
-def get_last_page(url):
+def get_last_page(url, max_retries=5, delay=60):
     """
     Get the last page number from the API response with retry logic.
 
@@ -59,22 +59,11 @@ def get_last_page(url):
     Returns:
     int: The last page number. Returns None if all retries fail.
     """
-    attempt = 0
-    max_retries = 3
-    delay = 10
-    while attempt < max_retries:
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            api_response = response.json()
-            return api_response.get("lastPage", None)
-        except (requests.exceptions.RequestException, ValueError) as e:
-            print(f"Error retrieving last page from {url}: {e}. Retrying in {delay} seconds...")
-            time.sleep(delay)
-            attempt += 1
-    print(f"Failed to retrieve last page from {url} after {max_retries} attempts.")
-    return None
-       
+    api_response = fetch_json_with_retry(url, max_retries=max_retries, delay=delay)
+    if not api_response:
+        raise ValueError(f"Failed to retrieve last page from {url} after {max_retries} attempts.")
+    return api_response.get("lastPage", None)
+
 def download_page(url, page_no):
     """
     Download data from a specific page of the API with retry logic. This is in separate function to speed up multiprocessing.
@@ -199,10 +188,9 @@ def get_enumerations(url):
     Returns:
     dict: A dictionary with enumeration values as keys and 'fi' labels as values.
     """
-    json_data = fetch_json_with_retry(url)
+    json_data = fetch_json_with_retry(url, max_retries=10, delay=60)
     if not json_data:
-        print("Error getting enumeration values.")
-        return {}
+        raise ValueError("Error getting enumeration values.")
 
     # Extract "enumeration" keys and "fi" labels
     enumerations = {
