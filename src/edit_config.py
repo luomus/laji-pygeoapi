@@ -101,4 +101,4 @@ def add_metadata_to_config(pygeoapi_config_out, db_path_in_config):
     # Append the filled template to the output config file
     with open(pygeoapi_config_out, "a") as file:
         file.write(config_template)
-        print("metadata added to config file")
+        print(f"metadata ({db_path_in_config}) added to config file {pygeoapi_config_out}")
