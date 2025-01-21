@@ -19,12 +19,6 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     keyword_index = None
     for i, line in enumerate(lines):
 
-        # Add latest update timestamp to pygeoapi description
-        match = re.search(r'\d{4}-\d{2}-\d{2}', line)
-        if match:
-            last_update = match
-            lines[i] = line.replace(match.group(), str(date.today()))
-
         # Find the point where resources section starts
         if "resources" in line:
             keyword_index = i
@@ -39,8 +33,6 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
             file.writelines(lines)
     else:
         print("Didn't remove any collections as the pygeoapi configuration file does not have resources section")
-    
-    return last_update
 
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out):

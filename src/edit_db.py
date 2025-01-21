@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import concurrent.futures
 from sqlalchemy.dialects.postgresql import base
 from geoalchemy2.types import Geometry
+from datetime import date
 
 postgis_default_tables = [
     'spatial_ref_sys', 'topology', 'layer', 'featnames', 'geocode_settings',
@@ -14,8 +15,44 @@ postgis_default_tables = [
     'county', 'state', 'place', 'zip_state', 'zip_state_loc', 'cousub',
     'edges', 'addrfeat', 'addr', 'zcta5', 'tabblock20', 'faces',
     'loader_platform', 'loader_variables', 'loader_lookuptables', 'tract',
-    'tabblock', 'bg', 'pagc_gaz', 'pagc_lex', 'pagc_rules'
+    'tabblock', 'bg', 'pagc_gaz', 'pagc_lex', 'pagc_rules', 'last_update'
 ]
+
+def get_and_update_last_update():
+    """
+    Retrieves the last update timestamp from the database and updates it.
+    If the table does not exist, it will be created with the current date.
+
+    Returns:
+    str: The last update timestamp.
+    """
+    today_date = str(date.today())
+
+    with engine.connect() as connection:
+        # Ensure the table exists
+        connection.execute(text("CREATE TABLE IF NOT EXISTS last_update (last_update DATE)"))
+
+
+        # Fetch the current last update date
+        result = connection.execute(text("SELECT last_update FROM last_update"))
+        last_update = result.scalar()
+
+        if last_update:
+            # Update the date if it exists
+            connection.execute(
+                text("UPDATE last_update SET last_update = :today_date"),
+                {"today_date": today_date}
+            )
+        else:
+            # Insert the date if the table is empty
+            connection.execute(
+                text("INSERT INTO last_update (last_update) VALUES (:today_date)"),
+                {"today_date": today_date}
+            )
+
+        connection.commit()
+
+    return last_update
 
 def connect_to_db():
     """
