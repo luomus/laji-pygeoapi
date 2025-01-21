@@ -22,5 +22,6 @@ COPY src/edit_db.py .
 COPY src/municipalities.geojson .
 COPY catalogue.tinydb .
 COPY src/edit_metadata.py .
+COPY src/pygeoapi_config_template.yml .
 
 ENTRYPOINT ["python", "-u", "main.py"]

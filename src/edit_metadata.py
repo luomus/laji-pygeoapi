@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from tinydb import TinyDB
 import edit_db, compute_variables, edit_config
-import os
+import os, shutil
 from dotenv import load_dotenv
 
 
@@ -19,17 +19,23 @@ def empty_metadata_db(metadata_db_path):
     db.drop_tables()
     db.close()
 
-def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
+def create_metadata(template_resource, config):
     """
     Generates metadata for geospatial tables in the database and updates both 
     the PyGeoAPI configuration and a metadata database.
     
     Parameters:
     - template_resource (str): A template file for generating PyGeoAPI configuration with placeholders for dynamic values.
-    - metadata_db_path (str): Path to the metadata database where JSON metadata for each table will be stored.
-    - pygeoapi_config_out (str): Output path for the PyGeoAPI configuration file.
+    - config (dict): config dictionary
     """
+    metadata_db_path = config['metadata_db_path']
+    pygeoapi_config_path = config['pygeoapi_config_path']
+    pygeoapi_config_template = config['pygeoapi_config_template']
+
     empty_metadata_db(metadata_db_path)
+
+    # Copy template file to the path in pygeoapi_config
+    shutil.copyfile(pygeoapi_config_template, pygeoapi_config_path)
     
     table_names = edit_db.get_all_tables()
     for idx, table_name in enumerate(table_names):
@@ -77,7 +83,7 @@ def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
             "quality_dict": quality_dict
         }
 
-        edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out)
+        edit_config.add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_path)
         add_JSON_metadata_to_DB(metadata_dict, metadata_db_path)
 
 def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
@@ -204,7 +210,7 @@ def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
     # Insert the JSON record into the TinyDB database
     try:
         res = db.insert(json_record)
-        #print(f'Metadata record {xml_file} loaded with internal id {res}')
+        print(f'Metadata record {db_path} loaded with internal id {res}')
     except Exception as err:
         print(f'Error inserting record: {err}')
 

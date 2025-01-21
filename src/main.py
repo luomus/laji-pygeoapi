@@ -14,15 +14,16 @@ def setup_environment():
     access_email = os.getenv('ACCESS_EMAIL')
     multiprocessing = os.getenv('MULTIPROCESSING', 'True')
     target = os.getenv('TARGET', 'default')
+    pygeoapi_config_path = 'pygeoapi-config.yml'
+    pygeoapi_config_template = 'pygeoapi_config_template.yml'
 
     # If the code is running in openshift/kubernetes, set paths differently
     if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
-        pygeoapi_config_out = r'pygeoapi-config_out.yml'
         metadata_db_path = 'tmp-catalogue.tinydb'
         db_path_in_config = 'metadata_db.tinydb'
         print("Starting in Openshift / Kubernetes...")
     else:
-        pygeoapi_config_out = r'pygeoapi-config.yml'
+        
         metadata_db_path = 'catalogue.tinydb'
         db_path_in_config = metadata_db_path
         print("Starting in Docker...")
@@ -34,7 +35,8 @@ def setup_environment():
         "target": target,
         "pages_env": pages_env,
         "multiprocessing": multiprocessing,
-        "pygeoapi_config_out": pygeoapi_config_out,
+        "pygeoapi_config_path": pygeoapi_config_path,
+        "pygeoapi_config_template": pygeoapi_config_template,
         "metadata_db_path": metadata_db_path,
         "db_path_in_config": db_path_in_config
     }
@@ -97,7 +99,7 @@ def main():
     duplicates_count_by_id = 0
     drop_tables = False
     
-    last_update = edit_config.clear_collections_from_config('pygeoapi-config.yml', config['pygeoapi_config_out']).group()
+    last_update = edit_db.get_and_update_last_update()
 
     if config['pages_env'] == '0':
         edit_db.drop_all_tables()
@@ -112,7 +114,7 @@ def main():
 
         # Construct API URL for api.laji.fi
         base_url = f"{config['laji_api_url']}warehouse/query/unit/list?"
-        if config['pages_env'] == "latest":
+        if config['pages_env'] == "latest" and last_update:
             base_url = f"{base_url}loadedSameOrAfter={last_update}&"
         elif config['pages_env'] == "all":
             drop_tables = True
@@ -161,7 +163,7 @@ def main():
 
     # Create metadata for the processed data
     print("Creating metadata...")
-    edit_metadata.create_metadata("template_resource.txt", config["metadata_db_path"], config["pygeoapi_config_out"])
+    edit_metadata.create_metadata("template_resource.txt", config)
 
     # Generate statistics for reporting
     total_occurrences = edit_db.get_amount_of_all_occurrences()
@@ -169,7 +171,7 @@ def main():
     # If running in Openshift/Kubernetes, replace the config map and restart
     if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
         print("Updating configmap and restarting the service...")
-        edit_configmaps.update_and_restart(config["pygeoapi_config_out"], config["metadata_db_path"])
+        edit_configmaps.update_and_restart(config["pygeoapi_config_path"], config["metadata_db_path"])
     
     print("\n--- Summary Report ---")
     print(f" -> Total processed occurrences: {processed_occurrences}")
@@ -180,7 +182,7 @@ def main():
 
     # Update the PyGeoAPI configuration with metadata info
     print("Updating PyGeoAPI configuration with metadata...")
-    edit_config.add_metadata_to_config(config["pygeoapi_config_out"], config["db_path_in_config"])
+    edit_config.add_metadata_to_config(config["pygeoapi_config_path"], config["db_path_in_config"])
 
     print("\nAPI is ready to use. All tasks completed successfully.")
 

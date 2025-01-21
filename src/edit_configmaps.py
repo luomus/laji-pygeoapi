@@ -71,7 +71,7 @@ def update_configmap(configmap_url, headers, ca_cert, file_to_add, path):
         print(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
         r.raise_for_status()
 
-def update_and_restart(pygeoapi_config_out, metadata_db_path):
+def update_and_restart(pygeoapi_config_path, metadata_db_path):
     '''
     Updates a Kubernetes ConfigMap with new configuration data and restarts related pods.
 
@@ -82,7 +82,7 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
     4. Identifies the relevant pods by label and deletes them to trigger a restart.
 
     Parameters:
-    pygeoapi_config_out (str): The path to the pygeoapi config file
+    pygeoapi_config_path (str): The path to the pygeoapi config file
     metadata_db_path (str): The path to the metadata database
     '''
 
@@ -111,7 +111,7 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
     headers = {"Authorization": "Bearer {}".format(token), "Content-Type": "application/json-patch+json"}
     configmap_url = f"{api_url}/api/v1/namespaces/{namespace}/configmaps/{config_map_name}"
 
-    update_configmap(configmap_url, headers, ca_cert, pygeoapi_config_out, "/data/pygeoapi-config.yml")
+    update_configmap(configmap_url, headers, ca_cert, pygeoapi_config_path, "/data/pygeoapi-config.yml")
     update_configmap(configmap_url, headers, ca_cert, metadata_db_path, "/data/catalogue.tinydb")
 
 
