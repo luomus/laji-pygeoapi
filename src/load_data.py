@@ -3,7 +3,6 @@ import pandas as pd
 import requests, concurrent.futures
 import urllib.error
 import time
-from io import BytesIO
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
@@ -78,7 +77,7 @@ def download_page(url, page_no):
     """
     # Load data
     attempt = 0
-    max_retries = 5
+    max_retries = 10
     delay = 60
     url = url.replace('page=1', f'page={page_no}')
     while attempt < max_retries:
@@ -86,30 +85,14 @@ def download_page(url, page_no):
             gdf = gpd.read_file(url)   
             return gdf 
         except urllib.error.HTTPError as e:
-            if e.code == 404:
-                print(f"Page {page_no} not found. Skipping...")
-                break
             print(f"HTTP Error {e.code}: {e.reason} for {url}. Retrying in {delay} seconds...")
         except Exception as e:
             print(f"Error downloading page {page_no}: {e}. Retrying in {delay} seconds...")
         time.sleep(delay)
         attempt += 1
 
-    # Secondary fallback with requests.get()
-    try:
-        print(f"Attempting fallback with requests.get() for page {page_no}...")
-        response = requests.get(url, timeout=120)
-        response.raise_for_status()
-        gdf = gpd.read_file(BytesIO(response.content))
-        return gdf
-    except requests.exceptions.RequestException as e:
-        print(f"Fallback with requests.get() failed for page {page_no}: {e}")
-    except Exception as e:
-        print(f"Error loading data into GeoPandas from fallback response for page {page_no}: {e}")
-
-
     # Return an empty GeoDataFrame in case of too many errors
-    print(f"Failed to download data from page {page_no} after {max_retries+1} attempts.")
+    print(f"Failed to download data from page {page_no} after {max_retries} attempts.")
     return gpd.GeoDataFrame()
 
 def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
