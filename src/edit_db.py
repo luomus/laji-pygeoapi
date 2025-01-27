@@ -326,14 +326,35 @@ def remove_duplicates(table_names):
     for table_name in table_names:
         number_before_deletion = get_amount_of_occurrences(table_name)
         with engine.connect() as connection:
+            # Check if the id column already exists
+            id_column_check = connection.execute(text(f'''
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = '{table_name}' AND column_name = 'id';
+            ''')).fetchone()
+
+            if not id_column_check:
+                # Add an id column only if it doesn't exist
+                connection.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN "id" SERIAL PRIMARY KEY;'))
+
             remove_duplicates_sql = text(f'''
-                DELETE FROM "{table_name}" t
-                USING (
-                    SELECT "Havainnon_tunniste", MAX("Lataus_pvm") AS latest_date
+                WITH cte AS (
+                    SELECT
+                        "id",
+                        "Havainnon_tunniste",
+                        "Lataus_pvm",
+                        ROW_NUMBER() OVER (
+                            PARTITION BY "Havainnon_tunniste"
+                            ORDER BY "Lataus_pvm" DESC
+                        ) AS row_num
                     FROM "{table_name}"
-                    GROUP BY "Havainnon_tunniste"
-                ) cte
-                WHERE t."Havainnon_tunniste" = cte."Havainnon_tunniste" AND t."Lataus_pvm" < cte."latest_date";
+                )
+                DELETE FROM "{table_name}"
+                WHERE "id" IN ( 
+                    SELECT "id"
+                    FROM cte
+                    WHERE row_num > 1
+                );
             ''')
             connection.execute(remove_duplicates_sql)
             connection.commit()

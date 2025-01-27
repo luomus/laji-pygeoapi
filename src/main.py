@@ -98,6 +98,7 @@ def main():
     drop_tables = False
     
     last_update = edit_db.get_and_update_last_update()
+    edit_config.clear_collections_from_config('pygeoapi-config.yml', config["pygeoapi_config_out"])
 
     if config['pages_env'] == '0':
         edit_db.drop_all_tables()
