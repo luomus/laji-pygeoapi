@@ -57,8 +57,8 @@ objects:
                     en: FinBIF occurrence data OGC API
                     fi: Lajitietokeskuksen havaintoaineistojen OGC API -rajapinta
                 description:
-                    en: Latest update 2024-01-01.
-                    fi: Viimeisin päivitys 2024-01-0.
+                    en: This OGC API - Features allows you to fetch openly available occurrence data from laji.fi. Data is selected using virva filters.
+                    fi: Tämä OGC API - Features rajapinta mahdollistaa avoimesti saatavilla olevien lajihavaintojen hakemisen laji.fi:stä. Data on virva-rajauksien mukaista.
                 keywords:
                     en:
                         - occurrence data

@@ -3,7 +3,7 @@ apiVersion: template.openshift.io/v1
 parameters:
   - name: NAMESPACE
     required: true
-    value: laji-pygeoapi
+    value: laji-ogcapi
   - name: BRANCH
     required: true
     value: dev
@@ -508,7 +508,7 @@ objects:
   - kind: Route
     apiVersion: route.openshift.io/v1
     metadata:
-      name: geoapi-laji-fi-${NAME_PREFIX}${BRANCH}
+      name: ogcapi-laji-fi-${NAME_PREFIX}${BRANCH}
       labels:
         io.kompose.service: pygeoapi-${NAME_PREFIX}${BRANCH}
         app: pygeoapi-${NAME_PREFIX}${BRANCH}
