@@ -77,7 +77,8 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         edited_features_count += edited_features
         failed_features_count += edit_db.to_db(gdf, table_names)
     
-    duplicates_count_by_id += edit_db.remove_duplicates(table_names)
+    if not gdf.empty:
+        duplicates_count_by_id += edit_db.remove_duplicates(table_names)
     
     return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id
 
