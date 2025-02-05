@@ -169,7 +169,7 @@ def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
         },
         'links': [
         {
-            "href":f"https://geoapi.laji.fi/collections/{dataset_name}",
+            "href":f"https://ogcapi.laji.fi/collections/{dataset_name}",
             "rel":"item",
             "title":"Dataset in LUOMUS OGC API Features service",
             "type":"OGCFeat"

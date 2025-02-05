@@ -23,7 +23,7 @@
     <meta property="og:title"        content="{{ self.title() }}{% if not self.title() %}{{ config['metadata']['identification']['title'] }}{% endif %}" />
     <meta name="twitter:description" content="{{ config['metadata']['identification']['description'] }}" />
     <meta property="og:description"  content="{{ config['metadata']['identification']['description'] }}" />
-
+    <script defer data-domain="ogcapi.laji.fi" src="https://plausible.io/js/script.js"></script>
     <meta property="og:type" content="website" />
     {% for link in data['links'] %}
       {% if (link['rel']=="self" and link['type']=="text/html") %}
@@ -57,10 +57,10 @@
             <a href="https://pygeoapi.io" class="nav-link">About</a>
           -->
           <li class="nav-item">
-            <a href="https://geoapi.laji.fi/" class="nav-link">Non-restricted version</a>
+            <a href="https://ogcapi.laji.fi/" class="nav-link">Non-restricted version</a>
           </li>
           <li class="nav-item">
-            <a href="https://viranomaiset.laji.fi/theme/geoapi" class="nav-link">Get API key</a>
+            <a href="https://viranomaiset.laji.fi/theme/ogcapi" class="nav-link">Get API key</a>
           </li>
         </ul>
       </header>
