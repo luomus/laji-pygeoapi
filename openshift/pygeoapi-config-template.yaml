@@ -37,12 +37,14 @@ objects:
             languages:
                 - en-US
                 - fi-FI
-            # cors: true
+            cors: true
             pretty_print: true
-            limit: 10
+            limits:
+               default_items: 100
+               max_items: 10000
             templates:
-              path: custom/templates
-              static: pygeoapi/pygeoapi/static
+               path: custom/templates
+               static: pygeoapi/pygeoapi/static
             map:
                 url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
                 attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
