@@ -197,6 +197,19 @@ def get_table_dates(table_name):
     min_date, max_date = result
     return min_date, max_date
 
+def check_table_exists(table_name):
+    """
+    Check if a table exists in the database.
+
+    Parameters:
+    table_name (str): The name of the table to check.
+
+    Returns:
+    bool: True if the table exists, False otherwise.
+    """
+    inspector = inspect(engine)
+    return table_name in inspector.get_table_names()
+
 def get_amount_of_occurrences(table_name):
     """
     Retrieve the number of occurrences in a given table.

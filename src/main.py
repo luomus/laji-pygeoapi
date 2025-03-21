@@ -47,6 +47,7 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
     failed_features_count = 0
     edited_features_count = 0
     duplicates_count_by_id = 0
+    converted_collections = 0
     table_names = [f'{table_base_name}_points', f'{table_base_name}_lines', f'{table_base_name}_polygons']
 
     if drop_tables:
@@ -72,15 +73,16 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+        gdf, converted_collections = process_data.convert_geometry_collection_to_multipolygon(gdf)
         gdf, edited_features = process_data.validate_geometry(gdf)
-        
         edited_features_count += edited_features
+        converted_collections += converted_collections
         failed_features_count += edit_db.to_db(gdf, table_names)
     
     if not gdf.empty:
         duplicates_count_by_id += edit_db.remove_duplicates(table_names)
     
-    return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id
+    return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections
 
 
 def main():
@@ -96,6 +98,7 @@ def main():
     failed_features_count = 0
     edited_features_count = 0
     duplicates_count_by_id = 0
+    converted_collections = 0
     drop_tables = False
     
     last_update = edit_db.get_and_update_last_update()
@@ -147,6 +150,7 @@ def main():
             failed_features_count += results[1]
             edited_features_count += results[2]
             duplicates_count_by_id += results[3]
+            converted_collections += results[4]
 
         if os.getenv("INVASIVE_SPECIES", "True").lower() == "true":
             print("Processing invasive species data...")
@@ -158,6 +162,7 @@ def main():
             failed_features_count += results[1]
             edited_features_count += results[2]
             duplicates_count_by_id += results[3]
+            converted_collections += results[4]
 
         print("Processing completed.")
 
@@ -182,6 +187,7 @@ def main():
     print(f" -> Fixed geometries: {edited_features_count}")
     print(f" -> Failed insertions: {failed_features_count} (estimated)")
     print(f" -> Duplicates removed: {duplicates_count_by_id}")
+    print(f" -> Converted geometry collections: {converted_collections}")
     print(f" -> Final occurrences in database after processing: {total_occurrences}")
 
     print("\nAPI is ready to use. All tasks completed successfully.")

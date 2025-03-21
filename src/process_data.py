@@ -122,25 +122,33 @@ def translate_column_names(gdf, lookup_table, style='virva'):
     return gdf
 
 def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
-    """Convert GeometryCollection to MultiPolygon in the entire GeoDataFrame, buffering points and lines if necessary."""
+    """Convert GeometryCollection to MultiPolygon in the entire GeoDataFrame, buffering points and lines if necessary.
+       The resulting MultiPolygon is dissolved into a single geometry.
+    """
+    converted_collections = 0
 
     def process_geometry(geometry):
+        nonlocal converted_collections
         if isinstance(geometry, GeometryCollection):
             polygons = [geom.buffer(buffer_distance) if isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)) 
                         else geom 
                         for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon, Point, LineString, MultiPoint, MultiLineString))]
 
-            if len(polygons) == 1:
-                return MultiPolygon(polygons) if isinstance(polygons[0], Polygon) else polygons[0]
-            elif len(polygons) > 1:
-                return MultiPolygon(polygons)
+            if polygons:
+                converted_collections += len(polygons)
+                dissolved_geometry = gpd.GeoSeries(polygons).unary_union # dissolve to one multipolygon
+                
+                if isinstance(dissolved_geometry, Polygon):
+                    dissolved_geometry = MultiPolygon([dissolved_geometry])
+
+                return dissolved_geometry
             else:
                 return None
         return geometry
 
     gdf['geometry'] = gdf['geometry'].apply(process_geometry)
     
-    return gdf
+    return gdf, converted_collections
 
 def merge_duplicates(gdf, lookup_table):
     """
