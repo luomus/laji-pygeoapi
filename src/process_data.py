@@ -130,16 +130,38 @@ def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
     def process_geometry(geometry):
         nonlocal converted_collections
         if isinstance(geometry, GeometryCollection):
+            converted_collections += 1
+            geom_types = {type(geom) for geom in geometry.geoms}
+            geometries = list(geometry.geoms)
+
+            # If the GeometryCollection has only one geometry, return it as-is
+            if len(geometries) == 1:
+                return geometries[0]
+
+            # If all geometries are of the same type, convert to MultiX
+            if geom_types == {LineString}:
+                return MultiLineString(list(geometry.geoms))
+            elif geom_types == {Point}:
+                return MultiPoint(list(geometry.geoms))
+            elif geom_types == {Polygon}:
+                return MultiPolygon(list(geometry.geoms))
+            elif geom_types == {MultiLineString}:
+                return MultiLineString([g for geom in geometry.geoms for g in geom.geoms])
+            elif geom_types == {MultiPoint}:
+                return MultiPoint([g for geom in geometry.geoms for g in geom.geoms])
+            elif geom_types == {MultiPolygon}:
+                return MultiPolygon([g for geom in geometry.geoms for g in geom.geoms])
+
+            # In other case, buffer points and lines and return the dissolved result as MultiPolygon
             polygons = [geom.buffer(buffer_distance) if isinstance(geom, (Point, LineString, MultiPoint, MultiLineString)) 
                         else geom 
                         for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon, Point, LineString, MultiPoint, MultiLineString))]
 
             if polygons:
-                converted_collections += len(polygons)
-                dissolved_geometry = gpd.GeoSeries(polygons).unary_union # dissolve to one multipolygon
+                dissolved_geometry = gpd.GeoSeries(polygons).unary_union 
                 
                 if isinstance(dissolved_geometry, Polygon):
-                    dissolved_geometry = MultiPolygon([dissolved_geometry])
+                    return MultiPolygon([dissolved_geometry])
 
                 return dissolved_geometry
             else:
