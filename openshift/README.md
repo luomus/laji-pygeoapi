@@ -58,19 +58,7 @@ you can change the schedule back to normal.
 
 ## 7. Wait for Pod Completion
 
-Wait for the pod ```python-scripts-<BRANCH>-xxxx``` to complete its tasks. If ```"PAGES"``` environmental variable is a big number or ```"all"```, it can take some time. You can check the logs to see it's progressing. 
-
-## 8. Create Database Tables for Request Log (not required if authentication is not enabled)
-
-Navigate to the pod that is running the pygeoapi app and open the terminal. Create tables with the command
-
-```
-flask --app src.app db upgrade
-```
-
-## 9. Add Route Certificate
-
-Edit the route and add the certificate (only needed when deploying the app for the first time).
+Wait for the pod ```python-scripts-<BRANCH>-xxxx``` to complete its tasks. If ```"PAGES"``` environmental variable is a big number or ```"all"```, it can take some time. You can check the logs to see it's progressing.
 
 ## Done!
 

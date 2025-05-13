@@ -56,7 +56,6 @@ Where
 In the root directory, run:
 ```
 ./scripts/init-db.sh
-./scripts/flask-command.sh db upgrade
 ```
 *Note*: If you get "Permissions denied" error, you may have to change the permissions of the file `init-database.sh`.
 On Windows, you may need to provide full paths and ensure that Docker Desktop is open.
