@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 
-def compute_individual_count(individual_count_col):
+def compute_individual_count(col):
     """
     Determine whether the column gets a value 'paikalla' or 'poissa'.
     Keeps None or NaN values as they are.
@@ -13,8 +13,9 @@ def compute_individual_count(individual_count_col):
     Returns:
     pd.Series: Series with 'paikalla', 'poissa', or original NaN/None based on the individual count.
     """
-    return np.where(individual_count_col.isna(), individual_count_col, 
-                    np.where(individual_count_col > 0, 'paikalla', 'poissa'))
+    return col.apply(
+        lambda x: 'paikalla' if x > 0 else 'poissa' if x <= 0 else None
+    )
 
 def compute_collection_id(collection_id_col, collection_names):
     """
@@ -46,36 +47,37 @@ def map_values(col, value_ranges):
     """
     return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(value.strip("http://tun.fi/"), value) for value in values]))
 
-def compute_areas(gdf_with_geom_and_ids, municipal_geojson):
+def compute_areas(gdf, municipal_geojson):
     """
     Computes the municipalities and provinces for each row in the GeoDataFrame.
 
     Parameters:
-    gdf_with_geom_and_ids (gpd.GeoDataFrame): GeoDataFrame with geometry and IDs.
+    gdf (gpd.GeoDataFrame): GeoDataFrame with geometry and IDs.
     municipal_geojson (str): Path to the GeoJSON file containing municipal geometries and corresponding ELY areas and provinces.
 
     Returns:
     pd.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
     pd.Series: Series with ELY areas for each row, separated by ',' if there are multiple areas.
     """
+    def dedup_join(values): 
+        return ', '.join(dict.fromkeys(v for v in values if v)) # Remove duplicate ELY center areas and empty values
+    
     # Read the GeoJSON data
-    municipal_gdf = gpd.read_file(municipal_geojson)
+    municipal_gdf = gpd.read_file(municipal_geojson, engine='pyogrio')
 
     # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
-    if gdf_with_geom_and_ids.crs != municipal_gdf.crs:
-        municipal_gdf = municipal_gdf.to_crs(gdf_with_geom_and_ids.crs)
+    if gdf.crs != municipal_gdf.crs:
+        municipal_gdf = municipal_gdf.to_crs(gdf.crs)
 
     # Perform spatial join to find which areas each row is within
-    joined_gdf = gpd.sjoin(gdf_with_geom_and_ids, municipal_gdf, how="left", predicate="intersects")
-    joined_gdf[['Municipal_Name', 'ELY_Area_Name']] = joined_gdf[['Municipal_Name', 'ELY_Area_Name']].fillna(value='')
+    joined_gdf = gpd.sjoin(gdf, municipal_gdf, how="left", predicate="intersects")
 
-    # Group by the original indices and aggregate the area names
+    # Group by the original index to aggregate municipalities and ELY areas
     municipalities = joined_gdf.groupby(joined_gdf.index)['Municipal_Name'].agg(', '.join)
-    elys = joined_gdf.groupby(joined_gdf.index)['ELY_Area_Name'].agg(', '.join)
+    elys = joined_gdf.groupby(joined_gdf.index)['ELY_Area_Name'].agg(dedup_join)
 
-    # Ensure the resulting Series aligns with the original GeoDataFrame's indices
-    municipalities = municipalities.reindex(gdf_with_geom_and_ids.index, fill_value='')
-    elys = elys.reindex(gdf_with_geom_and_ids.index, fill_value='')
+    municipalities = municipalities.reindex(gdf.index, fill_value='')
+    elys = elys.reindex(gdf.index, fill_value='')
 
     return municipalities, elys
 
@@ -157,6 +159,51 @@ def get_biogeographical_region_from_id(id):
     name = id_mapping.get(id, "Empty biogeographical region")
     return name.replace(' ', '_').replace('-', '_').replace('ä', 'a').replace('ö', 'o').lower()  # Clean table name
 
+def process_strip_url_columns(gdf, value_ranges):
+    """
+    Processes columns that require URL stripping before mapping.
+
+    Returns:
+    dict: Dictionary of processed columns.
+    """
+    columns = [
+        'unit.atlasClass',
+        'unit.atlasCode',
+        'unit.linkings.originalTaxon.primaryHabitat.habitat',
+        'unit.linkings.originalTaxon.latestRedListStatusFinland.status',
+        'unit.linkings.taxon.threatenedStatus',
+    ]
+
+    result = {}
+    for col in columns:
+        if col in gdf.columns:
+            result[col] = gdf[col].str.replace("http://tun.fi/", "", regex=False).map(value_ranges)
+    return result
+
+def process_direct_map_columns(gdf, value_ranges):
+    """
+    Processes columns that can be directly mapped.
+
+    Returns:
+    dict: Dictionary of processed columns.
+    """
+    # Columns without URL stripping
+    columns = [
+        'unit.recordBasis',
+        'unit.interpretations.recordQuality',
+        'document.secureReasons',
+        'unit.lifeStage',
+        'unit.sex',
+        'unit.abundanceUnit',
+        'document.linkings.collectionQuality',
+    ]
+
+    result = {}
+    for col in columns:
+        if col in gdf.columns:
+            result[col] = gdf[col].map(value_ranges)
+    return result
+
 def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
     """
     Computes or translates variables that cannot be directly accessed from the source API.
@@ -173,47 +220,17 @@ def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
     # Create a dictionary to store all new values
     all_cols = {}
 
-    # Columns that need URL stripping
-    strip_url_columns = [
-        'unit.atlasClass',
-        'unit.atlasCode',
-        'unit.linkings.originalTaxon.primaryHabitat.habitat',
-        'unit.linkings.originalTaxon.latestRedListStatusFinland.status',
-        'unit.linkings.taxon.threatenedStatus',
-    ]
-
-    # Columns without URL stripping
-    direct_map_columns = [
-        'unit.recordBasis',
-        'unit.interpretations.recordQuality',
-        'document.secureReasons',
-        'unit.lifeStage',
-        'unit.sex',
-        'unit.abundanceUnit',
-        'document.linkings.collectionQuality',
-    ]
-
-    # Process columns that require stripping before mapping
-    for col in strip_url_columns:
-        if col in gdf.columns:
-            all_cols[col] = gdf[col].str.strip("http://tun.fi/").map(value_ranges)
-
-    # Process columns that can be directly mapped
-    for col in direct_map_columns:
-        if col in gdf.columns:
-            all_cols[col] = gdf[col].map(value_ranges)
+    all_cols.update(process_strip_url_columns(gdf, value_ranges))
+    all_cols.update(process_direct_map_columns(gdf, value_ranges))
 
     # Mappings with multiple value in a cell:
     all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)
-
 
     # Computed values from different source
     all_cols['compute_from_individual_count'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 
     all_cols['compute_from_collection_id'] = compute_collection_id(gdf['document.collectionId'], collection_names) 
 
-    municipal_col, vastuualue_col = compute_areas(gdf[['unit.unitId', 'geometry']], municipal_geojson_path)
-    all_cols['computed_municipality'] = municipal_col.astype('str')
-    all_cols['computed_ely_area'] = vastuualue_col.astype('str')
+    all_cols['computed_municipality'], all_cols['computed_ely_area'] = compute_areas(gdf[['unit.unitId', 'geometry']], municipal_geojson_path)
 
     # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

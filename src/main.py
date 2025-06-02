@@ -53,6 +53,8 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
     if drop_tables:
         edit_db.drop_table(table_names)
 
+    gdf = None
+
     batch_size = 5
     for startpage in range(1, pages + 1, batch_size):
         endpage = min(startpage + batch_size - 1, pages)
@@ -73,13 +75,13 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipal_geojson_path)
         gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
-        gdf, converted_collections = process_data.convert_geometry_collection_to_multipolygon(gdf)
-        gdf, edited_features = process_data.validate_geometry(gdf)
-        edited_features_count += edited_features
-        converted_collections += converted_collections
+        gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf)
+        gdf, edited = process_data.validate_geometry(gdf)
         failed_features_count += edit_db.to_db(gdf, table_names)
-    
-    if not gdf.empty:
+        edited_features_count += edited
+        converted_collections += converted
+
+    if gdf is not None and not gdf.empty:
         duplicates_count_by_id += edit_db.remove_duplicates(table_names)
     
     return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections
@@ -113,7 +115,7 @@ def main():
         collection_names = load_data.get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
         ranges1 = load_data.get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
         ranges2 = load_data.get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
-        all_value_ranges = ranges1 | ranges2
+        all_value_ranges = ranges1 | ranges2  # type: ignore
 
         # Construct API URL for api.laji.fi
         base_url = f"{config['laji_api_url']}warehouse/query/unit/list?"

@@ -48,6 +48,8 @@ def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
             geom_type = 'line'
         elif 'point' in table_name:
             geom_type = 'point'
+        else:
+            raise ValueError(f"Unknown geometry type for table {table_name}")
 
         # Create parameters dictionary to fill the template for pygeoapi config file
         load_dotenv()

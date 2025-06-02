@@ -18,6 +18,14 @@ postgis_default_tables = [
     'tabblock', 'bg', 'pagc_gaz', 'pagc_lex', 'pagc_rules', 'last_update'
 ]
 
+_engine = None
+
+def get_engine():
+    global _engine
+    if _engine is None:
+        _engine = connect_to_db()
+    return _engine
+
 def get_and_update_last_update():
     """
     Retrieves the last update timestamp from the database and updates it.
@@ -28,7 +36,7 @@ def get_and_update_last_update():
     """
     today_date = str(date.today())
 
-    with engine.connect() as connection:
+    with get_engine().connect() as connection:
         # Ensure the table exists
         connection.execute(text("CREATE TABLE IF NOT EXISTS last_update (last_update DATE)"))
 
@@ -61,14 +69,14 @@ def connect_to_db():
     Returns:
     engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine for database connection
     """
-    # Load environment variables from .env file
+    # Remove this line, since env vars are set in test code
     load_dotenv()
     db_params = {
         'dbname': os.getenv('POSTGRES_DB'),
         'user': os.getenv('POSTGRES_USER'),
         'password': os.getenv('POSTGRES_PASSWORD'),
         'host': os.getenv('POSTGRES_HOST'),
-        'port': '5432'
+        'port': os.getenv('POSTGRES_PORT', '5432')  # Default PostgreSQL port
     }
 
     # Connect to the PostGIS database
@@ -91,13 +99,13 @@ def drop_all_tables():
     
     # Find all table names
     metadata = MetaData()
-    metadata.reflect(engine)
+    metadata.reflect(get_engine())
     all_tables = metadata.tables.keys()
 
     # Loop over tables and try to drop them
     for table_name in all_tables:
         if table_name not in postgis_default_tables:
-            metadata.tables[table_name].drop(engine, checkfirst=True)
+            metadata.tables[table_name].drop(get_engine(), checkfirst=True)
 
 def drop_table(table_names):
     """
@@ -109,17 +117,17 @@ def drop_table(table_names):
     
     # Find all table names
     metadata = MetaData()
-    metadata.reflect(engine)
+    metadata.reflect(get_engine())
 
     for i in table_names:
         if i in metadata.tables:
-            metadata.tables[i].drop(engine, checkfirst=True)
+            metadata.tables[i].drop(get_engine(), checkfirst=True)
 
 def get_all_tables():
     """
     Retrieves all table names (except default tables) from the database. Returns them as a list.
     """
-    inspector = inspect(engine)
+    inspector = inspect(get_engine())
     tables = inspector.get_table_names()
     return [table for table in tables if table not in postgis_default_tables]
 
@@ -134,7 +142,7 @@ def get_table_bbox(table_name):
     tuple: Bounding box coordinates in the form [min_x, min_y, max_x, max_y].
     """
     sql = text(f'SELECT ST_Extent("geometry") FROM "{table_name}"')
-    with engine.connect() as connection:
+    with get_engine().connect() as connection:
         extent = connection.execute(sql).scalar()
 
     if extent:
@@ -164,7 +172,7 @@ def get_quality_frequency(table_name):
     ''')
 
     quality_dict = {}
-    with engine.connect() as connection:
+    with get_engine().connect() as connection:
         result = connection.execute(sql)
         for row in result:
             quality_value, quality_percentage = row
@@ -190,11 +198,11 @@ def get_table_dates(table_name):
     WHERE "Keruu_aloitus_pvm" IS NOT NULL OR "Keruu_lopetus_pvm" IS NOT NULL;
     ''')
 
-    with engine.connect() as connection:
+    with get_engine().connect() as connection:
         result = connection.execute(sql).fetchone()
 
     # Result will contain the minimum and maximum dates
-    min_date, max_date = result
+    min_date, max_date = result if result else (None, None)
     return min_date, max_date
 
 def check_table_exists(table_name):
@@ -207,7 +215,7 @@ def check_table_exists(table_name):
     Returns:
     bool: True if the table exists, False otherwise.
     """
-    inspector = inspect(engine)
+    inspector = inspect(get_engine())
     return table_name in inspector.get_table_names()
 
 def get_amount_of_occurrences(table_name):
@@ -224,7 +232,7 @@ def get_amount_of_occurrences(table_name):
     sql = f'SELECT COUNT(*) as total_occurrences FROM "{table_name}"'
     
     # Read the result into a DataFrame
-    result_df = pd.read_sql_query(sql, engine)
+    result_df = pd.read_sql_query(sql, get_engine())
     return result_df['total_occurrences'].iloc[0]
 
 def get_amount_of_all_occurrences():
@@ -262,7 +270,7 @@ def to_db(gdf, table_names):
     # Loop over geometry types and corresponding geodataframes
     for table_name, geom_gdf in geom_types.items():
         try:
-            with engine.connect() as conn:
+            with get_engine().connect() as conn:
                 geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
         except Exception as e:
             print(f"Error occurred: {e}")
@@ -277,7 +285,7 @@ def update_single_table_indexes(table_name):
     Parameters:
     table_name (str): The name of the table to update indexes for.
     """
-    with engine.connect() as connection:
+    with get_engine().connect() as connection:
         print(f"Updating indexes for table: {table_name}")
 
         index_creation_sql = text(f'''
@@ -302,29 +310,6 @@ def update_indexes(table_names, use_multiprocessing=True):
     else:
         print("No table names given, can't update table indexes")
 
-def validate_geometries_postgis(table_name):
-    """
-    Finds and fixes invalid geometries in a table.
-
-    Parameters:
-    table_name (str): The name of the table to check.
-
-    Returns:
-    int: The number of features that have been fixed.
-    """
-    if 'point' not in table_name:
-        with engine.connect() as connection:
-            count_fixed_sql = text(f'UPDATE "{table_name}" SET geometry = ST_MakeValid(geometry) WHERE NOT ST_IsValid(geometry);')
-            try:
-                result = connection.execute(count_fixed_sql)
-                edited_features_count = result.rowcount
-                connection.commit()
-            except Exception as e:
-                print(e)
-                edited_features_count = 0
-        return edited_features_count
-    return 0
-
 def remove_duplicates(table_names):
     """
     Remove duplicate rows from the specified tables based on the 'Havainnon_tunniste' attribute.
@@ -338,7 +323,7 @@ def remove_duplicates(table_names):
     removed_occurrences = 0
     for table_name in table_names:
         number_before_deletion = get_amount_of_occurrences(table_name)
-        with engine.connect() as connection:
+        with get_engine().connect() as connection:
             # Check if the id column already exists
             id_column_check = connection.execute(text(f'''
                 SELECT column_name
@@ -375,5 +360,3 @@ def remove_duplicates(table_names):
         removed_occurrences += number_before_deletion - number_after_deletion
 
     return removed_occurrences
-
-engine = connect_to_db()

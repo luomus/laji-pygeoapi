@@ -107,6 +107,7 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
 
     Returns:
     geopandas.GeoDataFrame: The retrieved occurrence data as a GeoDataFrame.
+    int: The estimated number of failed features (if any).
     """    
     failed_features_counter = 0
     gdf = gpd.GeoDataFrame()

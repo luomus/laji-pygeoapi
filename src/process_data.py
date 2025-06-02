@@ -15,7 +15,7 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     Returns:
     geopandas.GeoDataFrame: The merged GeoDataFrame.
     """
-    occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'].str.extract('(MVL\.\d+)')
+    occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'].str.extract(r'(MVL\.\d+)')
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.originalTaxon.informalTaxonGroups[0]', right_on='id', how='left')
     return merged_gdf
 
@@ -31,7 +31,7 @@ def validate_geometry(gdf):
     """
     # Use make_valid to ensure all geometries are valid
     
-    og_geom = gdf['geometry']
+    og_geom = gdf['geometry'].copy()
     gdf['geometry']  = gdf['geometry'].make_valid()
     edited_features_count = (gdf['geometry']  != og_geom).sum()
     return gdf, edited_features_count
@@ -183,6 +183,8 @@ def merge_duplicates(gdf, lookup_table):
     Returns:
     GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
     """
+    def join_or_use_first(x: pd.Series) -> str:
+        return ', '.join(x) if len(x) > 1 else x.iloc[0]
 
     # Load the lookup table CSV into a DataFrame
     lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
@@ -194,15 +196,15 @@ def merge_duplicates(gdf, lookup_table):
     columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
 
     # Define how each column should be aggregated
-    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Paikallinen_tunniste', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']} # Select the first value for almost all columns
-    aggregation_dict['Keruutapahtuman_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0] # Join values if more than 1 value
-    aggregation_dict['Havainnon_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Maara'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Avainsanat'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Havainnon_lisatiedot'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Aineisto'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Paikallinen_tunniste'] = lambda x: ', '.join(x) if len(x) > 1 else x.iloc[0]
-    aggregation_dict['Yksilomaara_tulkittu'] = 'sum' # Sum values
+    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Paikallinen_tunniste', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']}
+    aggregation_dict['Keruutapahtuman_tunniste'] = join_or_use_first
+    aggregation_dict['Havainnon_tunniste'] = join_or_use_first
+    aggregation_dict['Maara'] = join_or_use_first
+    aggregation_dict['Avainsanat'] = join_or_use_first
+    aggregation_dict['Havainnon_lisatiedot'] = join_or_use_first
+    aggregation_dict['Aineisto'] = join_or_use_first
+    aggregation_dict['Paikallinen_tunniste'] = join_or_use_first
+    aggregation_dict['Yksilomaara_tulkittu'] = 'sum'
  
     # Group by the columns to check for duplicates
     grouped = gdf.groupby(columns_to_group_by).agg(aggregation_dict).copy()
