@@ -110,24 +110,27 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     int: The estimated number of failed features (if any).
     """    
     failed_features_counter = 0
-    gdf = gpd.GeoDataFrame()
+    gdfs = []
 
-    if multiprocessing==True or multiprocessing=="True":
-        # Use multiprocessing to retrieve page by page. Finally merge all pages into one geodataframe
+    if multiprocessing in [True, "True"]:
+        # Use multiprocessing to retrieve page by page. 
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = [executor.submit(download_page, url, page_no) for page_no in range(startpage, endpage + 1)]
             for future in concurrent.futures.as_completed(futures):
-                gdf = pd.concat([gdf, future.result()], ignore_index=True)
-                if gdf.empty:
+                result = future.result()
+                gdfs.append(result)
+                if result.empty:
                     failed_features_counter += 10000
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(startpage,endpage+1):
             next_gdf = download_page(url, page_no)
-            gdf = pd.concat([gdf, next_gdf], ignore_index=True)
+            gdfs.append(next_gdf)
             if next_gdf.empty:
                 failed_features_counter += 10000
 
+    # Finally merge all pages into one geodataframe
+    gdf = pd.concat(gdfs, ignore_index=True) if gdfs else gpd.GeoDataFrame()
     return gdf, failed_features_counter
 
 def find_main_taxon(row):

@@ -16,5 +16,6 @@ services:
 volumes:
   pgdata:
 
-# run with:
+# run all tests with:
 # docker-compose -f tests/docker-compose-test.yaml up -d
+# python -m pytest tests -v

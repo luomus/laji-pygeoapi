@@ -47,13 +47,13 @@ def map_values(col, value_ranges):
     """
     return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(value.strip("http://tun.fi/"), value) for value in values]))
 
-def compute_areas(gdf, municipal_geojson):
+def compute_areas(gdf, municipals_gdf):
     """
     Computes the municipalities and provinces for each row in the GeoDataFrame.
 
     Parameters:
     gdf (gpd.GeoDataFrame): GeoDataFrame with geometry and IDs.
-    municipal_geojson (str): Path to the GeoJSON file containing municipal geometries and corresponding ELY areas and provinces.
+    municipal_geojson (gpd.GeoDataFrame): GeoDataFrame containing municipal geometries and corresponding ELY areas and provinces.
 
     Returns:
     pd.Series: Series with municipalities for each row, separated by ',' if there are multiple areas.
@@ -62,18 +62,18 @@ def compute_areas(gdf, municipal_geojson):
     def dedup_join(values): 
         return ', '.join(dict.fromkeys(v for v in values if v)) # Remove duplicate ELY center areas and empty values
     
-    # Read the GeoJSON data
-    municipal_gdf = gpd.read_file(municipal_geojson, engine='pyogrio')
+    def str_join(values):
+        return ', '.join(str(v) for v in values if pd.notna(v)) # Make sure values are strings and join with ','
 
     # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
-    if gdf.crs != municipal_gdf.crs:
-        municipal_gdf = municipal_gdf.to_crs(gdf.crs)
+    if gdf.crs != municipals_gdf.crs:
+        municipals_gdf = municipals_gdf.to_crs(gdf.crs)
 
     # Perform spatial join to find which areas each row is within
-    joined_gdf = gpd.sjoin(gdf, municipal_gdf, how="left", predicate="intersects")
+    joined_gdf = gpd.sjoin(gdf, municipals_gdf, how="left", predicate="intersects")
 
     # Group by the original index to aggregate municipalities and ELY areas
-    municipalities = joined_gdf.groupby(joined_gdf.index)['Municipal_Name'].agg(', '.join)
+    municipalities = joined_gdf.groupby(joined_gdf.index)['Municipal_Name'].agg(str_join)
     elys = joined_gdf.groupby(joined_gdf.index)['ELY_Area_Name'].agg(dedup_join)
 
     municipalities = municipalities.reindex(gdf.index, fill_value='')
@@ -204,7 +204,7 @@ def process_direct_map_columns(gdf, value_ranges):
             result[col] = gdf[col].map(value_ranges)
     return result
 
-def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
+def compute_all(gdf, value_ranges, collection_names, municipals_gdf):
     """
     Computes or translates variables that cannot be directly accessed from the source API.
 
@@ -230,7 +230,7 @@ def compute_all(gdf, value_ranges, collection_names, municipal_geojson_path):
     all_cols['compute_from_individual_count'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 
     all_cols['compute_from_collection_id'] = compute_collection_id(gdf['document.collectionId'], collection_names) 
 
-    all_cols['computed_municipality'], all_cols['computed_ely_area'] = compute_areas(gdf[['unit.unitId', 'geometry']], municipal_geojson_path)
+    all_cols['computed_municipality'], all_cols['computed_ely_area'] = compute_areas(gdf[['unit.unitId', 'geometry']], municipals_gdf)
 
     # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

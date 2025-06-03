@@ -38,7 +38,7 @@ def test_setup_environment(mock_load_dotenv):
 @patch('main.edit_db.remove_duplicates', return_value=0)
 @patch('main.load_data.get_occurrence_data')
 @patch('main.compute_variables.compute_all')
-def test_load_and_process_data_with_real_sample(mock_compute_all, mock_get_occurrence_data, mock_remove_duplicates, mock_to_db):
+def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_remove_duplicates, mock_to_db):
     gdf = gpd.GeoDataFrame({
         'unit.unitId': ['id1', 'id2', 'id3', 'id4'],
         'geometry': [
@@ -65,7 +65,9 @@ def test_load_and_process_data_with_real_sample(mock_compute_all, mock_get_occur
     mock_get_occurrence_data.return_value = (gdf, 0) # Return GeoDataFrame and 0 errors
     mock_compute_all.side_effect = lambda gdf, *args, **kwargs: gdf # Mock compute_all to return the input GeoDataFrame
 
+    lookup_df = pd.read_csv("src/lookup_table_columns.csv", sep=';', header=0)
+
     results = main.load_and_process_data(
-        "occurrence_url", "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, "mock_path", "src/lookup_table_columns.csv"
+        "occurrence_url", "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, "mock_path", lookup_df
     )
     assert results == (4, 0, 1, 0, 2) # 4 occurrences, 0 failed, 1 edited, 0 duplicates, 2 processed geometry collections

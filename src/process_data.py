@@ -56,37 +56,29 @@ def combine_similar_columns(gdf):
         match = pattern.match(col)
         if match:
             base_name = match.group(1)
-            if base_name not in columns_dict:
-                columns_dict[base_name] = []
-            columns_dict[base_name].append(col)
+            columns_dict.setdefault(base_name, []).append(col)
     
-    # DataFrame to store the combined columns
-    combined_columns = pd.DataFrame(index=gdf.index)
+    gdf = gdf.copy()
 
     # Combine columns in each group
     for base_name, cols in columns_dict.items():
-        combined_columns[base_name] = gdf[cols].apply(lambda row: ', '.join(row.dropna().astype(str)), axis=1)
+        gdf[base_name] = gdf[cols].astype(str).where(gdf[cols].notna(), '').agg(', '.join, axis=1).str.strip(', ')
         gdf.drop(columns=cols, inplace=True)
-
-    # Concatenate the combined columns with the original DataFrame
-    gdf = pd.concat([gdf, combined_columns], axis=1)
 
     return gdf
 
-def translate_column_names(gdf, lookup_table, style='virva'):
+def translate_column_names(gdf, lookup_df, style='virva'):
     """
     Maps column names in a GeoDataFrame to Finnish names and correct data types using a lookup table.
 
     Parameters:
     gdf (geopandas.GeoDataFrame): The GeoDataFrame to be mapped.
-    lookup_table (str): Path to the lookup table
+    lookup_df (pandas.DataFrame): A DataFrame containing the lookup table with columns 'finbif_api_var', 'translated_var', 'dwc', 'virva', and 'type'.
     style (str): Format to column names translate to. Options: 'translated_var', 'dwc' and 'virva'. Defaults to 'virva'.
 
     Returns:
     geopandas.GeoDataFrame: The GeoDataFrame with columns renamed and converted according to the lookup table.
-    """
-    # Load the lookup table CSV into a DataFrame
-    lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
+    """ 
 
     # Create dictionaries for quick lookups
     column_mapping = lookup_df.set_index('finbif_api_var')[style].to_dict()
@@ -172,7 +164,7 @@ def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
     
     return gdf, converted_collections
 
-def merge_duplicates(gdf, lookup_table):
+def merge_duplicates(gdf, lookup_df):
     """
     Merge duplicates in a GeoDataFrame based on specified subset of columns and geometry.
 
@@ -185,9 +177,6 @@ def merge_duplicates(gdf, lookup_table):
     """
     def join_or_use_first(x: pd.Series) -> str:
         return ', '.join(x) if len(x) > 1 else x.iloc[0]
-
-    # Load the lookup table CSV into a DataFrame
-    lookup_df = pd.read_csv(lookup_table, sep=';', header=0)
 
     # Create a local id
     gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")

@@ -40,14 +40,14 @@ def test_map_values():
     assert result2[0] == 'Metsästyslaissa luetellut riistalinnut, Metsästyslaissa luetellut riistanisäkkäät (5§), xyz123'
 
 def test_compute_areas():
-    geojson_path = 'src/municipalities.geojson'
+    municipals_gdf = gpd.read_file('src/municipalities.geojson')
 
     gdf_with_geom_and_ids = gpd.GeoDataFrame({
         'unit.unitId': ['1', '2', '3'],
         'geometry': [Point(24.941, 60.169), Point(24.655, 60.205), LineString([(24.655, 60.205), (24.941, 60.169)])]
     }, crs="EPSG:4326")
 
-    result_municipality, result_ely_area = compute_variables.compute_areas(gdf_with_geom_and_ids, geojson_path)
+    result_municipality, result_ely_area = compute_variables.compute_areas(gdf_with_geom_and_ids, municipals_gdf)
     
     assert result_municipality[0] == 'Helsinki'
     assert result_municipality[1] == 'Espoo'
@@ -121,7 +121,9 @@ def test_compute_all(tmp_path):
     }
     collection_names = {'HR.1747': 'Lajitietokeskus/FinBIF - Vihkon yleiset havainnot'}
 
-    result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, 'src/municipalities.geojson')
+    municipals_gdf = gpd.read_file('src/municipalities.geojson')
+
+    result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipals_gdf)
     assert result_gdf['unit.atlasClass'][0] == 'Atlas A'
     assert result_gdf['unit.atlasCode'][0] == 'Code 1'
     assert result_gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'][0] == 'Mkt – tuoreet ja lehtomaiset kankaat'

@@ -47,27 +47,27 @@ def test_validate_geometry():
 
 def test_combine_similar_columns():
     gdf = gpd.GeoDataFrame({
-        'keyword[0]': ['a', None, 'c'],
-        'keyword[1]': [None, 'b', 'd'],
+        'keyword[0]': ['a', None, 1],
+        'keyword[1]': [None, 1.2345, 'd'],
         'other[0]': ['1', None, '3'],
         'other[1]': ['2', '2', 'asd'],
         'geometry': [None, None, None]
     })
     expected_gdf = gdf.drop(columns=['keyword[0]', 'keyword[1]', 'other[0]', 'other[1]']).copy()
-    expected_gdf['keyword'] = ['a', 'b', 'c, d']
+    expected_gdf['keyword'] = ['a', '1.2345', '1, d']
     expected_gdf['other'] = ['1, 2', '2', '3, asd']
     result_gdf = process_data.combine_similar_columns(gdf.copy())
     assert_frame_equal(result_gdf, expected_gdf)
 
 def test_translate_column_names():
-    lookup_table = 'src/lookup_table_columns.csv'
+    lookup_df = pd.read_csv('src/lookup_table_columns.csv', sep=';', header=0)
     gdf = gpd.GeoDataFrame({
         'unit.unitId': [1, 2, 3],
         'unit.linkings.taxon.scientificName': ['asd', 'asd1', 'asd2'],
         'unit.interpretations.individualCount': [0, 1, 2],
         'extra_column': ['x', 'y', 'z']
     })
-    result_gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+    result_gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
     assert 'extra_column' not in result_gdf.columns
     assert 'Havainnon_tunniste' in result_gdf.columns
     assert 'Sukupuoli' in result_gdf.columns
@@ -141,8 +141,9 @@ def test_merge_duplicates():
         'geometry': [Point(1, 1), Point(1, 1), Point(1, 1), Point(2, 2)]
     }
     gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
-    lookup_table = r'src/lookup_table_columns.csv'
-    merged_gdf, _ = process_data.merge_duplicates(gdf, lookup_table)
+    lookup_df = pd.read_csv('src/lookup_table_columns.csv', sep=';', header=0)
+
+    merged_gdf, _ = process_data.merge_duplicates(gdf, lookup_df)
     assert len(merged_gdf) == 2
     assert merged_gdf.loc[0, 'Yksilomaara_tulkittu'] == 27
     assert merged_gdf.loc[0, 'Keruutapahtuman_tunniste'] == 'K1, K2, K4'

@@ -1,4 +1,5 @@
 import pandas as pd
+import geopandas as gpd
 from dotenv import load_dotenv
 import os
 import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db, edit_metadata
@@ -39,7 +40,7 @@ def setup_environment():
         "db_path_in_config": db_path_in_config
     }
 
-def load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipal_geojson_path, lookup_table, drop_tables=False):
+def load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables=False):
     """
     Load and process data in batches from the given URL.
     """
@@ -73,8 +74,8 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
         gdf = process_data.process_facts(gdf)
         gdf = process_data.combine_similar_columns(gdf)
-        gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipal_geojson_path)
-        gdf = process_data.translate_column_names(gdf, lookup_table, style='virva')
+        gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipals_gdf)
+        gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
         gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf)
         gdf, edited = process_data.validate_geometry(gdf)
         failed_features_count += edit_db.to_db(gdf, table_names)
@@ -111,6 +112,8 @@ def main():
     else:
 
         # Load essential data
+        municipals_gdf = gpd.read_file('municipalities.geojson', engine='pyogrio')
+        lookup_df = pd.read_csv('lookup_table_columns.csv', sep=';', header=0)
         taxon_df = load_data.get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
         collection_names = load_data.get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
         ranges1 = load_data.get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
@@ -146,7 +149,7 @@ def main():
             table_base_name = compute_variables.get_biogeographical_region_from_id(province_id)
             occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&biogeographicalProvinceId={province_id}&access_token={config['access_token']}"
             pages = load_data.get_last_page(occurrence_url) if config["pages_env"] in ["all", "latest"] else int(config["pages_env"])
-            results = load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, 'municipalities.geojson', 'lookup_table_columns.csv', drop_tables)
+            results = load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]
@@ -158,7 +161,7 @@ def main():
             print("Processing invasive species data...")
             occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&invasive=True&page={page}&pageSize={page_size}&geoJSON={geo_json}&featureType={feature_type}&access_token={config['access_token']}"
             pages = load_data.get_last_page(occurrence_url) if config["pages_env"] in ["all", "latest"] else int(config["pages_env"])
-            results = load_and_process_data(occurrence_url, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, 'municipalities.geojson', 'lookup_table_columns.csv', drop_tables)
+            results = load_and_process_data(occurrence_url, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]
