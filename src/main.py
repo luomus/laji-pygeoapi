@@ -15,6 +15,7 @@ def setup_environment():
     access_email = os.getenv('ACCESS_EMAIL')
     multiprocessing = os.getenv('MULTIPROCESSING', 'True')
     target = os.getenv('TARGET', 'default')
+    batch_size = int(os.getenv('BATCH_SIZE', 5))
 
     # If the code is running in openshift/kubernetes, set paths differently
     if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
@@ -37,7 +38,8 @@ def setup_environment():
         "multiprocessing": multiprocessing,
         "pygeoapi_config_out": pygeoapi_config_out,
         "metadata_db_path": metadata_db_path,
-        "db_path_in_config": db_path_in_config
+        "db_path_in_config": db_path_in_config,
+        "batch_size": batch_size
     }
 
 def load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables=False):
@@ -55,8 +57,8 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         edit_db.drop_table(table_names)
 
     gdf = None
+    batch_size = config["batch_size"]
 
-    batch_size = 5
     for startpage in range(1, pages + 1, batch_size):
         endpage = min(startpage + batch_size - 1, pages)
         print(f"Loading {table_base_name} observations. Pages {startpage}-{endpage} ({pages} in total)")

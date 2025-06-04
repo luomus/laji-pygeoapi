@@ -30,10 +30,9 @@ def validate_geometry(gdf):
     edited_features_count (int): number of fixed geometries
     """
     # Use make_valid to ensure all geometries are valid
-    
-    og_geom = gdf['geometry'].copy()
-    gdf['geometry']  = gdf['geometry'].make_valid()
-    edited_features_count = (gdf['geometry']  != og_geom).sum()
+    invalid = ~gdf['geometry'].is_valid
+    gdf.loc[invalid, 'geometry'] = gdf.loc[invalid, 'geometry'].make_valid()
+    edited_features_count = invalid.sum()
     return gdf, edited_features_count
 
 def combine_similar_columns(gdf):
@@ -150,7 +149,7 @@ def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
                         for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon, Point, LineString, MultiPoint, MultiLineString))]
 
             if polygons:
-                dissolved_geometry = gpd.GeoSeries(polygons).unary_union 
+                dissolved_geometry = gpd.GeoSeries(polygons).union_all() 
                 
                 if isinstance(dissolved_geometry, Polygon):
                     return MultiPolygon([dissolved_geometry])

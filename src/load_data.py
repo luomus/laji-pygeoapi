@@ -59,10 +59,17 @@ def get_last_page(url, max_retries=5, delay=60):
     Returns:
     int: The last page number. Returns None if all retries fail.
     """
+    url = url.replace('/list/', '/count/').replace('&geoJSON=true&featureType=ORIGINAL_FEATURE', '')
     api_response = fetch_json_with_retry(url, max_retries=max_retries, delay=delay)
-    if not api_response:
-        raise ValueError(f"Failed to retrieve last page from {url} after {max_retries} attempts.")
-    return api_response.get("lastPage", None)
+    if api_response:
+        total = api_response.get('total')
+        pages = total // 10000
+        print(f"Total number of occurrences is {total} in {pages} pages")
+        if total % 10000 != 0:
+            pages += 1
+        return pages
+    else:
+        return None
 
 def download_page(url, page_no):
     """
@@ -82,8 +89,7 @@ def download_page(url, page_no):
     url = url.replace('page=1', f'page={page_no}')
     while attempt < max_retries:
         try:
-            gdf = gpd.read_file(url)   
-            return gdf 
+            return gpd.read_file(url, engine='pyogrio')
         except urllib.error.HTTPError as e:
             print(f"HTTP Error {e.code}: {e.reason} for {url}. Retrying in {delay} seconds...")
         except Exception as e:
@@ -132,24 +138,6 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     # Finally merge all pages into one geodataframe
     gdf = pd.concat(gdfs, ignore_index=True) if gdfs else gpd.GeoDataFrame()
     return gdf, failed_features_counter
-
-def find_main_taxon(row):
-    """
-    Find main taxon (taxon with the smallest number)
-
-    Parameters:
-    row (list): Pandas dataframe row
-
-    Returns:
-    min_value (str): Smallest taxon value from the list
-    """
-    if type(row) is list:
-        numeric_values = [int(value.split('.')[1]) for value in row]
-        min_value = 'MVL.' + str(min(numeric_values))
-    else:
-        min_value = str(row)
-
-    return min_value
 
 def get_value_ranges(url):
     """
