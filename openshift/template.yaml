@@ -293,7 +293,7 @@ objects:
               imagePullPolicy: IfNotPresent
               volumeMounts:
                 - name: postgres-claim-${NAME_PREFIX}${BRANCH}
-                  mountPath: /pgdata
+                  mountPath: /var/lib/postgresql/data
                 - name: init-database-${NAME_PREFIX}${BRANCH}
                   mountPath: /docker-entrypoint-initdb.d/init-database.sh
                   subPath: init-database.sh
