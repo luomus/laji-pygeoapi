@@ -60,7 +60,7 @@ def compute_areas(gdf, municipals_gdf):
     pd.Series: Series with ELY areas for each row, separated by ',' if there are multiple areas.
     """
     def dedup_join(values): 
-        return ', '.join(dict.fromkeys(v for v in values if v)) # Remove duplicate ELY center areas and empty values
+        return ', '.join(dict.fromkeys(str(v) for v in values if pd.notna(v) and v)) # Remove duplicate ELY center areas and empty values, ensure all are strings
     
     def str_join(values):
         return ', '.join(str(v) for v in values if pd.notna(v)) # Make sure values are strings and join with ','
