@@ -1,5 +1,5 @@
 GeoAlchemy2==0.14.7
-geopandas==0.14.3
+geopandas==1.1.0
 numpy<2.0.0
 pandas==2.2.2
 psycopg2==2.9.9
