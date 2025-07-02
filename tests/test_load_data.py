@@ -83,7 +83,7 @@ def test_get_occurrence_data():
     gdf2_sorted = gdf2.sort_values("unit.unitId").reset_index(drop=True)
     pd.testing.assert_frame_equal(gdf_sorted, gdf2_sorted, check_like=True)
 
-def get_value_ranges():
+def test_get_value_ranges():
     url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE"
     result = load_data.get_value_ranges(url)
     assert isinstance(result, dict)

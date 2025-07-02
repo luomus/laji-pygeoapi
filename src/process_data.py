@@ -174,8 +174,10 @@ def merge_duplicates(gdf, lookup_df):
     Returns:
     GeoDataFrame: A GeoDataFrame with duplicates merged and a 'Yhdistetty' column added.
     """
-    def join_or_use_first(x: pd.Series) -> str:
-        return ', '.join(x) if len(x) > 1 else x.iloc[0]
+    def join_or_use_first(x):
+        # Efficiently join only non-null, unique values
+        values = pd.Series(x).dropna().astype(str).unique()
+        return ', '.join(values) if len(values) > 1 else (values[0] if len(values) == 1 else None)
 
     # Create a local id
     gdf['Paikallinen_tunniste'] = gdf['Havainnon_tunniste'].str.replace("http://tun.fi/", "").str.replace("#","_")
@@ -184,15 +186,14 @@ def merge_duplicates(gdf, lookup_df):
     columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
 
     # Define how each column should be aggregated
-    aggregation_dict = {col: 'first' for col in gdf.columns if col not in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Paikallinen_tunniste', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto']}
-    aggregation_dict['Keruutapahtuman_tunniste'] = join_or_use_first
-    aggregation_dict['Havainnon_tunniste'] = join_or_use_first
-    aggregation_dict['Maara'] = join_or_use_first
-    aggregation_dict['Avainsanat'] = join_or_use_first
-    aggregation_dict['Havainnon_lisatiedot'] = join_or_use_first
-    aggregation_dict['Aineisto'] = join_or_use_first
-    aggregation_dict['Paikallinen_tunniste'] = join_or_use_first
-    aggregation_dict['Yksilomaara_tulkittu'] = 'sum'
+    aggregation_dict = {}
+    for col in gdf.columns:
+        if col in ['Keruutapahtuman_tunniste', 'Havainnon_tunniste', 'Maara', 'Avainsanat', 'Havainnon_lisatiedot', 'Aineisto', 'Paikallinen_tunniste']:
+            aggregation_dict[col] = join_or_use_first
+        elif col == 'Yksilomaara_tulkittu':
+            aggregation_dict[col] = 'sum'
+        else:
+            aggregation_dict[col] = 'first'
  
     # Group by the columns to check for duplicates
     grouped = gdf.groupby(columns_to_group_by).agg(aggregation_dict).copy()
@@ -219,37 +220,30 @@ def process_facts(gdf):
     Returns:
     geopandas.GeoDataFrame: The processed GeoDataFrame with fact-value pairs converted to columns.
     """
-    # Initialize a dictionary to hold the new columns
-    new_columns = {}
     columns_to_add = ['Seurattava laji', 'Sijainnin tarkkuusluokka', 'Havainnon laatu', 'Peittävyysprosentti', 'Havainnon määrän yksikkö', 'Vesistöalue']
 
 
     # Identify all columns that match the pattern unit.facts[n].fact and unit.facts[n].value
-    all_fact_colums = [col for col in gdf.columns if 'facts' in col]
+    all_fact_columns = [col for col in gdf.columns if 'facts' in col]
     fact_columns = [col for col in gdf.columns if '].fact' in col]
     value_columns = [col for col in gdf.columns if '].value' in col]
 
-    # Iterate over the fact columns
+    # Prepare a dict for new columns
+    new_columns = {col: pd.Series([None]*len(gdf), index=gdf.index) for col in columns_to_add}
+
+    # For each fact/value column pair, fill the new columns
     for fact_col, value_col in zip(fact_columns, value_columns):
-
-        # Iterate over each row in the GeoDataFrame
-        for idx, fact_name in gdf[fact_col].items():
-            if pd.notna(fact_name) and fact_name in columns_to_add:  # If the fact_name is not null and is in the list
-
-                # If the fact_name column does not already exist in new_columns, initialize it
-                if fact_name not in new_columns:
-                    new_columns[fact_name] = [None] * len(gdf)
-                
-                # Assign the corresponding value to the new column
-                new_columns[fact_name][idx] = gdf.at[idx, value_col]
+        facts = gdf[fact_col]
+        values = gdf[value_col]
+        for col in columns_to_add:
+            mask = facts == col
+            new_columns[col][mask] = values[mask]
 
     # Drop the original fact and value columns
-    gdf.drop(columns=all_fact_colums, axis=1, inplace=True)
+    gdf = gdf.drop(columns=all_fact_columns, axis=1)
 
-    # Convert the new_columns dictionary into a DataFrame
-    new_columns_df = pd.DataFrame(new_columns, index=gdf.index)
-
-    # Concatenate the new columns with the original GeoDataFrame
-    gdf = pd.concat([gdf, new_columns_df], axis=1)
+    # Add new columns to gdf
+    for col in columns_to_add:
+        gdf[col] = new_columns[col]
 
     return gdf

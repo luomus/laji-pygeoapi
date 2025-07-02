@@ -89,6 +89,16 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
     
     return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections
 
+def load_files(config):
+        # Load essential data
+        municipals_gdf = gpd.read_file('municipalities.geojson', engine='pyogrio')
+        lookup_df = pd.read_csv('lookup_table_columns.csv', sep=';', header=0)
+        taxon_df = load_data.get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
+        collection_names = load_data.get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
+        ranges1 = load_data.get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
+        ranges2 = load_data.get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
+        all_value_ranges = ranges1 | ranges2  # type: ignore
+        return municipals_gdf, lookup_df, taxon_df, collection_names, all_value_ranges
 
 def main():
     """
@@ -113,14 +123,7 @@ def main():
         edit_db.drop_all_tables()
     else:
 
-        # Load essential data
-        municipals_gdf = gpd.read_file('municipalities.geojson', engine='pyogrio')
-        lookup_df = pd.read_csv('lookup_table_columns.csv', sep=';', header=0)
-        taxon_df = load_data.get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
-        collection_names = load_data.get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
-        ranges1 = load_data.get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
-        ranges2 = load_data.get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
-        all_value_ranges = ranges1 | ranges2  # type: ignore
+        municipals_gdf, lookup_df, taxon_df, collection_names, all_value_ranges = load_files(config)
 
         # Construct API URL for api.laji.fi
         base_url = f"{config['laji_api_url']}warehouse/query/unit/list?"

@@ -63,10 +63,10 @@ def get_last_page(url, max_retries=5, delay=60):
     api_response = fetch_json_with_retry(url, max_retries=max_retries, delay=delay)
     if api_response:
         total = api_response.get('total')
-        pages = total // 10000
-        print(f"Total number of occurrences is {total} in {pages} pages")
+        pages = total // 10000 
         if total % 10000 != 0:
             pages += 1
+        print(f"Total number of occurrences is {total} in {pages} pages")
         return pages
     else:
         return None
@@ -82,23 +82,10 @@ def download_page(url, page_no):
     Returns:
     geopandas.GeoDataFrame: The downloaded data as a GeoDataFrame.
     """
-    # Load data
-    attempt = 0
-    max_retries = 3
-    delay = 30
     url = url.replace('page=1', f'page={page_no}')
-    while attempt < max_retries:
-        try:
-            return gpd.read_file(url, engine='pyogrio')
-        except urllib.error.HTTPError as e:
-            print(f"HTTP Error {e.code}: {e.reason} for {url}. Retrying in {delay} seconds...")
-        except Exception as e:
-            print(f"Error downloading page {page_no}: {e}. Retrying in {delay} seconds...")
-        time.sleep(delay)
-        attempt += 1
-
-    # Return an empty GeoDataFrame in case of too many errors
-    print(f"Failed to download data from page {page_no} after {max_retries} attempts.")
+    data = fetch_json_with_retry(url)
+    if data:
+        return gpd.GeoDataFrame.from_features(data["features"], crs="EPSG:4326")
     return gpd.GeoDataFrame()
 
 def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
