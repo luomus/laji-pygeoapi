@@ -22,6 +22,7 @@ services:
       - ./pygeoapi/custom/${TARGET}-templates:/pygeoapi/custom/templates
       - ./pygeoapi/custom/${TARGET}-static/custom:/pygeoapi/pygeoapi/static/custom
       - ./pygeoapi/src:/pygeoapi/src
+      - ./pygeoapi/plugins:/pygeoapi/plugins
     networks:
       - pygeoapinet
     depends_on:

@@ -40,12 +40,13 @@ def test_add_to_pygeoapi_config():
     os.remove(template_file.name)
     os.remove(out_file.name)
 
-def test_add_metadata_to_config():
+def test_add_resources_to_config():
     with tempfile.NamedTemporaryFile("r+", delete=False) as out_file:
         db_path = "/tmp/db.json"
-        edit_config.add_metadata_to_config(out_file.name, db_path)
+        edit_config.add_resources_to_config(out_file.name, db_path)
         out_file.seek(0)
         result = out_file.read()
     assert "occurrence-metadata:" in result
+    assert "lajiapi-connection" in result
     assert db_path in result
     os.remove(out_file.name)

@@ -57,10 +57,10 @@ def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_o
     with open(pygeoapi_config_out, "a") as file:
         file.write(template)
 
-def add_metadata_to_config(pygeoapi_config_out, db_path_in_config):
+def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
     """
-    This function adds metadata information to the pygeoapi config file. 
-    
+    This function adds metadata and lajiapi collection information to the pygeoapi config file.
+
     Parameters:
     pygeoapi_config_out (str): The path to the pygeoapi config file
     db_path_in_config (str): path to the tinydb catalogue that stores metadata information
@@ -88,6 +88,42 @@ def add_metadata_to_config(pygeoapi_config_out, db_path_in_config):
             id_field: externalId
             time_field: recordCreated
             title_field: title
+    lajiapi-connection:
+        type: collection
+        title: All data (Direct Laji.fi API Connection)
+        description: This collection provides direct access to the Laji.fi API. It process data on the fly and is slower. Please, use filters to limit the amount of data returned!!!
+        keywords:
+            - restapi
+            - api.laji.fi
+        extents:
+            spatial:
+                bbox: [-180.0, -90.0, 180.0, 90.0]
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal:
+                start: 1662-01-01T00:00:00Z
+                end: {str(date.today())}T00:00:00Z
+        links:
+            - type: text/html
+              rel: about
+              title: Source API
+              href: https://api.laji.fi/
+        providers:
+          - type: feature
+            name: plugins.lajiapi_provider.LajiApiProvider
+            data: pygeoapi/plugins/lajiapi_provider.py
+            url: https://api.laji.fi/v0/warehouse/query/unit/list
+            id_field: Paikallinen_tunniste
+            uri: Havainnon_tunniste
+            editable: false
+            title_field: Suomenkielinen_nimi
+            storage_crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+                - http://www.opengis.net/def/crs/EPSG/0/3067
+            format:
+                name: geojson
+                mimetype: application/geo+json
     """
 
     # Append the filled template to the output config file

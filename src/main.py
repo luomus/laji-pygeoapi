@@ -2,7 +2,11 @@ import pandas as pd
 import geopandas as gpd
 from dotenv import load_dotenv
 import os
-import process_data, edit_config, load_data, edit_configmaps, compute_variables, edit_db, edit_metadata
+import load_data
+try:
+    import process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata
+except:
+    pass
 
 def setup_environment():
     """
@@ -185,7 +189,7 @@ def main():
 
     # Update the PyGeoAPI configuration with metadata info
     print("Updating PyGeoAPI configuration with metadata...")
-    edit_config.add_metadata_to_config(config["pygeoapi_config_out"], config["db_path_in_config"])
+    edit_config.add_resources_to_config(config["pygeoapi_config_out"], config["db_path_in_config"])
 
     # If running in Openshift/Kubernetes, replace the config map and restart
     if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
