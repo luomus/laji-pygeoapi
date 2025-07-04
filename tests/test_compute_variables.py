@@ -5,9 +5,7 @@ import numpy as np
 from shapely.geometry import Point, LineString
 import geopandas as gpd
 
-sys.path.append('src/')
-
-import compute_variables
+from pygeoapi.scripts import compute_variables
 
 # run with:
 # python -m pytest tests/test_compute_variables.py -v
@@ -40,7 +38,7 @@ def test_map_values():
     assert result2[0] == 'Metsästyslaissa luetellut riistalinnut, Metsästyslaissa luetellut riistanisäkkäät (5§), xyz123'
 
 def test_compute_areas():
-    municipals_gdf = gpd.read_file('src/municipalities.geojson')
+    municipals_gdf = gpd.read_file('pygeoapi/scripts/municipalities.geojson')
 
     gdf_with_geom_and_ids = gpd.GeoDataFrame({
         'unit.unitId': ['1', '2', '3'],
@@ -121,7 +119,7 @@ def test_compute_all(tmp_path):
     }
     collection_names = {'HR.1747': 'Lajitietokeskus/FinBIF - Vihkon yleiset havainnot'}
 
-    municipals_gdf = gpd.read_file('src/municipalities.geojson')
+    municipals_gdf = gpd.read_file('pygeoapi/scripts/municipalities.geojson')
 
     result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipals_gdf)
     assert result_gdf['unit.atlasClass'][0] == 'Atlas A'

@@ -3,9 +3,7 @@ from tinydb import TinyDB
 from pathlib import Path
 import sys
 
-sys.path.append('src/')
-
-import edit_metadata
+from pygeoapi.scripts import edit_metadata
 
 # run with:
 # python -m pytest tests/test_edit_metadata.py -v

@@ -5,9 +5,7 @@ from sqlalchemy import text, inspect, MetaData
 from geoalchemy2 import Geometry
 from datetime import date
 
-sys.path.append('src/')
-
-import edit_db
+from pygeoapi.scripts import edit_db
 
 # Run with:
 # docker-compose -f tests/docker-compose-test.yaml up -d

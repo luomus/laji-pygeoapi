@@ -55,9 +55,9 @@ Where
 ### 4. Init the database:
 In the root directory, run:
 ```
-./scripts/init-db.sh
+./bin/init-db.sh
 ```
-*Note*: If you get "Permissions denied" error, you may have to change the permissions of the file `init-database.sh`.
+*Note*: If you get "Permissions denied" error, you may have to change the permissions of the file `bin/init-database.sh`.
 On Windows, you may need to provide full paths and ensure that Docker Desktop is open.
 
 ### 5. Run docker command:
@@ -73,7 +73,7 @@ Once the Docker container is running, you can access the Pygeoapi service throug
 ## Configuration
 The configuration file for Pygeoapi is named `pygeoapi-config.yml`. You can modify these files in a text editor to customize the behavior of the Pygeoapi service or connect to a different PostGIS database tables. 
 
-Note: the config file is generated mostly automatically by the Python scripts located in the `src` directory. 
+Note: the config file is generated mostly automatically by the Python scripts located in the `pygeoapi/scripts` directory. 
 
 # Openshift Installation
 See https://github.com/luomus/laji-pygeoapi/blob/dev/openshift/README.md

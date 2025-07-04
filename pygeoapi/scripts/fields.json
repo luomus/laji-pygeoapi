@@ -1,0 +1,329 @@
+{
+  "selected": {
+    "type": "string"
+  },
+  "orderBy": {
+    "type": "string"
+  },
+  "crs": {
+    "type": "string"
+  },
+  "featureType": {
+    "type": "string"
+  },
+  "cache": {
+    "type": "boolean"
+  },
+  "taxonId": {
+    "type": "string"
+  },
+  "target": {
+    "type": "string"
+  },
+  "informalTaxonGroupId": {
+    "type": "string"
+  },
+  "informalTaxonGroudIdNot": {
+    "type": "string"
+  },
+  "administrativeStatusId": {
+    "type": "string"
+  },
+  "redListStatusId": {
+    "type": "string"
+  },
+  "taxonAdminFiltersOperator": {
+    "type": "string"
+  },
+  "primaryHabitat": {
+    "type": "string"
+  },
+  "anyHabitat": {
+    "type": "string"
+  },
+  "occurrenceCountMax": {
+    "type": "string"
+  },
+  "occurrenceCountFinlandMax": {
+    "type": "string"
+  },
+  "finnish": {
+    "type": "boolean"
+  },
+  "invasive": {
+    "type": "boolean"
+  },
+  "sensitive": {
+    "type": "boolean"
+  },
+  "higherTaxon": {
+    "type": "boolean"
+  },
+  "taxonRankId": {
+    "type": "string"
+  },
+  "countryId": {
+    "type": "string"
+  },
+  "finnishMunicipalityId": {
+    "type": "string"
+  },
+  "elyCentreId": {
+    "type": "string"
+  },
+  "provinceId": {
+    "type": "string"
+  },
+  "area": {
+    "type": "string"
+  },
+  "namedPlaceId": {
+    "type": "string"
+  },
+  "namedPlaceTag": {
+    "type": "string"
+  },
+  "birdAssociationAreaId": {
+    "type": "string"
+  },
+  "formId": {
+    "type": "string"
+  },
+  "time": {
+    "type": "string"
+  },
+  "timeAccuracy": {
+    "type": "string"
+  },
+  "yearMonth": {
+    "type": "string"
+  },
+  "dayOfYear": {
+    "type": "string"
+  },
+  "keyword": {
+    "type": "string"
+  },
+  "collectionId": {
+    "type": "string"
+  },
+  "collectionIdExplicit": {
+    "type": "string"
+  },
+  "collectionIdNot": {
+    "type": "string"
+  },
+  "collectionIdExplicitNot": {
+    "type": "string"
+  },
+  "includeSubCollections": {
+    "type": "string"
+  },
+  "sourceId": {
+    "type": "string"
+  },
+  "recordBasis": {
+    "type": "string"
+  },
+  "superRecordBasis": {
+    "type": "string"
+  },
+  "lifeStage": {
+    "type": "string"
+  },
+  "sex": {
+    "type": "string"
+  },
+  "invasiveControlled": {
+    "type": "boolean"
+  },
+  "documentId": {
+    "type": "string"
+  },
+  "documentIdPrefix": {
+    "type": "string"
+  },
+  "gatheringId": {
+    "type": "string"
+  },
+  "unitId": {
+    "type": "string"
+  },
+  "individualId": {
+    "type": "string"
+  },
+  "individualCountMin": {
+    "type": "integer"
+  },
+  "individualCountMax": {
+    "type": "string"
+  },
+  "loadedSameOrAfter": {
+    "type": "string"
+  },
+  "loadedSameOrBefore": {
+    "type": "string"
+  },
+  "firstLoadedSameOrAfter": {
+    "type": "string"
+  },
+  "firstLoadedSameOrBefore": {
+    "type": "string"
+  },
+  "createdDateYear": {
+    "type": "integer"
+  },
+  "coordinates": {
+    "type": "string"
+  },
+  "polygon": {
+    "type": "string"
+  },
+  "polygonId": {
+    "type": "string"
+  },
+  "wgs84CenterPoint": {
+    "type": "string"
+  },
+  "coordinateAccuracyMax": {
+    "type": "string"
+  },
+  "ykj1km": {
+    "type": "string"
+  },
+  "ykj10km": {
+    "type": "string"
+  },
+  "ykj50km": {
+    "type": "string"
+  },
+  "ykj100km": {
+    "type": "string"
+  },
+  "ykj1kmCenter": {
+    "type": "string"
+  },
+  "ykj10kmCenter": {
+    "type": "string"
+  },
+  "ykj50kmCenter": {
+    "type": "string"
+  },
+  "ykj100kmCenter": {
+    "type": "string"
+  },
+  "sourceOfCoordinates": {
+    "type": "string"
+  },
+  "typeSpecimen": {
+    "type": "boolean"
+  },
+  "wild": {
+    "type": "string"
+  },
+  "breedingSite": {
+    "type": "boolean"
+  },
+  "local": {
+    "type": "boolean"
+  },
+  "alive": {
+    "type": "boolean"
+  },
+  "identificationBasis": {
+    "type": "string"
+  },
+  "samplingMethod": {
+    "type": "string"
+  },
+  "plantStatusCode": {
+    "type": "string"
+  },
+  "secureReason": {
+    "type": "string"
+  },
+  "secureLevel": {
+    "type": "string"
+  },
+  "secured": {
+    "type": "boolean"
+  },
+  "annotated": {
+    "type": "boolean"
+  },
+  "qualityIssues": {
+    "type": "string"
+  },
+  "collectionQuality": {
+    "type": "string"
+  },
+  "recordQuality": {
+    "type": "string"
+  },
+  "collectionAndRecordQuality": {
+    "type": "string"
+  },
+  "reliability": {
+    "type": "string"
+  },
+  "effectiveTag": {
+    "type": "string"
+  },
+  "unidentified": {
+    "type": "string"
+  },
+  "needsCheck": {
+    "type": "string"
+  },
+  "completeListTaxonId": {
+    "type": "string"
+  },
+  "completeListType": {
+    "type": "string"
+  },
+  "taxonSetId": {
+    "type": "string"
+  },
+  "taxonCensus": {
+    "type": "string"
+  },
+  "hasSample": {
+    "type": "string"
+  },
+  "unitFact": {
+    "type": "string"
+  },
+  "gatheringFact": {
+    "type": "string"
+  },
+  "documentFact": {
+    "type": "string"
+  },
+  "partition": {
+    "type": "string"
+  },
+  "hasValue": {
+    "type": "string"
+  },
+  "atlasCode": {
+    "type": "string"
+  },
+  "onlyNonStateLands": {
+    "type": "string"
+  },
+  "editorPersonToken": {
+    "type": "string"
+  },
+  "observerPersonToken": {
+    "type": "string"
+  },
+  "editorOrObserverPersonToken": {
+    "type": "string"
+  },
+  "editorOrObserverIsNotPersonToken": {
+    "type": "string"
+  },
+  "permissionToken": {
+    "type": "string"
+  }
+}

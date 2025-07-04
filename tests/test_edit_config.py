@@ -1,9 +1,7 @@
 import os, sys
 import tempfile
 
-sys.path.append('src/')
-
-import edit_config
+from pygeoapi.scripts import edit_config
 
 # run with:
 # python -m pytest tests/test_edit_config.py -v
