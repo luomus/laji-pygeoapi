@@ -243,7 +243,6 @@ def process_facts(gdf):
     gdf = gdf.drop(columns=all_fact_columns, axis=1)
 
     # Add new columns to gdf
-    for col in columns_to_add:
-        gdf[col] = new_columns[col]
+    gdf = pd.concat([gdf, pd.DataFrame(new_columns)], axis=1)
 
     return gdf
