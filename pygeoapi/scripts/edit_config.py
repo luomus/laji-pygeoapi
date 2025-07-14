@@ -109,8 +109,8 @@ def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
               href: https://api.laji.fi/
         providers:
           - type: feature
-            name: scripts.lajiapi_provider.LajiApiProvider
-            data: pygeoapi/scripts/lajiapi_provider.py
+            name: plugins.lajiapi_provider.LajiApiProvider
+            data: pygeoapi/plugins/lajiapi_provider.py
             url: https://api.laji.fi/v0/warehouse/query/unit/list
             id_field: Paikallinen_tunniste
             uri: Havainnon_tunniste

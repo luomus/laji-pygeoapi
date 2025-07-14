@@ -23,6 +23,7 @@ services:
       - ./pygeoapi/custom/${TARGET}-static/custom:/pygeoapi/pygeoapi/static/custom
       - ./pygeoapi/src:/pygeoapi/src
       - ./pygeoapi/scripts:/pygeoapi/scripts
+      - ./pygeoapi/plugins:/pygeoapi/plugins
     networks:
       - pygeoapinet
     depends_on:

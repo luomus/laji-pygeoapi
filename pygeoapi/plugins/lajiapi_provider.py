@@ -60,7 +60,7 @@ class LajiApiProvider(BaseProvider):
             'page': (offset // limit) + 1,
             'pageSize': limit,
             'crs': 'WGS84',
-            'featureType': 'ORIGINAL_FEATURE',
+            'featureType': 'CENTER_POINT',
             'format': 'geojson',
             'access_token': self.access_token
         }
@@ -70,6 +70,7 @@ class LajiApiProvider(BaseProvider):
             params['bbox'] = bbox
 
 
+        logging.info(f"properties: {properties}") #TODO: fix properties
         # Add any additional filters from properties
         for name, value in properties:
             params[name] = value
