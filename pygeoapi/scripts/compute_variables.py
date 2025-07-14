@@ -224,7 +224,8 @@ def compute_all(gdf, value_ranges, collection_names, municipals_gdf):
     all_cols.update(process_direct_map_columns(gdf, value_ranges))
 
     # Mappings with multiple value in a cell:
-    all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)
+    if 'unit.linkings.originalTaxon.administrativeStatuses' in gdf.columns:
+        all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)
 
     # Computed values from different source
     all_cols['compute_from_individual_count'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 

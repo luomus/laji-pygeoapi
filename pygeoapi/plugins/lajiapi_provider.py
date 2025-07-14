@@ -56,6 +56,10 @@ class LajiApiProvider(BaseProvider):
 
         :returns: dict of 0..n GeoJSON feature collection
         """
+        MAX_ITEMS = 1_000_000
+        if offset >= MAX_ITEMS:
+            raise ValueError("Fetching more than 1 million observations is not allowed. Please filter the query.") 
+
         params = {
             'page': (offset // limit) + 1,
             'pageSize': limit,
@@ -70,7 +74,6 @@ class LajiApiProvider(BaseProvider):
             params['bbox'] = bbox
 
 
-        logging.info(f"properties: {properties}") #TODO: fix properties
         # Add any additional filters from properties
         for name, value in properties:
             params[name] = value
@@ -82,6 +85,13 @@ class LajiApiProvider(BaseProvider):
         response = requests.get(self.api_url, params=params)
         response.raise_for_status()
         data = response.json()
+
+        if resulttype == 'hits':
+            return {
+                'type': 'FeatureCollection',
+                'features': [],
+                'numberMatched': data.get('total')
+            }
 
         # Process the features in the response
         features = process_json_features(self, data)

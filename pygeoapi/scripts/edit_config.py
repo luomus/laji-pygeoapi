@@ -107,6 +107,10 @@ def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
               rel: about
               title: Source API
               href: https://api.laji.fi/
+        limits:
+            default_items: 1000
+            max_items: 10000
+            on_exceed: error
         providers:
           - type: feature
             name: plugins.lajiapi_provider.LajiApiProvider
