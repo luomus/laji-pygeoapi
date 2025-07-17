@@ -63,7 +63,7 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
     mock_get_occurrence_data.return_value = (gdf, 0) # Return GeoDataFrame and 0 errors
     mock_compute_all.side_effect = lambda gdf, *args, **kwargs: gdf # Mock compute_all to return the input GeoDataFrame
 
-    lookup_df = pd.read_csv("pygeoapi/scripts/lookup_table_columns.csv", sep=';', header=0)
+    lookup_df = pd.read_csv("pygeoapi/scripts/resources/lookup_table_columns.csv", sep=';', header=0)
 
     results = main.load_and_process_data(
         "occurrence_url", "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, "mock_path", lookup_df

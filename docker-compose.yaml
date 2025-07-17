@@ -24,6 +24,7 @@ services:
       - ./pygeoapi/src:/pygeoapi/src
       - ./pygeoapi/scripts:/pygeoapi/scripts
       - ./pygeoapi/plugins:/pygeoapi/plugins
+      - pygeoapi-cache:/pygeoapi/scripts/cache
     networks:
       - pygeoapinet
     depends_on:
@@ -51,6 +52,7 @@ services:
 
 volumes:
   postgres:
+  pygeoapi-cache:
 
 networks:
   pygeoapinet:

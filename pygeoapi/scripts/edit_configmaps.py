@@ -1,5 +1,7 @@
-import requests, os
+import requests, os, logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 def get_kubernetes_info():
     '''
@@ -37,9 +39,9 @@ def delete_pod(api_url, namespace, pod, headers, ca_cert):
     try:
         delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
         delete_response.raise_for_status()
-        print(f"Pod {pod} restarted")
+        logging.info(f"Pod {pod} restarted")
     except requests.exceptions.RequestException as e:
-        print(f"Error deleting pod {pod}: {e}")
+        logging.error(f"Error deleting pod {pod}: {e}")
 
 
 def update_configmap(configmap_url, headers, ca_cert, file_to_add, path):
@@ -66,9 +68,8 @@ def update_configmap(configmap_url, headers, ca_cert, file_to_add, path):
 
     r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
 
-    # Print possible errors
     if r.status_code != 200:
-        print(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
+        logging.error(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
         r.raise_for_status()
 
 def update_and_restart(pygeoapi_config_out, metadata_db_path):
@@ -84,10 +85,7 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
     Parameters:
     pygeoapi_config_out (str): The path to the pygeoapi config file
     metadata_db_path (str): The path to the metadata database
-    '''
-
-    print("Updating configmap...")
-    
+    '''    
     api_url, namespace = get_kubernetes_info()
 
     load_dotenv()
@@ -123,6 +121,7 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
     data = requests.get(pods_url, headers=headers, verify=ca_cert).json()
     items = data["items"]
 
+    target_pods = []
     try:
         # Find pods with the label io.kompose.service set to pygeoapi-branch
         target_pods = [
@@ -131,13 +130,13 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
             if "labels" in item["metadata"] and item["metadata"]["labels"].get("io.kompose.service") == service_name
         ]
     except KeyError as e:
-        print(f"KeyError: {e} - Possibly missing key in item metadata.")
+        logging.error(f"KeyError: {e} - Possibly missing key in item metadata.")
     except Exception as e:
-        print(f"Error finding deployments: {e}")
-        print(f"Items: {str(items)}")
+        logging.error(f"Error finding deployments: {e}")
+        logging.error(f"Items: {str(items)}")
 
     if not target_pods:
-        print(f"No pods found for deployment: {service_name}")
+        logging.error(f"No pods found for deployment: {service_name}")
         return
 
     # restart the pods by deleting them

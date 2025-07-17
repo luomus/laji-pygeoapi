@@ -1,11 +1,14 @@
 from sqlalchemy import inspect, create_engine, text, MetaData
 import pandas as pd
 import os
+import logging
 from dotenv import load_dotenv
 import concurrent.futures
 from sqlalchemy.dialects.postgresql import base
 from geoalchemy2.types import Geometry
 from datetime import date
+
+logger = logging.getLogger(__name__)
 
 postgis_default_tables = [
     'spatial_ref_sys', 'topology', 'layer', 'featnames', 'geocode_settings',
@@ -80,7 +83,7 @@ def connect_to_db():
     }
 
     # Connect to the PostGIS database
-    print("Creating database connection...")
+    logging.info("Creating database connection...")
     engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
     with engine.connect() as connection:
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
@@ -95,7 +98,7 @@ def drop_all_tables():
     """
     Drops all tables in the database except default PostGIS tables.
     """
-    print("Emptying the database...")
+    logging.info("Dropping all the tables from the database...")
     
     # Find all table names
     metadata = MetaData()
@@ -273,7 +276,7 @@ def to_db(gdf, table_names):
             with get_engine().connect() as conn:
                 geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
         except Exception as e:
-            print(f"Error occurred: {e}")
+            logging.error(f"Error occurred: {e}")
             failed_features_count += len(geom_gdf)
 
     return failed_features_count
@@ -286,7 +289,7 @@ def update_single_table_indexes(table_name):
     table_name (str): The name of the table to update indexes for.
     """
     with get_engine().connect() as connection:
-        print(f"Updating indexes for table: {table_name}")
+        logging.debug(f"Updating indexes for table: {table_name}")
 
         index_creation_sql = text(f'''
             CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
@@ -308,7 +311,7 @@ def update_indexes(table_names, use_multiprocessing=True):
         with executor_class() as executor:
             executor.map(update_single_table_indexes, table_names)
     else:
-        print("No table names given, can't update table indexes")
+        logging.warning("No table names given, can't update table indexes")
 
 def remove_duplicates(table_names):
     """

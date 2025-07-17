@@ -58,7 +58,7 @@ def test_combine_similar_columns():
     assert_frame_equal(result_gdf, expected_gdf)
 
 def test_translate_column_names():
-    lookup_df = pd.read_csv('pygeoapi/scripts/lookup_table_columns.csv', sep=';', header=0)
+    lookup_df = pd.read_csv('pygeoapi/scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     gdf = gpd.GeoDataFrame({
         'unit.unitId': [1, 2, 3],
         'unit.linkings.taxon.scientificName': ['asd', 'asd1', 'asd2'],
@@ -139,7 +139,7 @@ def test_merge_duplicates():
         'geometry': [Point(1, 1), Point(1, 1), Point(1, 1), Point(2, 2)]
     }
     gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
-    lookup_df = pd.read_csv('pygeoapi/scripts/lookup_table_columns.csv', sep=';', header=0)
+    lookup_df = pd.read_csv('pygeoapi/scripts/resources/lookup_table_columns.csv', sep=';', header=0)
 
     merged_gdf, _ = process_data.merge_duplicates(gdf, lookup_df)
     assert len(merged_gdf) == 2

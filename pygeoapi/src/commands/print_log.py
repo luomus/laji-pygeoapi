@@ -1,8 +1,12 @@
+
+import logging
 from src.app import app
 from src.models import RequestLog
 from sqlalchemy import desc
 import click
 from tabulate import tabulate
+
+logger = logging.getLogger(__name__)
 
 
 @app.cli.command('print_log')
@@ -16,4 +20,4 @@ def print_log(limit):
             [row.status_code, row.date, row.api_key_id, row.path, row.query_string, row.ip_address]
         )
 
-    print(tabulate(table))
+    logger.info("\n" + tabulate(table))

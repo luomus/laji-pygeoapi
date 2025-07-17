@@ -6,7 +6,9 @@ from tinydb import TinyDB
 from pygeoapi.scripts import edit_db, compute_variables, edit_config
 import os
 from dotenv import load_dotenv
+import logging
 
+logger = logging.getLogger(__name__)
 
 def empty_metadata_db(metadata_db_path):
     """
@@ -206,9 +208,9 @@ def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
     # Insert the JSON record into the TinyDB database
     try:
         res = db.insert(json_record)
-        #print(f'Metadata record {xml_file} loaded with internal id {res}')
+        #logging.info(f'Metadata record {xml_file} loaded with internal id {res}')
     except Exception as err:
-        print(f'Error inserting record: {err}')
+        logging.error(f'Error inserting record: {err}')
 
     # Close the database connection to ensure all changes are saved and resources are freed.
     db.close()

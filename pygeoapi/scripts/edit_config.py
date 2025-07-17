@@ -1,5 +1,6 @@
 from datetime import date
-import re
+import logging
+logger = logging.getLogger(__name__)
 
 def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     """
@@ -11,7 +12,6 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
     Returns:
     last_update (str): The date when database was last updated
     """
-    print("Deleting collection information from the pygeoapi config file...")
     with open(pygeoapi_config, 'r') as file:
         lines = file.readlines()
 
@@ -32,7 +32,7 @@ def clear_collections_from_config(pygeoapi_config, pygeoapi_config_out):
         with open(pygeoapi_config_out, 'w') as file:
             file.writelines(lines)
     else:
-        print("Didn't remove any collections as the pygeoapi configuration file does not have resources section")
+        logger.error("Didn't remove any collections as the pygeoapi configuration file does not have resources section")
 
 
 def add_to_pygeoapi_config(template_resource, template_params, pygeoapi_config_out):
@@ -133,4 +133,5 @@ def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
     # Append the filled template to the output config file
     with open(pygeoapi_config_out, "a") as file:
         file.write(config_template)
-        print(f"metadata ({db_path_in_config}) added to config file {pygeoapi_config_out}")
+        logging.info(f"metadata ({db_path_in_config}) added to config file {pygeoapi_config_out}")
+        

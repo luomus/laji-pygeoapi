@@ -1,12 +1,14 @@
 import logging
-import json
 import requests
 from pygeoapi.provider.base import BaseProvider  # type: ignore
+from pandas import notna
 
 logger = logging.getLogger(__name__)
 
 from pygeoapi.scripts.process_features import process_json_features
-from pygeoapi.scripts.main import setup_environment, load_files
+from pygeoapi.scripts.main import setup_environment
+from pygeoapi.scripts.load_data import load_or_update_cache
+from pygeoapi.scripts.convert_api_filters import convert_filters
 
 class LajiApiProvider(BaseProvider):
     """
@@ -15,18 +17,22 @@ class LajiApiProvider(BaseProvider):
 
     def __init__(self, provider_def):
         super().__init__(provider_def)
-        self.api_url = provider_def['url']
         config = setup_environment()
+        self.api_url = config['laji_api_url'] + 'warehouse/query/unit/list'
         self.access_token = config.get('access_token', 'missing_from_config?')
-        self.municipals_gdf, self.lookup_df, self.taxon_df, self.collection_names, self.all_value_ranges = load_files(config)
+        self.municipals_gdf, self.municipals_ids, self.lookup_df, self.taxon_df, self.collection_names, self.all_value_ranges = load_or_update_cache(config)
 
     def get_fields(self):
         """
-        Get fields and field types from the JSON for pygeoapi.
+        Get fields and field types from the CSV for pygeoapi.
         """
-        # Read the JSON file
-        with open("pygeoapi/scripts/fields.json", "r", encoding="utf-8") as f:
-            fields = json.load(f)
+        fields = {}
+        for _, row in self.lookup_df.iterrows():
+            finbif_query = row['finbif_api_query']
+            if notna(finbif_query):
+                field_name = row['virva']
+                field_type = row['type']
+                fields[field_name] = {"type": field_type}
         return fields
 
     @property
@@ -35,8 +41,8 @@ class LajiApiProvider(BaseProvider):
         Return the fields of the provider.
         This is used to describe the schema of the data.
         """
+        logging.info("field called")
         return self.get_fields()
-
 
     def query(self, offset=0, limit=100, resulttype='results', bbox=[], datetime_=None, properties=[], sortby=[], select_properties=[], skip_geometry=False, **kwargs):
         """
@@ -56,9 +62,10 @@ class LajiApiProvider(BaseProvider):
 
         :returns: dict of 0..n GeoJSON feature collection
         """
+        logging.info("Query called")
         MAX_ITEMS = 1_000_000
         if offset >= MAX_ITEMS:
-            raise ValueError("Fetching more than 1 million observations is not allowed. Please filter the query.") 
+            raise ValueError(f"Fetching more than {MAX_ITEMS} 1 million observations is not allowed. Please use query filters.") 
 
         params = {
             'page': (offset // limit) + 1,
@@ -73,10 +80,7 @@ class LajiApiProvider(BaseProvider):
         if bbox and len(bbox) == 4:
             params['bbox'] = bbox
 
-
-        # Add any additional filters from properties
-        for name, value in properties:
-            params[name] = value
+        params = convert_filters(self.lookup_df, self.all_value_ranges, self.municipals_ids, params, properties)
 
         # Set selected fields
         params['selected'] = 'document.loadDate,unit.facts,gathering.facts,document.facts,unit.linkings.taxon.threatenedStatus,unit.linkings.originalTaxon.administrativeStatuses,unit.linkings.taxon.taxonomicOrder,unit.linkings.originalTaxon.latestRedListStatusFinland.status,gathering.displayDateTime,gathering.interpretations.biogeographicalProvinceDisplayname,gathering.interpretations.coordinateAccuracy,unit.abundanceUnit,unit.atlasCode,unit.atlasClass,gathering.locality,unit.unitId,unit.linkings.taxon.scientificName,unit.interpretations.individualCount,unit.interpretations.recordQuality,unit.abundanceString,gathering.eventDate.begin,gathering.eventDate.end,gathering.gatheringId,document.collectionId,unit.breedingSite,unit.det,unit.lifeStage,unit.linkings.taxon.id,unit.notes,unit.recordBasis,unit.sex,unit.taxonVerbatim,document.documentId,document.notes,document.secureReasons,gathering.conversions.eurefWKT,gathering.notes,gathering.team,unit.keywords,unit.linkings.originalTaxon,unit.linkings.taxon.nameFinnish,unit.linkings.taxon.nameSwedish,unit.linkings.taxon.nameEnglish,document.linkings.collectionQuality,unit.linkings.taxon.sensitive,unit.abundanceUnit,gathering.conversions.eurefCenterPoint.lat,gathering.conversions.eurefCenterPoint.lon,document.dataSource,document.siteStatus,document.siteType,gathering.stateLand'
@@ -136,5 +140,3 @@ class LajiApiProvider(BaseProvider):
     def get_schema(self, schema_type=None):
         # Example: return a simple schema
         return ('application/geo+json', {'$ref': 'https://geojson.org/schema/Feature.json'})
-    
-    

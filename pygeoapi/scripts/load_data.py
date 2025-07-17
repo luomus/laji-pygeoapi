@@ -1,10 +1,82 @@
+# Caching utility for essential data
+import pickle, json
+from pathlib import Path
+import datetime
 import geopandas as gpd
 import pandas as pd
 import requests, concurrent.futures
-import urllib.error
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
+
+def load_or_update_cache(config, cache_expiry_days=7):
+    """
+    Loads essential data (municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges)
+    from cache if fresh, otherwise fetches and updates cache. All cache files share the same timestamp.
+    """
+    cache_dir = Path('pygeoapi/scripts/cache')
+    cache_dir.mkdir(exist_ok=True)
+    cache_stamp = cache_dir / 'cache.stamp'
+
+    def is_cache_fresh():
+        if not cache_stamp.exists():
+            return False
+        mtime = datetime.datetime.fromtimestamp(cache_stamp.stat().st_mtime)
+        return (datetime.datetime.now() - mtime).days < cache_expiry_days
+
+    # Cache file paths
+    municipals_gdf_cache = cache_dir / 'municipals_gdf.pkl'
+    municipals_ids_cache = cache_dir / 'municipals_ids.json'
+    lookup_df_cache = cache_dir / 'lookup_df.pkl'
+    taxon_df_cache = cache_dir / 'taxon_df.pkl'
+    collection_names_cache = cache_dir / 'collection_names.json'
+    all_value_ranges_cache = cache_dir / 'all_value_ranges.json'
+
+    if is_cache_fresh():
+        logging.info("Loading data from cache")
+        print("Loading from cache")
+        with open(municipals_gdf_cache, 'rb') as f:
+            municipals_gdf = pickle.load(f)
+        with open(municipals_ids_cache, 'r', encoding='utf-8') as f:
+            municipals_ids = json.load(f)
+        with open(lookup_df_cache, 'rb') as f:
+            lookup_df = pickle.load(f)
+        with open(taxon_df_cache, 'rb') as f:
+            taxon_df = pickle.load(f)
+        with open(collection_names_cache, 'r', encoding='utf-8') as f:
+            collection_names = json.load(f)
+        with open(all_value_ranges_cache, 'r', encoding='utf-8') as f:
+            all_value_ranges = json.load(f)
+    else:
+        logging.info("Fetching data from API")
+        print("Fetching from the API")
+        municipals_gdf = gpd.read_file('pygeoapi/scripts/resources/municipalities.geojson', engine='pyogrio')
+        municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
+        lookup_df = pd.read_csv('pygeoapi/scripts/resources/lookup_table_columns.csv', sep=';', header=0)
+        taxon_df = get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
+        collection_names = get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
+        ranges1 = get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
+        ranges2 = get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
+        all_value_ranges = ranges1 | ranges2  # type: ignore
+        # Save all to cache
+        with open(municipals_gdf_cache, 'wb') as f:
+            pickle.dump(municipals_gdf, f)
+        with open(municipals_ids_cache, 'w', encoding='utf-8') as f:
+            json.dump(municipals_ids, f)
+        with open(lookup_df_cache, 'wb') as f:
+            pickle.dump(lookup_df, f)
+        with open(taxon_df_cache, 'wb') as f:
+            pickle.dump(taxon_df, f)
+        with open(collection_names_cache, 'w', encoding='utf-8') as f:
+            json.dump(collection_names, f)
+        with open(all_value_ranges_cache, 'w', encoding='utf-8') as f:
+            json.dump(all_value_ranges, f)
+        cache_stamp.touch()
+    return municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges
+
 
 def fetch_json_with_retry(url, max_retries=5, delay=30):
     """
@@ -25,10 +97,10 @@ def fetch_json_with_retry(url, max_retries=5, delay=30):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching data from {url}: {e}. Retrying in {delay} seconds...")
+            logging.error(f"Error fetching data from {url}: {e}. Retrying in {delay} seconds...")
             time.sleep(delay)
             attempt += 1
-    print(f"Failed to retrieve data from {url} after {max_retries} attempts.")
+    logging.error(f"Failed to retrieve data from {url} after {max_retries} attempts.")
     return None
 
 def get_collection_names(url):
@@ -66,7 +138,7 @@ def get_last_page(url, max_retries=5, delay=60):
         pages = total // 10000 
         if total % 10000 != 0:
             pages += 1
-        print(f"Total number of occurrences is {total} in {pages} pages")
+        logging.info(f"Total number of occurrences is {total} in {pages} pages")
         return pages
     else:
         return None
@@ -177,3 +249,25 @@ def get_enumerations(url):
         for item in json_data.get('results', [])
     }
     return enumerations
+
+def get_municipality_ids(url):
+    """
+    Fetch municipality ids and names from the api.laji.fi/areas endpoint
+
+    Parameters:
+    url (str): The URL of the areas (type=municipality) API endpoint.
+
+    Returns:
+    dict: A dictionary with municipality names as keys and ids as values.
+    """
+    data = fetch_json_with_retry(url)
+    if data:
+        results = data['results']
+        municipality_ids_dictionary = {}
+
+        for item in results:
+            name = item.get('name')
+            id_ = item.get('id')
+            municipality_ids_dictionary[name] = id_
+
+        return municipality_ids_dictionary
