@@ -260,6 +260,10 @@ def to_db(gdf, table_names):
     Returns:
     int: An updated counter for failed occurrence inserts.
     """
+   
+    # Set index
+    if 'Paikallinen_tunniste' in gdf.columns:
+        gdf = gdf.set_index('Paikallinen_tunniste', drop=True)
 
     # Separate by geometry type
     geom_types = {
@@ -274,7 +278,7 @@ def to_db(gdf, table_names):
     for table_name, geom_gdf in geom_types.items():
         try:
             with get_engine().connect() as conn:
-                geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=False)
+                geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=True, index_label='Paikallinen_tunniste')
         except Exception as e:
             logging.error(f"Error occurred: {e}")
             failed_features_count += len(geom_gdf)

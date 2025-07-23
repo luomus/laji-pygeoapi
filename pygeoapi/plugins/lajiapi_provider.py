@@ -1,11 +1,10 @@
 import logging
 import requests
-from typing import Dict, List, Optional, Tuple, Any, Union
-from requests import Session, RequestException
-from pygeoapi.provider.base import BaseProvider, ProviderConnectionError, ProviderQueryError 
+from pygeoapi.provider.base import BaseProvider, ProviderQueryError 
 from pandas import notna
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 from pygeoapi.scripts.process_features import process_json_features
 from pygeoapi.scripts.main import setup_environment
@@ -28,13 +27,20 @@ class LajiApiProvider(BaseProvider):
         
 
     def get_fields(self):
+        logging.info("Retrieving fields from lookup dataframe")
         fields = {}
         for _, row in self.lookup_df.iterrows():
             finbif_query = row.get('finbif_api_query')
             if notna(finbif_query):
                 field_name = row.get('virva')
                 field_type = row.get('type')
-                
+                if field_type == 'int':
+                    field_type = 'integer'
+                elif field_type == 'str':
+                    field_type = 'string'
+                elif field_type == 'bool':
+                    field_type = 'boolean'
+
                 if field_name and field_type:
                     fields[field_name] = {"type": field_type}
                 else:
@@ -45,6 +51,7 @@ class LajiApiProvider(BaseProvider):
     
     @property
     def fields(self):
+        logging.info("Accessing fields property")
         return self.get_fields()
 
     def _build_request_params(self, offset, limit, bbox, properties):
@@ -71,7 +78,7 @@ class LajiApiProvider(BaseProvider):
     def _make_api_request(self, params):
         # Log the request URL for debugging (without sensitive tokens)
         safe_params = {k: v if k != 'access_token' else '***' for k, v in params.items()}
-        logger.debug(f'Making API request with params: {safe_params}')
+        logger.info(f'Making API request with params: {safe_params}')
         
         response = requests.get(self.api_url, params=params)
         response.raise_for_status()
@@ -92,7 +99,7 @@ class LajiApiProvider(BaseProvider):
             return data
             
 
-    def query(self, offset=0, limit=100, resulttype='results', bbox=[], datetime_=None, properties=[], sortby=[], select_properties=[], skip_geometry=False, **kwargs):
+    def query(self, offset=0, limit=1000, resulttype='results', bbox=[], datetime_=None, properties=[], sortby=[], select_properties=[], skip_geometry=False, **kwargs):
         logger.debug(f"Query called with offset={offset}, limit={limit}, resulttype={resulttype}")
         
         params = self._build_request_params(offset, limit, bbox, properties)
@@ -112,7 +119,7 @@ class LajiApiProvider(BaseProvider):
 
         data['features'] = features
         data['numberReturned'] = len(features)
-        return data
+        return data #TODO: Separate different geometry types and return geopackage maybe?
 
     def get(self, identifier, **kwargs):
         """
@@ -147,7 +154,7 @@ class LajiApiProvider(BaseProvider):
         return features[0]
     
     def get_schema(self, schema_type=None):
-        logger.debug("Building schema for queryables endpoint")
+        logger.info("Building schema for queryables endpoint")
         
         # Build properties schema from self.fields
         properties = {}
@@ -174,8 +181,8 @@ class LajiApiProvider(BaseProvider):
             "type": "object",
             "properties": properties
         }
-        
-        logger.debug(f"Generated schema with {len(properties)} properties")
+
+        logger.info(f"Generated schema with {len(properties)} properties")
         return ("application/schema+json", schema)
             
 

@@ -90,10 +90,9 @@ def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
             title_field: title
     lajiapi-connection:
         type: collection
-        title: All data (Direct Laji.fi API Connection)
-        description: This collection provides direct access to the Laji.fi API. It process data on the fly and is slower. Please, use filters to limit the amount of data returned!!!
+        title: All Data as Center Points from api.laji.fi
+        description: This collection provides direct access to the Laji.fi data warehouse. It process data on the fly and is thus slower. Please, use filters to limit the amount of data returned. Querying more than 1 million items raises an error. 
         keywords:
-            - restapi
             - api.laji.fi
         extents:
             spatial:
@@ -116,7 +115,7 @@ def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
             name: plugins.lajiapi_provider.LajiApiProvider
             data: pygeoapi/plugins/lajiapi_provider.py
             url: https://api.laji.fi/v0/warehouse/query/unit/list
-            id_field: Paikallinen_tunniste
+            id_field: id
             uri: Havainnon_tunniste
             editable: false
             title_field: Suomenkielinen_nimi
