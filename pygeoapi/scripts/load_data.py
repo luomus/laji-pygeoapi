@@ -37,7 +37,6 @@ def load_or_update_cache(config, cache_expiry_days=7):
 
     if is_cache_fresh():
         logging.info("Loading data from cache")
-        print("Loading from cache")
         with open(municipals_gdf_cache, 'rb') as f:
             municipals_gdf = pickle.load(f)
         with open(municipals_ids_cache, 'r', encoding='utf-8') as f:
@@ -51,8 +50,7 @@ def load_or_update_cache(config, cache_expiry_days=7):
         with open(all_value_ranges_cache, 'r', encoding='utf-8') as f:
             all_value_ranges = json.load(f)
     else:
-        logging.info("Fetching data from API")
-        print("Fetching from the API")
+        logging.info("Fetching data from API") 
         municipals_gdf = gpd.read_file('pygeoapi/scripts/resources/municipalities.geojson', engine='pyogrio')
         municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
         lookup_df = pd.read_csv('pygeoapi/scripts/resources/lookup_table_columns.csv', sep=';', header=0)

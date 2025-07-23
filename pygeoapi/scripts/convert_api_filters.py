@@ -1,6 +1,7 @@
 import logging
 from pygeoapi.scripts.compute_variables import id_mapping
 import re
+from pyproj import Transformer
 
 
 logger = logging.getLogger(__name__)
@@ -173,6 +174,20 @@ def convert_time(value):
                 converted_values.append(v) # Single date or year/month
         return ','.join(converted_values)
     return value
+
+def process_bbox(bbox):
+    # Convert bbox to WKT POLYGON string in EUREF-TM35FIN (EPSG:3067)
+    # You need to transform the coordinates from WGS84 to EUREF-TM35FIN
+    transformer = Transformer.from_crs("EPSG:4326", "EPSG:3067", always_xy=True)
+    minx, miny, maxx, maxy = bbox
+    # Transform each corner
+    x1, y1 = transformer.transform(minx, miny)
+    x2, y2 = transformer.transform(maxx, miny)
+    x3, y3 = transformer.transform(maxx, maxy)
+    x4, y4 = transformer.transform(minx, maxy)
+    wkt_polygon = (f"POLYGON(({x1} {y1}, {x2} {y2}, {x3} {y3}, {x4} {y4}, {x1} {y1}))")
+    return wkt_polygon
+
 
 # TODO: Handle other time/date values 
 # TODO: Handle ids with # character
