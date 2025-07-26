@@ -23,7 +23,7 @@
                 dbname: <placeholder_db_name>
                 user: <placeholder_postgres_user>
                 password: <placeholder_postgres_password>
-            id_field: id
+            id_field: Paikallinen_tunniste
             uri: Havainnon_tunniste
             table: <placeholder_table_name>
             geom_field: geometry

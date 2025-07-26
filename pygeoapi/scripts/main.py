@@ -66,6 +66,7 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
     edited_features_count = 0
     duplicates_count_by_id = 0
     converted_collections = 0
+    merged_features_count = 0
     table_names = [f'{table_base_name}_points', f'{table_base_name}_lines', f'{table_base_name}_polygons']
 
     if drop_tables:
@@ -93,7 +94,7 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipals_gdf)
         gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
-        gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf)
+        gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf) #TODO: Make sure it works as resulting data has gcs / process in PostGIS
         gdf, edited = process_data.validate_geometry(gdf)
         failed_features_count += edit_db.to_db(gdf, table_names)
         edited_features_count += edited
@@ -101,8 +102,9 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
 
     if gdf is not None and not gdf.empty:
         duplicates_count_by_id += edit_db.remove_duplicates(table_names)
-    
-    return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections
+        merged_features_count += edit_db.merge_similar_observations(table_names, lookup_df)
+
+    return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections, merged_features_count
 
 def main():
     """
@@ -118,6 +120,7 @@ def main():
     edited_features_count = 0
     duplicates_count_by_id = 0
     converted_collections = 0
+    merged_features_count = 0
     drop_tables = False
     
     last_update = edit_db.get_and_update_last_update()
@@ -165,6 +168,7 @@ def main():
             edited_features_count += results[2]
             duplicates_count_by_id += results[3]
             converted_collections += results[4]
+            merged_features_count = results[5]
 
         if os.getenv("INVASIVE_SPECIES", "True").lower() == "true":
             logging.info("Processing invasive species data...")
@@ -177,6 +181,7 @@ def main():
             edited_features_count += results[2]
             duplicates_count_by_id += results[3]
             converted_collections += results[4]
+            merged_features_count = results[5]
 
         logging.info("Processing completed.")
 
@@ -202,6 +207,7 @@ def main():
     logging.info(f" -> Failed insertions: {failed_features_count} (estimated)")
     logging.info(f" -> Duplicates removed: {duplicates_count_by_id}")
     logging.info(f" -> Converted geometry collections: {converted_collections}")
+    logging.info(f" -> Merged features in PostGIS: {merged_features_count}")
     logging.info(f" -> Final occurrences in database after processing: {total_occurrences}")
 
     logging.info("\nAPI is ready to use. All tasks completed successfully.")

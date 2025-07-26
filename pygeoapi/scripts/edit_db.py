@@ -124,7 +124,7 @@ def drop_table(table_names):
 
     for i in table_names:
         if i in metadata.tables:
-            metadata.tables[i].drop(get_engine(), checkfirst=True)
+            metadata.tables[i].drop(get_engine(), checkfirst=True) #TOOD: Check if could be direct SQL
 
 def get_all_tables():
     """
@@ -319,7 +319,7 @@ def update_indexes(table_names, use_multiprocessing=True):
 
 def remove_duplicates(table_names):
     """
-    Remove duplicate rows from the specified tables based on the 'Havainnon_tunniste' attribute.
+    Remove duplicate rows from the specified tables based on the 'Havainnon_tunniste' attribute to ensure DB has no occurrences with identical IDs.
 
     Parameters:
     table_names (list): The names of the tables to be checked for duplicates.
@@ -367,3 +367,82 @@ def remove_duplicates(table_names):
         removed_occurrences += number_before_deletion - number_after_deletion
 
     return removed_occurrences
+
+def merge_similar_observations(table_names, lookup_df):
+    """
+    Merge similar observations in PostGIS tables based on specified subset of columns and geometry.
+
+    Parameters:
+    table_names (list): List of PostGIS table names to process.
+    lookup_df (DataFrame): DataFrame containing column configuration with 'groupby' and 'virva' columns.
+
+    Returns:
+    int: Total number of merged occurrences across all tables.
+    """
+    # Get columns to group by from lookup table
+    columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
+        
+    if not columns_to_group_by:
+        logging.warning("No groupby columns found in lookup table")
+        return 0
+    
+    total_merged = 0
+    
+    for table_name in table_names:
+        if not check_table_exists(table_name):
+            continue
+            
+        # Get count before merging
+        count_before = get_amount_of_occurrences(table_name)
+        
+        with get_engine().connect() as connection:
+            # Create the groupby clause
+            groupby_columns = ', '.join([f'"{col}"' for col in columns_to_group_by])
+            
+            # Build aggregation SQL
+            agg_sql = f'''
+                CREATE TABLE merged_{table_name} AS
+                SELECT 
+                    {groupby_columns},
+                    string_agg(DISTINCT "Keruutapahtuman_tunniste", ', ') as "Keruutapahtuman_tunniste",
+                    string_agg(DISTINCT "Havainnon_tunniste", ', ') as "Havainnon_tunniste",
+                    string_agg(DISTINCT "Maara", ', ') as "Maara",
+                    string_agg(DISTINCT "Avainsanat", ', ') as "Avainsanat",
+                    string_agg(DISTINCT "Havainnon_lisatiedot", ', ') as "Havainnon_lisatiedot",
+                    string_agg(DISTINCT "Aineisto", ', ') as "Aineisto",
+                    string_agg(DISTINCT "Paikallinen_tunniste", ', ') as "Paikallinen_tunniste",
+                    SUM("Yksilomaara_tulkittu") as "Yksilomaara_tulkittu",
+                    (ARRAY_AGG("geometry"))[1] as geometry,
+                    MAX("Lataus_pvm") as "Lataus_pvm"
+                FROM "{table_name}"
+                GROUP BY {groupby_columns}
+            '''
+
+            # Execute the aggregation
+            connection.execute(text(agg_sql))
+            
+            # Add the Yhdistetty column
+            connection.execute(text(f'''
+                ALTER TABLE merged_{table_name} 
+                ADD COLUMN "Yhdistetty" INTEGER DEFAULT 1
+            ''')) #TODO: Check why this column is not visible in the data. Merging works.
+            
+            connection.execute(text(f'''
+                UPDATE merged_{table_name} 
+                SET "Yhdistetty" = array_length(string_to_array("Havainnon_tunniste", ', '), 1)
+                WHERE "Havainnon_tunniste" LIKE '%,%'
+            '''))
+
+            connection.commit()
+            
+            # Replace the original table with merged data
+            drop_table([table_name])
+            connection.execute(text(f'ALTER TABLE merged_{table_name} RENAME TO "{table_name}"'))
+            connection.commit()
+                    
+        # Get count after merging
+        count_after = get_amount_of_occurrences(table_name)
+        merged_count = count_before - count_after
+        total_merged += merged_count
+            
+    return total_merged

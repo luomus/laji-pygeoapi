@@ -49,7 +49,7 @@ gathering.stateLand;;state_land;stateLand;Valtion_maalla;bool;TRUE
 unit.linkings.taxon.threatenedStatus;;threatened_status_id;threatenedStatusID;Lajiturva;str;FALSE
 name;target;informal_group_name;InformalGroupName;Elioryhma;str;FALSE
 unit.linkings.originalTaxon.vernacularName.fi;target;;;Yleiskielinen_nimi;str;FALSE
-geometry;geometry;geometry;geometry;geometry;geom;FALSE
+geometry;polygon;geometry;geometry;geometry;geom;FALSE
 compute_from_individual_count;;;;Esiintyman_tila;str;FALSE
 compute_from_collection_id;;;;Aineisto;str;FALSE
 Seurattava laji;;;;Seurattava_laji;str;TRUE
@@ -61,3 +61,4 @@ Vesistöalue;;;;Vesistoalue;str;FALSE
 computed_ely_area;;;;Vastuualue;str;FALSE
 Paikallinen_tunniste;;;;Paikallinen_tunniste;str;FALSE
 document.loadDate;custom_load_date;;;Lataus_pvm;datetime;FALSE
+Yhdistetty;;;;Yhdistetty;int;FALSE
