@@ -7,9 +7,7 @@ import pandas as pd
 from shapely.geometry import Point, GeometryCollection, Polygon
 
 
-sys.path.append('src/')
-
-import main
+from pygeoapi.scripts import main
 
 # run with:
 # python -m pytest tests/test_main.py -v
@@ -24,7 +22,7 @@ import main
     'MULTIPROCESSING': 'False',
     'RUNNING_IN_OPENSHIFT': 'False'
 })
-@patch('main.load_dotenv')
+@patch('pygeoapi.scripts.main.load_dotenv')
 def test_setup_environment(mock_load_dotenv):
     # Ensure the mock is used to avoid the "not accessed" warning
     mock_load_dotenv.assert_not_called()
@@ -34,10 +32,10 @@ def test_setup_environment(mock_load_dotenv):
     assert config['metadata_db_path'] == 'catalogue.tinydb'
 
 
-@patch('main.edit_db.to_db', return_value=0)
-@patch('main.edit_db.remove_duplicates', return_value=0)
-@patch('main.load_data.get_occurrence_data')
-@patch('main.compute_variables.compute_all')
+@patch('pygeoapi.scripts.main.edit_db.to_db', return_value=0)
+@patch('pygeoapi.scripts.main.edit_db.remove_duplicates', return_value=0)
+@patch('pygeoapi.scripts.main.load_data.get_occurrence_data')
+@patch('pygeoapi.scripts.main.compute_variables.compute_all')
 def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_remove_duplicates, mock_to_db):
     gdf = gpd.GeoDataFrame({
         'unit.unitId': ['id1', 'id2', 'id3', 'id4'],
@@ -65,7 +63,7 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
     mock_get_occurrence_data.return_value = (gdf, 0) # Return GeoDataFrame and 0 errors
     mock_compute_all.side_effect = lambda gdf, *args, **kwargs: gdf # Mock compute_all to return the input GeoDataFrame
 
-    lookup_df = pd.read_csv("src/lookup_table_columns.csv", sep=';', header=0)
+    lookup_df = pd.read_csv("pygeoapi/scripts/resources/lookup_table_columns.csv", sep=';', header=0)
 
     results = main.load_and_process_data(
         "occurrence_url", "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, "mock_path", lookup_df

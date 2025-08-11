@@ -1,0 +1,97 @@
+
+    <placeholder_table_name>:
+        type: collection
+        title: <placeholder_table_name> 
+        description: <placeholder_amount_of_occurrences> <placeholder_geom_type>s from the <placeholder_title> biogeographical area. 
+        keywords:
+            en:
+                - <placeholder_title>
+                - occurrence data
+        extents:
+            spatial:
+                bbox: <placeholder_bbox>
+                crs: https://www.opengis.net/def/crs/EPSG/0/4326
+            temporal: 
+                begin: <placeholder_min_date>
+                end: <placeholder_max_date>
+        providers:
+          - type: feature
+            name: PostgreSQL
+            data:
+                host: <placeholder_postgres_host>
+                port: 5432
+                dbname: <placeholder_db_name>
+                user: <placeholder_postgres_user>
+                password: <placeholder_postgres_password>
+            id_field: Paikallinen_tunniste
+            uri: Havainnon_tunniste
+            table: <placeholder_table_name>
+            geom_field: geometry
+            time_field: Keruu_aloitus_pvm
+            title_field: Suomenkielinen_nimi
+            properties: 
+                - Suomenkielinen_nimi
+                - Havainnon_tunniste
+                - Paikallinen_tunniste
+                - Aika
+                - Keruu_aloitus_pvm
+                - Keruu_lopetus_pvm
+                - Lataus_pvm
+                - Taksonin_tunniste
+                - Taksonominen_jarjestys
+                - Tieteellinen_nimi
+                - Englanninkielinen_nimi
+                - Ruotsinkielinen_nimi
+                - Alkuperainen_nimi
+                - Yleiskielinen_nimi
+                - Elioryhma
+                - Aineisto
+                - Aineiston_tunniste
+                - Aineiston_laatu
+                - Aineistolahde
+                - Paikan_tarkkuus_metreina
+                - Karkeistuksen_syy
+                - Sijainti
+                - Kunta
+                - Vastuualue
+                - Eliomaakunta
+                - Havaintotapa
+                - Havainnoijat
+                - Maarittaja
+                - Havainnon_laatu
+                - Havainnon_luotettavuus
+                - Maara
+                - Yksilomaara_tulkittu
+                - Havainnon_maaran_yksikko
+                - Maaran_yksikko
+                - Havainnon_lisatiedot
+                - Havaintoeran_tunniste
+                - Havaintoeran_lisatiedot
+                - Keruutapahtuman_tunniste
+                - Keruutapahtuman_lisatiedot
+                - Avainsanat
+                - Atlasluokka
+                - Atlaskoodi
+                - Hallinnollinen_asema
+                - Uhanalaisuusluokka
+                - Lajiturva
+                - Sensitiivinen_laji
+                - Ensisijainen_biotooppi
+                - ETRS_TM35FIN_WKT
+                - ETRS_TM35FIN_N
+                - ETRS_TM35FIN_E
+                - Valtion_maalla
+                - Elinvaihe
+                - Sukupuoli
+                - Pesintapaikka
+                - Seurantapaikan_tila
+                - Seurantapaikan_tyyppi
+                - Esiintyman_tila
+                - Seurattava_laji
+                - Sijainnin_tarkkuusluokka
+                - Peittavyysprosentti
+                - Vesistoalue
+            crs:
+                - https://www.opengis.net/def/crs/EPSG/0/4326
+                - https://www.opengis.net/def/crs/EPSG/0/3067
+                - http://www.opengis.net/def/crs/EPSG/0/3067

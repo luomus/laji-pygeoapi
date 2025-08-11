@@ -6,9 +6,7 @@ from dotenv import load_dotenv
 from unittest.mock import patch, MagicMock
 import requests
 
-sys.path.append('src/')
-
-import load_data
+from pygeoapi.scripts import load_data
 
 # run with:
 # python -m pytest tests/test_load_data.py -v
@@ -38,7 +36,7 @@ def test_fetch_json_with_retry(mock_get):
     assert result is None
     assert mock_get.call_count == 3
 
-@patch('load_data.fetch_json_with_retry')
+@patch('pygeoapi.scripts.load_data.fetch_json_with_retry')
 def test_get_collection_names(mock_fetch):
     mock_fetch.return_value = {
         'results': [
@@ -84,11 +82,10 @@ def test_get_occurrence_data():
     pd.testing.assert_frame_equal(gdf_sorted, gdf2_sorted, check_like=True)
 
 def test_get_value_ranges():
-    url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE"
+    url = "https://beta.laji.fi/api/metadata/ranges?lang=fi&asLookupObject=true"
     result = load_data.get_value_ranges(url)
     assert isinstance(result, dict)
-    assert 'results' in result
-    assert isinstance(result['results'], list)
+    assert 'MY.recordBasisIndirectSampleIndirectSample' in result
 
 def test_get_taxon_data():
     taxon_name_url = f'https://beta.laji.fi/api/informal-taxon-groups?pageSize=1'

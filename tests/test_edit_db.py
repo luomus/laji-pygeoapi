@@ -1,13 +1,9 @@
-import os, sys
+import os
 import pytest
-import pandas as pd
-from sqlalchemy import text, inspect, MetaData
-from geoalchemy2 import Geometry
+from sqlalchemy import text, inspect
 from datetime import date
 
-sys.path.append('src/')
-
-import edit_db
+from pygeoapi.scripts import edit_db
 
 # Run with:
 # docker-compose -f tests/docker-compose-test.yaml up -d
@@ -266,7 +262,7 @@ def test_remove_duplicates(engine):
     with engine.connect() as conn:
         conn.execute(text('''
             CREATE TABLE "dup_table" (
-                id SERIAL PRIMARY KEY,
+                "id" SERIAL PRIMARY KEY,
                 "Havainnon_tunniste" TEXT,
                 "Lataus_pvm" TIMESTAMP,
                 geometry Geometry(Point, 4326)
@@ -286,3 +282,71 @@ def test_remove_duplicates(engine):
     count = edit_db.get_amount_of_occurrences('dup_table')
     assert count == 2
     drop_test_table(engine, 'dup_table')
+
+def test_merge_similar_observations(engine):
+    import pandas as pd  
+    
+    drop_test_table(engine, 'test_merge_table')
+    with engine.connect() as conn:
+        conn.execute(text('''
+            CREATE TABLE "test_merge_table" (
+                id SERIAL PRIMARY KEY,
+                "Tieteellinen_nimi" TEXT,
+                "Kunta" TEXT,
+                "Havainnon_tunniste" TEXT,
+                "Yksilomaara_tulkittu" INTEGER,
+                "Keruutapahtuman_tunniste" TEXT,
+                "Maara" TEXT,
+                "Avainsanat" TEXT,
+                "Havainnon_lisatiedot" TEXT,
+                "Aineisto" TEXT,
+                "Paikallinen_tunniste" TEXT,
+                "Lataus_pvm" TIMESTAMP,
+                geometry Geometry(Point, 4326)
+            );
+        '''))
+        # Insert records that should be merged (same Tieteellinen_nimi and Kunta)
+        conn.execute(text('''
+            INSERT INTO "test_merge_table" ("Tieteellinen_nimi", "Kunta", "Havainnon_tunniste", "Yksilomaara_tulkittu", 
+                                     "Keruutapahtuman_tunniste", "Maara", "Avainsanat", "Havainnon_lisatiedot", "Aineisto", "Paikallinen_tunniste", "Lataus_pvm", geometry) VALUES
+            ('species1', 'city1', 'obs1', 5, 'event1', '1', 'kw1,kw2', 'lisatiedot', 'collection1', '1', '2023-01-01', ST_GeomFromText('POINT(1 2)', 4326)),
+            ('species1', 'city1', 'obs2', 3, 'event2', '5', 'jee,juu', 'lisaa tietoa', 'aineisto3', '2', '2023-01-02', ST_GeomFromText('POINT(1 2)', 4326)),
+            ('species2', 'city2', 'obs3', 2, 'event3', '10', 'abc,def', 'lisatiedot2', 'aineisto1', '3', '2023-01-01', ST_GeomFromText('POINT(2 3)', 4326));
+        '''))
+        conn.commit()
+    
+    # Create lookup DataFrame matching the structure from lookup_table_columns.csv
+    lookup_df = pd.DataFrame({
+        'virva': ['Tieteellinen_nimi', 'Kunta', 'Havainnon_tunniste'],
+        'groupby': [True, True, False]
+    })
+
+    merged = edit_db.merge_similar_observations(['test_merge_table'], lookup_df)
+    assert merged == 1  # One duplicate merged
+    
+    count = edit_db.get_amount_of_occurrences('test_merge_table')
+    assert count == 2  # Two unique groups remain
+    
+    # Check that Yksilomaara_tulkittu was summed correctly
+    with engine.connect() as conn:
+        result = conn.execute(text('''
+            SELECT "Yksilomaara_tulkittu" FROM "test_merge_table" 
+            WHERE "Tieteellinen_nimi" = 'species1' AND "Kunta" = 'city1'
+        ''')).scalar()
+        assert result == 8  # 5 + 3
+
+    # Check that aggregated columns are correct
+    with engine.connect() as conn:
+        result = conn.execute(text('''
+            SELECT *
+            FROM "test_merge_table"
+            WHERE "Tieteellinen_nimi" = 'species1' AND "Kunta" = 'city1'
+        ''')).fetchone()
+        assert 'species1' in result
+        assert 'city1' in result
+        assert 'obs1, obs2' in result
+
+
+    drop_test_table(engine, 'test_merge_table')
+
+
