@@ -27,7 +27,6 @@ class LajiApiProvider(BaseProvider):
         
 
     def get_fields(self):
-        logging.info("Retrieving fields from lookup dataframe")
         fields = {}
         for _, row in self.lookup_df.iterrows():
             finbif_query = row.get('finbif_api_query')
@@ -51,7 +50,6 @@ class LajiApiProvider(BaseProvider):
     
     @property
     def fields(self):
-        logging.info("Accessing fields property")
         return self.get_fields()
 
     def _build_request_params(self, offset, limit, bbox, properties):
@@ -153,9 +151,7 @@ class LajiApiProvider(BaseProvider):
 
         return features[0]
     
-    def get_schema(self, schema_type=None):
-        logger.info("Building schema for queryables endpoint")
-        
+    def get_schema(self, schema_type=None):       
         # Build properties schema from self.fields
         properties = {}
         for field, info in self.fields.items():

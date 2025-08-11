@@ -3,7 +3,7 @@ unit.unitId;unitId;record_id;occurrenceID;Havainnon_tunniste;str;FALSE
 unit.linkings.taxon.scientificName;target;scientific_name_interpreted;scientificNameInterpreted;Tieteellinen_nimi;str;TRUE
 unit.interpretations.individualCount;individualCountMin;abundance_interpreted;individualCountInterpreted;Yksilomaara_tulkittu;int;FALSE
 gathering.interpretations.coordinateAccuracy;coordinateAccuracyMax;coordinates_uncertainty_interpreted;coordinateUncertaintyInMetersInterpreted;Paikan_tarkkuus_metreina;int;TRUE
-unit.interpretations.recordQuality;;record_quality;occurrenceQuality;Havainnon_luotettavuus;str;FALSE
+unit.interpretations.recordQuality;recordQuality;record_quality;occurrenceQuality;Havainnon_luotettavuus;str;FALSE
 unit.abundanceString;;abundance_verbatim;verbatimAbundance;Maara;str;FALSE
 gathering.interpretations.biogeographicalProvinceDisplayname;biogeographicalProvinceId;bio_province_interpreted;bioStateProvinceInterpreted;Eliomaakunta;str;TRUE
 gathering.eventDate.begin;;date_start;eventDateStart;Keruu_aloitus_pvm;datetime;TRUE
@@ -26,7 +26,7 @@ gathering.displayDateTime;time;formatted_date_time;eventDateTimeDisplay;Aika;str
 gathering.locality;;locality;locality;Sijainti;str;TRUE
 computed_municipality;finnishMunicipalityId;municipality_verbatim;verbatimCounty;Kunta;str;TRUE
 gathering.notes;;event_notes;eventRemarks;Keruutapahtuman_lisatiedot;str;FALSE
-gathering.team;;team;recordedBy;Havainnoijat;str;TRUE
+gathering.team;teamMember;team;recordedBy;Havainnoijat;str;TRUE
 unit.keywords;keyword;record_keywords;occurrenceKeywords;Avainsanat;str;FALSE
 unit.linkings.taxon.nameEnglish;target;common_name_english;vernacularNameEnglish;Englanninkielinen_nimi;str;FALSE
 unit.linkings.taxon.nameFinnish;target;common_name_finnish;vernacularNameFinnish;Suomenkielinen_nimi;str;TRUE

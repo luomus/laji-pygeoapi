@@ -15,7 +15,7 @@ def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, propert
         logging.info(f"Name: {name}, value: {value}")
         name = translate_filter_names(lookup_df, name)
         value = remove_tunfi_prefix(value)
-        if name in ['breedingSite', 'recordBasis', 'secureReason', 'collectionQuality', 'redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode']:
+        if name in ['breedingSite', 'recordBasis', 'secureReason', 'collectionQuality', 'recordQuality', 'redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode']:
             value = map_value_ranges(all_value_ranges, value)
         elif name == 'biogeographicalProvinceId':
             value = map_biogeographical_provinces(value)
@@ -54,6 +54,7 @@ def map_value_ranges(all_value_ranges, value):
     Map filter values to api.laji.fi query parameters 
     For example, recordBasis value 'Havaittu' is mapped to 'HUMAN_OBSERVATION_UNSPECIFIED'
     """
+    logger.debug(f"Mapping value ranges for value: {value}")
     values = [v.strip() for v in value.split(',')]
     mapped_values = []
     for val in values:
