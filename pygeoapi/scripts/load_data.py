@@ -1,7 +1,4 @@
 # Caching utility for essential data
-import pickle, json
-from pathlib import Path
-import datetime
 import geopandas as gpd
 import pandas as pd
 import requests, concurrent.futures
@@ -12,68 +9,46 @@ logger = logging.getLogger(__name__)
 
 gpd.options.io_engine = "pyogrio" # Faster way to read data
 
-def load_or_update_cache(config, cache_expiry_days=7):
+# Simple in-memory cache
+_cache = {}
+_cache_timeout = 86400  # 1 day in seconds
+_cache_timestamps = {}
+
+def _is_cache_valid(key):
+    """Check if cached data is still valid"""
+    if key not in _cache_timestamps:
+        return False
+    return (time.time() - _cache_timestamps[key]) < _cache_timeout
+
+
+def load_or_update_cache(config):
     """
-    Loads essential data (municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges)
-    from cache if fresh, otherwise fetches and updates cache. All cache files share the same timestamp.
+    Loads essential data (municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges) from the cache or the API.
     """
-    cache_dir = Path('pygeoapi/scripts/cache')
-    cache_dir.mkdir(exist_ok=True)
-    cache_stamp = cache_dir / 'cache.stamp'
+    cache_key = f"helper_data_{config.get('laji_api_url', '')}"
+    
+    # Check if we have valid cached data
+    if cache_key in _cache and _is_cache_valid(cache_key):
+        logger.info("Using cached helper data")
+        return _cache[cache_key]
+    
+    logging.info("Fetching data from API") 
+    municipals_gdf = gpd.read_file('pygeoapi/scripts/resources/municipalities.geojson', engine='pyogrio')
+    municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
+    lookup_df = pd.read_csv('pygeoapi/scripts/resources/lookup_table_columns.csv', sep=';', header=0)
+    taxon_df = get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
+    collection_names = get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
+    ranges1 = get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
+    ranges2 = get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
+    all_value_ranges = ranges1 | ranges2  # type: ignore
 
-    def is_cache_fresh():
-        if not cache_stamp.exists():
-            return False
-        mtime = datetime.datetime.fromtimestamp(cache_stamp.stat().st_mtime)
-        return (datetime.datetime.now() - mtime).days < cache_expiry_days
+    result = municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges
 
-    # Cache file paths
-    municipals_gdf_cache = cache_dir / 'municipals_gdf.pkl'
-    municipals_ids_cache = cache_dir / 'municipals_ids.json'
-    lookup_df_cache = cache_dir / 'lookup_df.pkl'
-    taxon_df_cache = cache_dir / 'taxon_df.pkl'
-    collection_names_cache = cache_dir / 'collection_names.json'
-    all_value_ranges_cache = cache_dir / 'all_value_ranges.json'
+    # Cache the result
+    _cache[cache_key] = result
+    _cache_timestamps[cache_key] = time.time()
 
-    if is_cache_fresh():
-        logging.info("Loading data from cache")
-        with open(municipals_gdf_cache, 'rb') as f:
-            municipals_gdf = pickle.load(f)
-        with open(municipals_ids_cache, 'r', encoding='utf-8') as f:
-            municipals_ids = json.load(f)
-        with open(lookup_df_cache, 'rb') as f:
-            lookup_df = pickle.load(f)
-        with open(taxon_df_cache, 'rb') as f:
-            taxon_df = pickle.load(f)
-        with open(collection_names_cache, 'r', encoding='utf-8') as f:
-            collection_names = json.load(f)
-        with open(all_value_ranges_cache, 'r', encoding='utf-8') as f:
-            all_value_ranges = json.load(f)
-    else:
-        logging.info("Fetching data from API") 
-        municipals_gdf = gpd.read_file('pygeoapi/scripts/resources/municipalities.geojson', engine='pyogrio')
-        municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
-        lookup_df = pd.read_csv('pygeoapi/scripts/resources/lookup_table_columns.csv', sep=';', header=0)
-        taxon_df = get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
-        collection_names = get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
-        ranges1 = get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
-        ranges2 = get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
-        all_value_ranges = ranges1 | ranges2  # type: ignore
-        # Save all to cache
-        with open(municipals_gdf_cache, 'wb') as f:
-            pickle.dump(municipals_gdf, f)
-        with open(municipals_ids_cache, 'w', encoding='utf-8') as f:
-            json.dump(municipals_ids, f)
-        with open(lookup_df_cache, 'wb') as f:
-            pickle.dump(lookup_df, f)
-        with open(taxon_df_cache, 'wb') as f:
-            pickle.dump(taxon_df, f)
-        with open(collection_names_cache, 'w', encoding='utf-8') as f:
-            json.dump(collection_names, f)
-        with open(all_value_ranges_cache, 'w', encoding='utf-8') as f:
-            json.dump(all_value_ranges, f)
-        cache_stamp.touch()
-    return municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges
+    return result
 
 
 def fetch_json_with_retry(url, max_retries=5, delay=30):

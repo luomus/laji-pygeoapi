@@ -21,10 +21,8 @@ services:
       - ./pygeoapi/migrations:/pygeoapi/migrations
       - ./pygeoapi/custom/${TARGET}-templates:/pygeoapi/custom/templates
       - ./pygeoapi/custom/${TARGET}-static/custom:/pygeoapi/pygeoapi/static/custom
-      - ./pygeoapi/src:/pygeoapi/src
       - ./pygeoapi/scripts:/pygeoapi/scripts
       - ./pygeoapi/plugins:/pygeoapi/plugins
-      - pygeoapi-cache:/pygeoapi/scripts/cache
     networks:
       - pygeoapinet
     depends_on:
@@ -52,7 +50,6 @@ services:
 
 volumes:
   postgres:
-  pygeoapi-cache:
 
 networks:
   pygeoapinet:
