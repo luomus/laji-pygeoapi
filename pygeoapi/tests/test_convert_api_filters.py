@@ -1,10 +1,8 @@
-import os, sys
-import tempfile
-
 import pandas as pd
-from pygeoapi.scripts import convert_api_filters
+from scripts import convert_api_filters
 
 # run with:
+# cd pygeoapi
 # python -m pytest tests/test_convert_api_filters.py -v
 
 def test_convert_filters():

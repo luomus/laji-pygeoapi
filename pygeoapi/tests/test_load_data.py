@@ -1,14 +1,12 @@
-import unittest, sys
 import geopandas as gpd
 import pandas as pd
-import os
-from dotenv import load_dotenv
 from unittest.mock import patch, MagicMock
 import requests
 
-from pygeoapi.scripts import load_data
+from scripts import load_data
 
 # run with:
+# cd pygeoapi
 # python -m pytest tests/test_load_data.py -v
 
 @patch('requests.get')
@@ -36,7 +34,7 @@ def test_fetch_json_with_retry(mock_get):
     assert result is None
     assert mock_get.call_count == 3
 
-@patch('pygeoapi.scripts.load_data.fetch_json_with_retry')
+@patch('scripts.load_data.fetch_json_with_retry')
 def test_get_collection_names(mock_fetch):
     mock_fetch.return_value = {
         'results': [

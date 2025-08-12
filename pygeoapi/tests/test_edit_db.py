@@ -3,9 +3,10 @@ import pytest
 from sqlalchemy import text, inspect
 from datetime import date
 
-from pygeoapi.scripts import edit_db
+from scripts import edit_db
 
 # Run with:
+# cd pygeoapi
 # docker-compose -f tests/docker-compose-test.yaml up -d
 # python -m pytest tests/test_edit_db.py -v
 
@@ -29,7 +30,7 @@ def create_test_table(engine, table_name, geom_type='POINT', extra_cols=''):
     with engine.connect() as conn:
         conn.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
         conn.execute(text(f'''
-            CREATE TABLE "{table_name}" (
+            CREATE TABLE IF NOT EXISTS "{table_name}" (
                 id SERIAL PRIMARY KEY,
                 "Havainnon_tunniste" TEXT,
                 "Lataus_pvm" TIMESTAMP,
@@ -103,7 +104,7 @@ def test_get_table_bbox(engine):
     drop_test_table(engine, 'bbox_table')
     with engine.connect() as conn:
         conn.execute(text('''
-            CREATE TABLE "bbox_table" (
+            CREATE TABLE IF NOT EXISTS "bbox_table" (
                 id SERIAL PRIMARY KEY,
                 geometry Geometry(Point, 4326)
             );
@@ -122,7 +123,7 @@ def test_get_quality_frequency(engine):
     drop_test_table(engine, 'quality_table')
     with engine.connect() as conn:
         conn.execute(text('''
-            CREATE TABLE "quality_table" (
+            CREATE TABLE IF NOT EXISTS"quality_table" (
                 id SERIAL PRIMARY KEY,
                 "Aineiston_laatu" TEXT,
                 geometry Geometry(Point, 4326)
@@ -144,7 +145,7 @@ def test_get_table_dates(engine):
     drop_test_table(engine, 'date_table')
     with engine.connect() as conn:
         conn.execute(text('''
-            CREATE TABLE "date_table" (
+            CREATE TABLE IF NOT EXISTS"date_table" (
                 id SERIAL PRIMARY KEY,
                 "Keruu_aloitus_pvm" TIMESTAMP,
                 "Keruu_lopetus_pvm" TIMESTAMP,
@@ -261,7 +262,7 @@ def test_remove_duplicates(engine):
     drop_test_table(engine, 'dup_table')
     with engine.connect() as conn:
         conn.execute(text('''
-            CREATE TABLE "dup_table" (
+            CREATE TABLE IF NOT EXISTS"dup_table" (
                 "id" SERIAL PRIMARY KEY,
                 "Havainnon_tunniste" TEXT,
                 "Lataus_pvm" TIMESTAMP,
@@ -289,7 +290,7 @@ def test_merge_similar_observations(engine):
     drop_test_table(engine, 'test_merge_table')
     with engine.connect() as conn:
         conn.execute(text('''
-            CREATE TABLE "test_merge_table" (
+            CREATE TABLE IF NOT EXISTS "test_merge_table" (
                 id SERIAL PRIMARY KEY,
                 "Tieteellinen_nimi" TEXT,
                 "Kunta" TEXT,

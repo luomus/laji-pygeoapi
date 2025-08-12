@@ -17,5 +17,5 @@ volumes:
   pgdata:
 
 # run all tests with:
-# docker-compose -f tests/docker-compose-test.yaml up -d
-# python -m pytest tests -v
+# docker-compose -f pygeoapi/tests/docker-compose-test.yaml up -d
+# python -m pytest pygeoapi/tests -v

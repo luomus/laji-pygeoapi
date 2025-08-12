@@ -1,11 +1,10 @@
-import unittest
-from unittest.mock import patch, mock_open, MagicMock
-import requests
-import os, sys
+from unittest.mock import patch, mock_open
+import os
 
-from pygeoapi.scripts  import edit_configmaps
+from scripts  import edit_configmaps
 
 # run with:
+# cd pygeoapi
 # python -m pytest tests/test_edit_configmaps.py -v
 
 # Test for get_kubernetes_info function
@@ -49,9 +48,9 @@ def test_update_configmap(mock_patch, mock_file):
     }]
     mock_patch.assert_called_once_with(configmap_url, headers=headers, json=patch_data, verify=ca_cert)
 
-@patch("pygeoapi.scripts.edit_configmaps.get_kubernetes_info", return_value=("https://kube.api", "default"))
-@patch("pygeoapi.scripts.edit_configmaps.update_configmap")
-@patch("pygeoapi.scripts.edit_configmaps.delete_pod")
+@patch("scripts.edit_configmaps.get_kubernetes_info", return_value=("https://kube.api", "default"))
+@patch("scripts.edit_configmaps.update_configmap")
+@patch("scripts.edit_configmaps.delete_pod")
 @patch("builtins.open", new_callable=mock_open, read_data="fake-token")
 @patch("requests.get")
 @patch.dict(os.environ, {"CONFIG_MAP_NAME": "test-map", "SERVICE_NAME": "pygeoapi-branch"})

@@ -1,11 +1,10 @@
-import os
 from tinydb import TinyDB
 from pathlib import Path
-import sys
 
-from pygeoapi.scripts import edit_metadata
+from scripts import edit_metadata
 
 # run with:
+# cd pygeoapi
 # python -m pytest tests/test_edit_metadata.py -v
 
 TEST_DB_PATH = 'test_metadata_db.json'

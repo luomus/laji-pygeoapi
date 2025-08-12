@@ -1,15 +1,14 @@
-import sys
-import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import os
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point, GeometryCollection, Polygon
 
 
-from pygeoapi.scripts import main
+from scripts import main
 
 # run with:
+# cd pygeoapi
 # python -m pytest tests/test_main.py -v
 
 @patch.dict(os.environ, {
@@ -63,9 +62,9 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
     mock_get_occurrence_data.return_value = (gdf, 0) # Return GeoDataFrame and 0 errors
     mock_compute_all.side_effect = lambda gdf, *args, **kwargs: gdf # Mock compute_all to return the input GeoDataFrame
 
-    lookup_df = pd.read_csv("pygeoapi/scripts/resources/lookup_table_columns.csv", sep=';', header=0)
+    lookup_df = pd.read_csv("scripts/resources/lookup_table_columns.csv", sep=';', header=0)
 
     results = main.load_and_process_data(
         "occurrence_url", "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, "mock_path", lookup_df
     )
-    assert results == (4, 0, 1, 0, 2) # 4 occurrences, 0 failed, 1 edited, 0 duplicates, 2 processed geometry collections
+    assert results == (4, 0, 1, 0, 2, 0) # 4 occurrences, 0 failed, 1 edited, 0 duplicates, 2 processed and 0 merged geometry collections
