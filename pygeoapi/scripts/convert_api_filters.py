@@ -1,5 +1,5 @@
 import logging
-from pygeoapi.scripts.compute_variables import id_mapping
+from scripts.compute_variables import id_mapping
 import re
 from pyproj import Transformer
 

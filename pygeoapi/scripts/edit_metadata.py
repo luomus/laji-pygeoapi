@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from datetime import datetime
 from tinydb import TinyDB
-from pygeoapi.scripts import edit_db, compute_variables, edit_config
+from scripts import edit_db, compute_variables, edit_config
 import os
 from dotenv import load_dotenv
 import logging

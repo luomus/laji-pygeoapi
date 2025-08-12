@@ -3,8 +3,8 @@ import geopandas as gpd
 from dotenv import load_dotenv
 import os
 import logging
-from pygeoapi.scripts import load_data
-from pygeoapi.scripts import process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata
+from scripts import load_data
+from scripts import process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata
 import sys
 
 logger = logging.getLogger(__name__)
@@ -187,7 +187,7 @@ def main():
 
     # Create metadata for the processed data
     logging.info("Creating metadata...")
-    edit_metadata.create_metadata("pygeoapi/scripts/resources/template_resource.txt", config["metadata_db_path"], config["pygeoapi_config_out"])
+    edit_metadata.create_metadata("scripts/resources/template_resource.txt", config["metadata_db_path"], config["pygeoapi_config_out"])
 
     # Generate statistics for reporting
     total_occurrences = edit_db.get_amount_of_all_occurrences()

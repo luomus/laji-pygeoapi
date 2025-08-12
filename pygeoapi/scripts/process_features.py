@@ -1,7 +1,7 @@
 import logging
 import geopandas as gpd
-from pygeoapi.scripts.compute_variables import compute_all
-from pygeoapi.scripts.process_data import merge_taxonomy_data, combine_similar_columns, translate_column_names, convert_geometry_collection_to_multipolygon, validate_geometry, process_facts
+from scripts.compute_variables import compute_all
+from scripts.process_data import merge_taxonomy_data, combine_similar_columns, translate_column_names, convert_geometry_collection_to_multipolygon, validate_geometry, process_facts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

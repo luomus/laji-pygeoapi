@@ -14,8 +14,8 @@ COPY pygeoapi/entrypoint.sh .
 COPY pygeoapi/entrypoint-dev.sh .
 COPY pygeoapi/migrations ./migrations
 COPY pygeoapi/src ./src
-COPY pygeoapi/scripts ./pygeoapi/scripts
-COPY pygeoapi/plugins ./pygeoapi/plugins
+COPY pygeoapi/scripts ./scripts
+COPY pygeoapi/plugins ./plugins
 
 RUN chgrp -R 0 /pygeoapi && chmod -R g=u /pygeoapi
 RUN chmod +x /pygeoapi/entrypoint.sh && chmod +x /pygeoapi/entrypoint-dev.sh

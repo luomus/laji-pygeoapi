@@ -6,10 +6,10 @@ from pandas import notna
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-from pygeoapi.scripts.process_features import process_json_features
-from pygeoapi.scripts.main import setup_environment
-from pygeoapi.scripts.load_data import load_or_update_cache
-from pygeoapi.scripts.convert_api_filters import convert_filters, process_bbox
+from scripts.process_features import process_json_features
+from scripts.main import setup_environment
+from scripts.load_data import load_or_update_cache
+from scripts.convert_api_filters import convert_filters, process_bbox
 
 class LajiApiProvider(BaseProvider):
     """
@@ -76,7 +76,7 @@ class LajiApiProvider(BaseProvider):
     def _make_api_request(self, params):
         # Log the request URL for debugging (without sensitive tokens)
         safe_params = {k: v if k != 'access_token' else '***' for k, v in params.items()}
-        logger.info(f'Making API request with params: {safe_params}')
+        logger.debug(f'Making API request with params: {safe_params}')
         
         response = requests.get(self.api_url, params=params)
         response.raise_for_status()
@@ -178,7 +178,7 @@ class LajiApiProvider(BaseProvider):
             "properties": properties
         }
 
-        logger.info(f"Generated schema with {len(properties)} properties")
+        logger.debug(f"Generated schema with {len(properties)} properties")
         return ("application/schema+json", schema)
             
 

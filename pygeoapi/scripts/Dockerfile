@@ -11,8 +11,8 @@ COPY ../requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the entire pygeoapi package
-COPY pygeoapi/scripts ./pygeoapi/scripts
+COPY pygeoapi/scripts ./scripts
 
 ENV PYTHONPATH=/app
 
-ENTRYPOINT ["python", "-u", "pygeoapi/scripts/main.py"]
+ENTRYPOINT ["python", "-u", "scripts/main.py"]
