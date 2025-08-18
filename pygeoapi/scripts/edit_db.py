@@ -413,19 +413,14 @@ def merge_similar_observations(table_names, lookup_df):
                     string_agg(DISTINCT "Paikallinen_tunniste", ', ') as "Paikallinen_tunniste",
                     SUM("Yksilomaara_tulkittu") as "Yksilomaara_tulkittu",
                     (ARRAY_AGG("geometry"))[1] as geometry,
-                    MAX("Lataus_pvm") as "Lataus_pvm"
+                    MAX("Lataus_pvm") as "Lataus_pvm",
+                    1 as "Yhdistetty"
                 FROM "{table_name}"
                 GROUP BY {groupby_columns}
             '''
 
             # Execute the aggregation
             connection.execute(text(agg_sql))
-            
-            # Add the Yhdistetty column
-            connection.execute(text(f'''
-                ALTER TABLE merged_{table_name} 
-                ADD COLUMN "Yhdistetty" INTEGER DEFAULT 1
-            ''')) #TODO: Check why this column is not visible in the data. Merging works.
             
             connection.execute(text(f'''
                 UPDATE merged_{table_name} 
