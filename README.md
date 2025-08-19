@@ -34,10 +34,12 @@ INTERNAL_POSTGRES_PASSWORD=admin456
 INTERNAL_POSTGRES_HOST=postgres
 ACCESS_EMAIL=your@email.com
 TARGET=default
+PYGEOAPI_VERSION=0.21.0
 ```
 Where
 | Variable name | Definition | Default value |
 |--|--|--|
+| PYGEOAPI_VERSION| The version of the pygeoapi base Docker image to use | 0.21.0 |
 | POSTGRES_DB| The database name|my_geospatial_db|
 | POSTGRES_USER| The database user|postgres |
 | POSTGRES_PASSWORD| The password associated with the default user | *not set*|

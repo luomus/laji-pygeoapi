@@ -7,6 +7,10 @@ parameters:
   - name: BRANCH
     required: true
     value: dev
+  - name: PYGEOAPI_VERSION
+    description: The version of the pygeoapi base Docker image to use
+    required: true
+    value: "0.21.0"
   - name: NAME_PREFIX
     required: false
     value: ""

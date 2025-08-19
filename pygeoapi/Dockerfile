@@ -1,6 +1,7 @@
 ARG target
+ARG PYGEOAPI_VERSION=0.21.0
 
-FROM geopython/pygeoapi:latest AS base
+FROM geopython/pygeoapi:${PYGEOAPI_VERSION} AS base
 
 ENV PYGEOAPI_HOME=/pygeoapi
 ENV PYGEOAPI_CONFIG="${PYGEOAPI_HOME}/local.config.yml"
