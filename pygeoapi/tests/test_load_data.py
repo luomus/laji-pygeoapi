@@ -47,11 +47,27 @@ def test_get_collection_names(mock_fetch):
     assert result == expected
     mock_fetch.assert_called_once_with("http://example.com/api")
 
-def test_get_last_page_valid():
+def test_get_last_page():
     url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE"
-    last_page = load_data.get_last_page(url)
+    last_page = load_data.get_last_page(url, page_size=1)
     assert isinstance(last_page, int)
     assert last_page >= 1
+
+@patch('scripts.load_data.get_last_page')
+def test_get_pages(mock_get_last_page):
+    # all mode
+    mock_get_last_page.return_value = 10
+    assert load_data.get_pages('all', 'http://example.com/url', 10000) == 10
+    mock_get_last_page.assert_called_once()
+
+    # latest mode
+    mock_get_last_page.reset_mock()
+    mock_get_last_page.return_value = 5
+    assert load_data.get_pages('latest', 'http://example.com/url', 10000) == 5
+    mock_get_last_page.assert_called_once()
+
+    # numeric mode
+    assert load_data.get_pages('7', 'http://example.com/url', 10000) == 7
 
 def test_download_page():
     url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE"

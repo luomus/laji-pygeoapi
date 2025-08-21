@@ -1,3 +1,4 @@
+from multiprocessing.dummy import connection
 import os
 import pytest
 from sqlalchemy import text, inspect
@@ -9,6 +10,7 @@ from scripts import edit_db
 # cd pygeoapi
 # docker-compose -f tests/docker-compose-test.yaml up -d
 # python -m pytest tests/test_edit_db.py -v
+# docker compose -f tests/docker-compose-test.yaml down
 
 @pytest.fixture(autouse=True)
 def set_env_vars():
@@ -16,7 +18,7 @@ def set_env_vars():
     os.environ['POSTGRES_USER'] = 'test_user'
     os.environ['POSTGRES_PASSWORD'] = 'test_pw'
     os.environ['POSTGRES_HOST'] = 'localhost'
-    os.environ['POSTGRES_PORT'] = '5433'
+    os.environ['POSTGRES_PORT'] = '5431'
     edit_db._engine = None
     yield
 
@@ -232,9 +234,8 @@ def test_to_db(engine):
 def test_update_single_table_indexes(engine):
     drop_test_table(engine, 'idx_table')
     create_test_table(engine, 'idx_table')
-    edit_db.update_single_table_indexes('idx_table')
-    # Check that indexes exist
     with engine.connect() as conn:
+        edit_db.update_single_table_indexes('idx_table', conn)
         idx = conn.execute(text('''
             SELECT indexname FROM pg_indexes WHERE tablename = 'idx_table';
         ''')).fetchall()

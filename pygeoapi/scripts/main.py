@@ -6,6 +6,7 @@ import logging
 from scripts import load_data
 from scripts import process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata
 import sys
+from time import time
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +20,27 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s'
 )
 
+def _parse_bool(val, default=False):
+    if val is None:
+        return default
+    if isinstance(val, bool):
+        return val
+    return str(val).strip().lower() == "true"
+
 def setup_environment():
-    """
-    Load environmental variables and configure paths.
-    """
-    load_dotenv()
+    """Read environment variables once and normalize types (especially booleans)."""
     access_token = os.getenv('ACCESS_TOKEN')
     laji_api_url = os.getenv('LAJI_API_URL')
     pages_env = os.getenv('PAGES', 'all').lower()
     access_email = os.getenv('ACCESS_EMAIL')
-    multiprocessing = os.getenv('MULTIPROCESSING', 'True')
+    multiprocessing = _parse_bool(os.getenv('MULTIPROCESSING', 'true'), True)
     target = os.getenv('TARGET', 'default')
     batch_size = int(os.getenv('BATCH_SIZE', 5))
+    run_in_openshift = _parse_bool(os.getenv('RUNNING_IN_OPENSHIFT'), False)
+    invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES', 'true'), True)
 
-    # If the code is running in openshift/kubernetes, set paths differently
-    if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+    # Paths depend on platform
+    if run_in_openshift:
         pygeoapi_config_out = r'pygeoapi-config_out.yml'
         metadata_db_path = 'tmp-catalogue.tinydb'
         db_path_in_config = 'metadata_db.tinydb'
@@ -54,7 +61,9 @@ def setup_environment():
         "pygeoapi_config_out": pygeoapi_config_out,
         "metadata_db_path": metadata_db_path,
         "db_path_in_config": db_path_in_config,
-        "batch_size": batch_size
+        "batch_size": batch_size,
+        "run_in_openshift": run_in_openshift,
+        "invasive_species": invasive_species,
     }
 
 def load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables=False):
@@ -103,6 +112,7 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
     if gdf is not None and not gdf.empty:
         duplicates_count_by_id += edit_db.remove_duplicates(table_names)
         merged_features_count += edit_db.merge_similar_observations(table_names, lookup_df)
+        edit_db.update_indexes(table_names, use_multiprocessing=True)
 
     return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections, merged_features_count
 
@@ -160,7 +170,7 @@ def main():
         for province_id in biogeographical_province_ids:
             table_base_name = compute_variables.get_biogeographical_region_from_id(province_id)
             occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&biogeographicalProvinceId={province_id}&access_token={config['access_token']}"
-            pages = load_data.get_last_page(occurrence_url) if config["pages_env"] in ["all", "latest"] else int(config["pages_env"])
+            pages = load_data.get_pages(config["pages_env"], occurrence_url, int(page_size))
             results = load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
@@ -170,10 +180,10 @@ def main():
             converted_collections += results[4]
             merged_features_count = results[5]
 
-        if os.getenv("INVASIVE_SPECIES", "True").lower() == "true":
+        if config["invasive_species"]:
             logging.info("Processing invasive species data...")
             occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&invasive=True&page={page}&pageSize={page_size}&geoJSON={geo_json}&featureType={feature_type}&access_token={config['access_token']}"
-            pages = load_data.get_last_page(occurrence_url) if config["pages_env"] in ["all", "latest"] else int(config["pages_env"])
+            pages = load_data.get_pages(config["pages_env"], occurrence_url, int(page_size))
             results = load_and_process_data(occurrence_url, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
@@ -197,7 +207,7 @@ def main():
     edit_config.add_resources_to_config(config["pygeoapi_config_out"], config["db_path_in_config"])
 
     # If running in Openshift/Kubernetes, replace the config map and restart
-    if os.getenv('RUNNING_IN_OPENSHIFT') == "True":
+    if config['run_in_openshift']:
         logging.info("Updating configmap and restarting the service...")
         edit_configmaps.update_and_restart(config["pygeoapi_config_out"], config["metadata_db_path"])
     

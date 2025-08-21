@@ -33,7 +33,8 @@ def load_or_update_cache(config):
         return _cache[cache_key]
     
     logging.info("Fetching data from API") 
-    municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson', engine='pyogrio')
+    municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson', engine='pyogrio').to_crs("EPSG:4326")
+    _ = municipals_gdf.sindex  # force spatial index creation
     municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     taxon_df = get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
@@ -94,12 +95,28 @@ def get_collection_names(url):
         return {item['id']: item['longName'] for item in data['results']}
     return {}
 
-def get_last_page(url, max_retries=5, delay=60):
+def get_pages(pages_env: str, occurrence_url: str, page_size: int) -> int:
+    """Resolve number of pages to process based on pages_env flag.
+
+    pages_env values:
+      - 'all' or 'latest': query API for total pages
+      - '0': special case handled earlier (drop all tables)
+      - numeric string: explicit fixed number of pages
+    """
+    if pages_env in ("all", "latest"):
+        pages = get_last_page(occurrence_url, int(page_size))
+        return pages or 0
+    if pages_env.isdigit():
+        return int(pages_env)
+    raise ValueError(f"Unsupported PAGES value: {pages_env}")
+
+def get_last_page(url, page_size, max_retries=5, delay=60):
     """
     Get the last page number from the API response with retry logic.
 
     Parameters:
     url (str): The URL of the Warehouse API endpoint.
+    page_size (int): The number of items per page.
 
     Returns:
     int: The last page number. Returns None if all retries fail.
@@ -108,8 +125,8 @@ def get_last_page(url, max_retries=5, delay=60):
     api_response = fetch_json_with_retry(url, max_retries=max_retries, delay=delay)
     if api_response:
         total = api_response.get('total')
-        pages = total // 10000 
-        if total % 10000 != 0:
+        pages = total // page_size
+        if total % page_size != 0:
             pages += 1
         logging.info(f"Total number of occurrences is {total} in {pages} pages")
         return pages

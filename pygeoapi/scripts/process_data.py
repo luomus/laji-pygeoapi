@@ -3,6 +3,7 @@ import geopandas as gpd
 import numpy as np
 import re
 from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, Point, LineString, MultiPoint, MultiLineString
+from shapely.ops import unary_union
 
 def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     """
@@ -149,7 +150,7 @@ def convert_geometry_collection_to_multipolygon(gdf, buffer_distance=0.5):
                         for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon, Point, LineString, MultiPoint, MultiLineString))]
 
             if polygons:
-                dissolved_geometry = gpd.GeoSeries(polygons).union_all() 
+                dissolved_geometry = unary_union(polygons)
                 
                 if isinstance(dissolved_geometry, Polygon):
                     return MultiPolygon([dissolved_geometry])
@@ -231,7 +232,7 @@ def process_facts(gdf):
     # Prepare a dict for new columns
     new_columns = {col: pd.Series([None]*len(gdf), index=gdf.index) for col in columns_to_add}
 
-    # For each fact/value column pair, fill the new columns
+    # For each fact/value column pair, fill the new columns # TODO: Can use pivot function for this?
     for fact_col, value_col in zip(fact_columns, value_columns):
         facts = gdf[fact_col]
         values = gdf[value_col]

@@ -89,9 +89,7 @@ def compute_areas(gdf, municipals_gdf):
     def str_join(values):
         return ', '.join(str(v) for v in values if pd.notna(v)) # Make sure values are strings and join with ','
 
-    # Ensure both GeoDataFrames use the same coordinate reference system (CRS)
-    if gdf.crs != municipals_gdf.crs:
-        municipals_gdf = municipals_gdf.to_crs(gdf.crs)
+    assert gdf.crs == municipals_gdf.crs, "CRS mismatch: municipals_gdf must be pre-aligned to gdf CRS"
 
     # Perform spatial join to find which areas each row is within
     joined_gdf = gpd.sjoin(gdf, municipals_gdf, how="left", predicate="intersects")

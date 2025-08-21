@@ -231,7 +231,6 @@ def get_amount_of_occurrences(table_name):
     Returns:
     int: Number of occurrences.
     """
-    # Specify the column that contains the occurrences. Replace 'occurrences_column' with the actual column name.
     sql = f'SELECT COUNT(*) as total_occurrences FROM "{table_name}"'
     
     # Read the result into a DataFrame
@@ -275,32 +274,31 @@ def to_db(gdf, table_names):
     failed_features_count = 0
 
     # Loop over geometry types and corresponding geodataframes
-    for table_name, geom_gdf in geom_types.items():
-        try:
-            with get_engine().connect() as conn:
+    with get_engine().connect() as conn:
+        for table_name, geom_gdf in geom_types.items():
+            try:
                 geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=True, index_label='Paikallinen_tunniste')
-        except Exception as e:
-            logging.error(f"Error occurred: {e}")
-            failed_features_count += len(geom_gdf)
+            except Exception as e:
+                logging.error(f"Error occurred: {e}")
+                failed_features_count += len(geom_gdf)
 
     return failed_features_count
 
-def update_single_table_indexes(table_name):
+def update_single_table_indexes(table_name, connection):
     """
     Updates indexes for a single table.
 
     Parameters:
     table_name (str): The name of the table to update indexes for.
     """
-    with get_engine().connect() as connection:
-        logging.debug(f"Updating indexes for table: {table_name}")
+    logging.debug(f"Updating indexes for table: {table_name}")
 
-        index_creation_sql = text(f'''
-            CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
-            CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
-        ''')
-        connection.execute(index_creation_sql)
-        connection.commit()
+    index_creation_sql = text(f'''
+        CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
+        CREATE INDEX IF NOT EXISTS "idx_{table_name}_geom" ON "{table_name}" USING GIST (geometry);
+    ''')
+    connection.execute(index_creation_sql)
+    connection.commit()
 
 def update_indexes(table_names, use_multiprocessing=True):
     """
@@ -311,9 +309,13 @@ def update_indexes(table_names, use_multiprocessing=True):
     use_multiprocessing (bool): Whether to use multiprocessing for updating indexes.
     """
     if table_names:
-        executor_class = concurrent.futures.ProcessPoolExecutor if use_multiprocessing else concurrent.futures.ThreadPoolExecutor
-        with executor_class() as executor:
-            executor.map(update_single_table_indexes, table_names)
+        with get_engine().connect() as connection:
+            if use_multiprocessing:
+                with concurrent.futures.ProcessPoolExecutor() as executor:
+                    executor.map(update_single_table_indexes, table_names, [connection]*len(table_names))
+            else:
+                for table_name in table_names:
+                    update_single_table_indexes(table_name, connection)
     else:
         logging.warning("No table names given, can't update table indexes")
 
@@ -328,10 +330,10 @@ def remove_duplicates(table_names):
     int: The number of duplicate rows removed.
     """
     removed_occurrences = 0
-    for table_name in table_names:
-        number_before_deletion = get_amount_of_occurrences(table_name)
-        with get_engine().connect() as connection:
-            # Check if the id column already exists
+    
+    with get_engine().connect() as connection:
+        # Add id column to all tables that need it (once, outside the loop)
+        for table_name in table_names:
             id_column_check = connection.execute(text(f'''
                 SELECT column_name
                 FROM information_schema.columns
@@ -339,32 +341,29 @@ def remove_duplicates(table_names):
             ''')).fetchone()
 
             if not id_column_check:
-                # Add an id column only if it doesn't exist
                 connection.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN "id" SERIAL PRIMARY KEY;'))
-
-            remove_duplicates_sql = text(f'''
-                WITH cte AS (
-                    SELECT
-                        "id",
-                        "Havainnon_tunniste",
-                        "Lataus_pvm",
-                        ROW_NUMBER() OVER (
-                            PARTITION BY "Havainnon_tunniste"
-                            ORDER BY "Lataus_pvm" DESC
-                        ) AS row_num
-                    FROM "{table_name}"
-                )
-                DELETE FROM "{table_name}"
-                WHERE "id" IN ( 
-                    SELECT "id"
-                    FROM cte
-                    WHERE row_num > 1
-                );
-            ''')
-            connection.execute(remove_duplicates_sql)
+        
+        connection.commit()
+        
+        # Remove duplicates from each table
+        for table_name in table_names:
+            number_before_deletion = get_amount_of_occurrences(table_name)
+            
+            # Create new table with distinct rows, keeping the one with latest Lataus_pvm
+            connection.execute(text(f'''
+                CREATE TABLE "{table_name}_temp" AS
+                SELECT DISTINCT ON ("Havainnon_tunniste") *
+                FROM "{table_name}"
+                ORDER BY "Havainnon_tunniste", "Lataus_pvm" DESC;
+            '''))
+            
+            # Replace original table with deduplicated one
+            connection.execute(text(f'DROP TABLE "{table_name}";'))
+            connection.execute(text(f'ALTER TABLE "{table_name}_temp" RENAME TO "{table_name}";'))
             connection.commit()
-        number_after_deletion = get_amount_of_occurrences(table_name)
-        removed_occurrences += number_before_deletion - number_after_deletion
+            
+            number_after_deletion = get_amount_of_occurrences(table_name)
+            removed_occurrences += number_before_deletion - number_after_deletion
 
     return removed_occurrences
 
@@ -388,14 +387,14 @@ def merge_similar_observations(table_names, lookup_df):
     
     total_merged = 0
     
-    for table_name in table_names:
-        if not check_table_exists(table_name):
-            continue
-            
-        # Get count before merging
-        count_before = get_amount_of_occurrences(table_name)
+    with get_engine().connect() as connection:
+        for table_name in table_names:
+            if not check_table_exists(table_name):
+                continue
+                
+            # Get count before merging
+            count_before = get_amount_of_occurrences(table_name)
         
-        with get_engine().connect() as connection:
             # Create the groupby clause
             groupby_columns = ', '.join([f'"{col}"' for col in columns_to_group_by])
             
@@ -434,10 +433,10 @@ def merge_similar_observations(table_names, lookup_df):
             drop_table([table_name])
             connection.execute(text(f'ALTER TABLE merged_{table_name} RENAME TO "{table_name}"'))
             connection.commit()
-                    
-        # Get count after merging
-        count_after = get_amount_of_occurrences(table_name)
-        merged_count = count_before - count_after
-        total_merged += merged_count
-            
+                        
+            # Get count after merging
+            count_after = get_amount_of_occurrences(table_name)
+            merged_count = count_before - count_after
+            total_merged += merged_count
+                
     return total_merged
