@@ -178,7 +178,6 @@ def convert_time(value):
 
 def process_bbox(bbox):
     # Convert bbox to WKT POLYGON string in EUREF-TM35FIN (EPSG:3067)
-    # You need to transform the coordinates from WGS84 to EUREF-TM35FIN
     transformer = Transformer.from_crs("EPSG:4326", "EPSG:3067", always_xy=True)
     minx, miny, maxx, maxy = bbox
     # Transform each corner

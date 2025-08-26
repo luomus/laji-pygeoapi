@@ -34,6 +34,7 @@ def create_metadata(template_resource, metadata_db_path, pygeoapi_config_out):
     empty_metadata_db(metadata_db_path)
     
     table_names = edit_db.get_all_tables()
+    table_names.sort()
     for idx, table_name in enumerate(table_names):
         bbox = edit_db.get_table_bbox(table_name)
         min_date, max_date = edit_db.get_table_dates(table_name)
