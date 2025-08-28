@@ -4,6 +4,7 @@ import pandas as pd
 import requests, concurrent.futures
 import time
 import logging
+import functools
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,10 @@ def load_or_update_cache(config):
     
     # Check if we have valid cached data
     if cache_key in _cache and _is_cache_valid(cache_key):
-        logger.info("Using cached helper data")
+        logger.debug("Using cached helper data")
         return _cache[cache_key]
-    
-    logging.info("Fetching data from API") 
+
+    logger.debug("Fetching data from API")
     municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson', engine='pyogrio').to_crs("EPSG:4326")
     _ = municipals_gdf.sindex  # force spatial index creation
     municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
@@ -51,6 +52,29 @@ def load_or_update_cache(config):
 
     return result
 
+@functools.cache
+def get_filter_values(filter_name, access_token):
+    """
+    Fetch filter values from the API and return them as a dictionary with names as keys and Finnish labels as values.
+    
+    Parameters:
+    filter_name (str): The name of the filter to retrieve values for.
+    config (dict): Configuration dictionary containing access_token.
+    
+    Returns:
+    dict: A dictionary with enumeration names as keys and Finnish labels as values.
+    """
+    url = f'https://api.laji.fi/v0/warehouse/filters/{filter_name}?access_token={access_token}'
+    data = fetch_json_with_retry(url)
+    if data:
+        enumerations = data.get('enumerations', [])
+        return {
+            item['label']['fi']: item['name']
+            for item in enumerations
+            if item.get('label') and item['label'].get('fi')
+        }
+    logger.error(f"Failed to retrieve values for {filter_name}")
+    return {}
 
 def fetch_json_with_retry(url, max_retries=5, delay=30):
     """
@@ -71,10 +95,10 @@ def fetch_json_with_retry(url, max_retries=5, delay=30):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching data from {url}: {e}. Retrying in {delay} seconds...")
+            logger.error(f"Error fetching data from {url}: {e}. Retrying in {delay} seconds...")
             time.sleep(delay)
             attempt += 1
-    logging.error(f"Failed to retrieve data from {url} after {max_retries} attempts.")
+    logger.error(f"Failed to retrieve data from {url} after {max_retries} attempts.")
     return None
 
 def get_collection_names(url):
@@ -128,7 +152,7 @@ def get_last_page(url, page_size, max_retries=5, delay=60):
         pages = total // page_size
         if total % page_size != 0:
             pages += 1
-        logging.info(f"Total number of occurrences is {total} in {pages} pages")
+        logger.info(f"Total number of occurrences is {total} in {pages} pages")
         return pages
     else:
         return None

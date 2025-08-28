@@ -1,33 +1,33 @@
 import logging
+import requests
 from scripts.compute_variables import id_mapping
 import re
 from pyproj import Transformer
-
+from difflib import get_close_matches
+from scripts.load_data import get_filter_values
 
 logger = logging.getLogger(__name__)
 
-def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties):
+def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, access_token):
     """
     Converts filters from virva Finnish language scheme to be suitable for querying api.laji.fi data warehouse endpoint.
     For example, "Aineiston_tunniste=http://tun.fi/HR.95" is converted to "collectionId=HR.95" that can be used to query warehouse endpoint. 
     """
     for name, value in properties:
-        logging.info(f"Name: {name}, value: {value}")
+        logger.info(f"Name: {name}, value: {value}")
         name = translate_filter_names(lookup_df, name)
         value = remove_tunfi_prefix(value)
-        if name in ['breedingSite', 'recordBasis', 'secureReason', 'collectionQuality', 'recordQuality', 'redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode']:
+        if name in ['lifeStage', 'sex', 'recordQuality', 'collectionQuality', 'secureReason', 'recordBasis']:
+            value = map_value(value, name, access_token)
+        elif name in ['redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode']:
             value = map_value_ranges(all_value_ranges, value)
         elif name == 'biogeographicalProvinceId':
             value = map_biogeographical_provinces(value)
-        elif name == 'sex':
-            value = map_sex(value)
-        elif name == 'lifeStage':
-            value = map_lifestage(value)
         elif name == 'finnishMunicipalityId':
             value = map_municipality(municipals_ids, value)
         elif name == 'time':
             value = convert_time(value)
-        logging.info(f"Name: {name}, value: {value}")
+        logger.info(f"Converter name: {name}, value: {value}")
         params[name] = value
     return params
 
@@ -36,7 +36,18 @@ def translate_filter_names(lookup_df, name):
     Map filter names from virva to api.laji.fi warehouse filters
     """
     if name in lookup_df['virva'].values:
+        logger.info("Found exact match")
         return lookup_df.loc[lookup_df['virva'] == name, 'finbif_api_query'].values[0]
+    
+    # Check for similar names and log a hint
+    close_matches = get_close_matches(name, lookup_df['virva'].values, n=1, cutoff=0.6)
+    if close_matches:
+        logger.warning(f"Unknown filter '{name}'. Did you mean '{close_matches[0]}'?")
+        raise ValueError(f"Unknown filter '{name}'. Did you mean '{close_matches[0]}'?")
+    else:
+        logger.warning(f"Unknown filter '{name}'. Assuming it works in api.laji.fi..")
+        raise ValueError(f"Unknown filter '{name}'. Assuming it works in api.laji.fi..")
+
     return name
 
 
@@ -74,73 +85,23 @@ def map_biogeographical_provinces(value):
     values = [v.strip() for v in value.split(',')]
     mapped_values = []
     for val in values:
+        val_cleaned = re.sub(r'\([^)]*\)', '', val).replace(' ', '')
         for k, v_ in id_mapping.items():
-            if val.casefold() == v_.casefold():
+            if val_cleaned.casefold() == v_.casefold():
                 mapped_values.append(k)
                 break
         else:
             mapped_values.append(val)
     return ','.join([v for v in mapped_values if v is not None])
 
+def map_value(value, filter_name, access_token):
+    """
+    Map filter values to api.laji.fi query parameters 
+    """
+    mappings = get_filter_values(filter_name, access_token)
 
-def map_sex(value):
-    """
-    Map sex values to api.laji.fi query parameters 
-    """
-    sex_mappings = {
-        'naaras': 'FEMALE',
-        'koiras': 'MALE',
-        'työläinen': 'WORKER',
-        'tuntematon': 'UNKNOWN',
-        'soveltumaton': 'NOTAPPLICABLE',
-        'gynandromorfi': 'GYNANDROMORPH',
-        'eri sukupuolia': 'MULTIPLE',
-        'ristiriitainen': 'CONFLICTING'
-    }
     values = [v.strip() for v in value.split(',')]
-    mapped_values = [sex_mappings.get(val.casefold(), val) for val in values]
-    return ','.join([v for v in mapped_values if v is not None])
-
-
-def map_lifestage(value):
-    """
-    Map lifestage values to api.laji.fi query parameters 
-    """
-    lifestage_mappings = {
-        'aikuinen': 'ADULT',
-        'nuori': 'JUVENILE',
-        'keskenkasvuinen': 'IMMATURE',
-        'muna': 'EGG',
-        'nuijapää': 'TADPOLE',
-        'kotelo': 'PUPA',
-        'nymfi': 'NYMPH',
-        'subimago': 'SUBIMAGO',
-        'toukka': 'LARVA',
-        'kelo': 'SNAG',
-        'alkio tai sikiö': 'EMBRYO',
-        'esiaikuinen': 'SUBADULT',
-        'sukukypsä': 'MATURE',
-        'äkämä': 'GALL',
-        'jäljet': 'MARKS',
-        'triunguliini': 'TRIUNGULIN',
-        'steriili': 'STERILE',
-        'fertiili': 'FERTILE',
-        'verso': 'SPROUT',
-        'kuollut verso': 'DEAD_SPROUT',
-        'nuppu': 'BUD',
-        'kukka': 'FLOWER',
-        'kuihtunut kukka': 'WITHERED_FLOWER',
-        'siemen': 'SEED',
-        'itiö': 'SEED',
-        'hedelmä': 'SEED',
-        'siemen / itiö / hedelmä': 'SEED',
-        'mukula': 'SUBTERRANEAN',
-        'sipuli': 'SUBTERRANEAN',
-        'juuri': 'SUBTERRANEAN',
-        'mukula / sipuli / juuri': 'SUBTERRANEAN'
-    }
-    values = [v.strip() for v in value.split(',')]
-    mapped_values = [lifestage_mappings.get(val.casefold(), val) for val in values]
+    mapped_values = [mappings.get(val.casefold(), val) for val in values]
     return ','.join([v for v in mapped_values if v is not None])
 
 
@@ -177,17 +138,18 @@ def convert_time(value):
     return value
 
 def process_bbox(bbox):
-    # Convert bbox to WKT POLYGON string in EUREF-TM35FIN (EPSG:3067)
-    transformer = Transformer.from_crs("EPSG:4326", "EPSG:3067", always_xy=True)
-    minx, miny, maxx, maxy = bbox
-    # Transform each corner
-    x1, y1 = transformer.transform(minx, miny)
-    x2, y2 = transformer.transform(maxx, miny)
-    x3, y3 = transformer.transform(maxx, maxy)
-    x4, y4 = transformer.transform(minx, maxy)
-    wkt_polygon = (f"POLYGON(({x1} {y1}, {x2} {y2}, {x3} {y3}, {x4} {y4}, {x1} {y1}))")
-    return wkt_polygon
+    """Return bbox as WKT POLYGON in EUREF-TM35FIN (EPSG:3067)."""
+    logger.info(f"Processing bbox: {bbox}")
 
+    ymin, xmin, ymax, xmax = bbox # Weird order
+
+    # Determine if bbox appears to be WGS84
+    if -180 <= xmin <= 180 and -90 <= ymin <= 90 and -180 <= xmax <= 180 and -90 <= ymax <= 90:
+        transformer = Transformer.from_crs("EPSG:4326", "EPSG:3067", always_xy=True)
+        xmin, ymin = transformer.transform(xmin, ymin)
+        xmax, ymax = transformer.transform(xmax, ymax)
+    return (f"POLYGON(({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))")
+    
 
 # TODO: Handle other time/date values 
 # TODO: Handle ids with # character

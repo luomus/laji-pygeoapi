@@ -4,7 +4,6 @@
         title: <placeholder_table_name> 
         description: <placeholder_amount_of_occurrences> <placeholder_geom_type>s from the <placeholder_title> biogeographical area. 
         keywords:
-            en:
                 - <placeholder_title>
                 - occurrence data
         extents:

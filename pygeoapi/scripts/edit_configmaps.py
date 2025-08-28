@@ -39,9 +39,9 @@ def delete_pod(api_url, namespace, pod, headers, ca_cert):
     try:
         delete_response  = requests.delete(pod_url, headers=headers, verify=ca_cert)
         delete_response.raise_for_status()
-        logging.info(f"Pod {pod} restarted")
+        logger.info(f"Pod {pod} restarted")
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error deleting pod {pod}: {e}")
+        logger.error(f"Error deleting pod {pod}: {e}")
 
 
 def update_configmap(configmap_url, headers, ca_cert, file_to_add, path):
@@ -69,7 +69,7 @@ def update_configmap(configmap_url, headers, ca_cert, file_to_add, path):
     r = requests.patch(configmap_url, headers=headers, json=data, verify=ca_cert)
 
     if r.status_code != 200:
-        logging.error(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
+        logger.error(f"Failed to update pygeoapi config configmap: {r.status_code} - {r.text}")
         r.raise_for_status()
 
 def update_and_restart(pygeoapi_config_out, metadata_db_path):
@@ -130,13 +130,13 @@ def update_and_restart(pygeoapi_config_out, metadata_db_path):
             if "labels" in item["metadata"] and item["metadata"]["labels"].get("io.kompose.service") == service_name
         ]
     except KeyError as e:
-        logging.error(f"KeyError: {e} - Possibly missing key in item metadata.")
+        logger.error(f"KeyError: {e} - Possibly missing key in item metadata.")
     except Exception as e:
-        logging.error(f"Error finding deployments: {e}")
-        logging.error(f"Items: {str(items)}")
+        logger.error(f"Error finding deployments: {e}")
+        logger.error(f"Items: {str(items)}")
 
     if not target_pods:
-        logging.error(f"No pods found for deployment: {service_name}")
+        logger.error(f"No pods found for deployment: {service_name}")
         return
 
     # restart the pods by deleting them

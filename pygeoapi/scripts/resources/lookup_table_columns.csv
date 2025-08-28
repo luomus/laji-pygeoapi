@@ -2,9 +2,9 @@ finbif_api_var;finbif_api_query;translated_var;dwc;virva;type;groupby
 unit.unitId;unitId;record_id;occurrenceID;Havainnon_tunniste;str;FALSE
 unit.linkings.taxon.scientificName;target;scientific_name_interpreted;scientificNameInterpreted;Tieteellinen_nimi;str;TRUE
 unit.interpretations.individualCount;individualCountMin;abundance_interpreted;individualCountInterpreted;Yksilomaara_tulkittu;int;FALSE
-gathering.interpretations.coordinateAccuracy;coordinateAccuracyMax;coordinates_uncertainty_interpreted;coordinateUncertaintyInMetersInterpreted;Paikan_tarkkuus_metreina;int;TRUE
+gathering.interpretations.coordinateAccuracy;coordinateAccuracyMax;coordinates_uncertainty_interpreted;coordinateUncertaintyInMetersInterpreted;Paikan_tarkkuus_metreina_max;int;TRUE
 unit.interpretations.recordQuality;recordQuality;record_quality;occurrenceQuality;Havainnon_luotettavuus;str;FALSE
-unit.abundanceString;;abundance_verbatim;verbatimAbundance;Maara;str;FALSE
+unit.abundanceString;occurrenceCountMax;abundance_verbatim;verbatimAbundance;Maara;str;FALSE
 gathering.interpretations.biogeographicalProvinceDisplayname;biogeographicalProvinceId;bio_province_interpreted;bioStateProvinceInterpreted;Eliomaakunta;str;TRUE
 gathering.eventDate.begin;;date_start;eventDateStart;Keruu_aloitus_pvm;datetime;TRUE
 gathering.eventDate.end;;date_end;eventDateEnd;Keruu_lopetus_pvm;datetime;TRUE
@@ -54,7 +54,7 @@ compute_from_individual_count;;;;Esiintyman_tila;str;FALSE
 compute_from_collection_id;;;;Aineisto;str;FALSE
 Seurattava laji;;;;Seurattava_laji;str;TRUE
 Sijainnin tarkkuusluokka;;;;Sijainnin_tarkkuusluokka;str;TRUE
-Havainnon laatu;;;;Havainnon_laatu;str;TRUE
+Havainnon laatu;;;;recordQuality;str;TRUE
 Peittävyysprosentti;;;;Peittavyysprosentti;str;TRUE
 Havainnon määrän yksikkö;;;;Havainnon_maaran_yksikko;str;TRUE
 Vesistöalue;;;;Vesistoalue;str;FALSE

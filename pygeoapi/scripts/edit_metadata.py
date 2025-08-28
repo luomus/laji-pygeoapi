@@ -209,9 +209,9 @@ def add_JSON_metadata_to_DB(metadata_dict, metadata_db_path):
     # Insert the JSON record into the TinyDB database
     try:
         res = db.insert(json_record)
-        #logging.info(f'Metadata record {xml_file} loaded with internal id {res}')
+        #logger.info(f'Metadata record {xml_file} loaded with internal id {res}')
     except Exception as err:
-        logging.error(f'Error inserting record: {err}')
+        logger.error(f'Error inserting record: {err}')
 
     # Close the database connection to ensure all changes are saved and resources are freed.
     db.close()

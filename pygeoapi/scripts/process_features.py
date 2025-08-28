@@ -14,7 +14,8 @@ def process_json_features(self, data, crs='EPSG:4326'):
     features = data.get('features', [])
 
     if len(features) < 1:
-        raise Exception("No features found in the input data.")
+        gdf = gpd.GeoDataFrame(columns=['geometry'], crs=crs)
+        return gdf.__geo_interface__['features']
    
     # Convert features to GeoDataFrame
     gdf = gpd.GeoDataFrame.from_features(features, crs=crs)

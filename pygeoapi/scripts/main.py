@@ -44,12 +44,12 @@ def setup_environment():
         pygeoapi_config_out = r'pygeoapi-config_out.yml'
         metadata_db_path = 'tmp-catalogue.tinydb'
         db_path_in_config = 'metadata_db.tinydb'
-        logging.info("Starting in Openshift / Kubernetes...")
+        logger.info("Starting in Openshift / Kubernetes...")
     else:
         pygeoapi_config_out = r'pygeoapi-config.yml'
         metadata_db_path = 'catalogue.tinydb'
         db_path_in_config = metadata_db_path
-        logging.info("Starting in Docker...")
+        logger.info("Starting in Docker...")
     
     return {
         "access_token": access_token,
@@ -86,16 +86,16 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
 
     for startpage in range(1, pages + 1, batch_size):
         endpage = min(startpage + batch_size - 1, pages)
-        logging.info(f"Loading {table_base_name} observations. Pages {startpage}-{endpage} ({pages} in total)")
+        logger.info(f"Loading {table_base_name} observations. Pages {startpage}-{endpage} ({pages} in total)")
         
         gdf, failed_features = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=config["multiprocessing"])
         failed_features_count += failed_features
 
         if gdf.empty:
-            logging.warning(f"No occurrences found from {table_base_name}, skipping.")
+            logger.warning(f"No occurrences found from {table_base_name}, skipping.")
             continue
 
-        logging.info(f"Processing {len(gdf)} observations...")
+        logger.info(f"Processing {len(gdf)} observations...")
         processed_occurrences += len(gdf)
         
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
@@ -165,7 +165,7 @@ def main():
         geo_json = "true"
         feature_type = "ORIGINAL_FEATURE"
 
-        logging.info("Processing species data from each biogeographical region...")
+        logger.info("Processing species data from each biogeographical region...")
         biogeographical_province_ids = ["ML.251","ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
         for province_id in biogeographical_province_ids:
             table_base_name = compute_variables.get_biogeographical_region_from_id(province_id)
@@ -181,7 +181,7 @@ def main():
             merged_features_count = results[5]
 
         if config["invasive_species"]:
-            logging.info("Processing invasive species data...")
+            logger.info("Processing invasive species data...")
             occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&invasive=True&page={page}&pageSize={page_size}&geoJSON={geo_json}&featureType={feature_type}&access_token={config['access_token']}"
             pages = load_data.get_pages(config["pages_env"], occurrence_url, int(page_size))
             results = load_and_process_data(occurrence_url, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
@@ -193,34 +193,34 @@ def main():
             converted_collections += results[4]
             merged_features_count = results[5]
 
-        logging.info("Processing completed.")
+        logger.info("Processing completed.")
 
     # Create metadata for the processed data
-    logging.info("Creating metadata...")
+    logger.info("Creating metadata...")
     edit_metadata.create_metadata("scripts/resources/template_resource.txt", config["metadata_db_path"], config["pygeoapi_config_out"])
 
     # Generate statistics for reporting
     total_occurrences = edit_db.get_amount_of_all_occurrences()
 
     # Update the PyGeoAPI configuration with metadata info
-    logging.info("Updating PyGeoAPI configuration with metadata...")
+    logger.info("Updating PyGeoAPI configuration with metadata...")
     edit_config.add_resources_to_config(config["pygeoapi_config_out"], config["db_path_in_config"])
 
     # If running in Openshift/Kubernetes, replace the config map and restart
     if config['run_in_openshift']:
-        logging.info("Updating configmap and restarting the service...")
+        logger.info("Updating configmap and restarting the service...")
         edit_configmaps.update_and_restart(config["pygeoapi_config_out"], config["metadata_db_path"])
     
-    logging.info("\n--- Summary Report ---")
-    logging.info(f" -> Total processed occurrences: {processed_occurrences}")
-    logging.info(f" -> Fixed geometries: {edited_features_count}")
-    logging.info(f" -> Failed insertions: {failed_features_count} (estimated)")
-    logging.info(f" -> Duplicates removed: {duplicates_count_by_id}")
-    logging.info(f" -> Converted geometry collections: {converted_collections}")
-    logging.info(f" -> Merged features in PostGIS: {merged_features_count}")
-    logging.info(f" -> Final occurrences in database after processing: {total_occurrences}")
+    logger.info("\n--- Summary Report ---")
+    logger.info(f" -> Total processed occurrences: {processed_occurrences}")
+    logger.info(f" -> Fixed geometries: {edited_features_count}")
+    logger.info(f" -> Failed insertions: {failed_features_count} (estimated)")
+    logger.info(f" -> Duplicates removed: {duplicates_count_by_id}")
+    logger.info(f" -> Converted geometry collections: {converted_collections}")
+    logger.info(f" -> Merged features in PostGIS: {merged_features_count}")
+    logger.info(f" -> Final occurrences in database after processing: {total_occurrences}")
 
-    logging.info("\nAPI is ready to use. All tasks completed successfully.")
+    logger.info("\nAPI is ready to use. All tasks completed successfully.")
 
 if __name__ == '__main__':
     main()

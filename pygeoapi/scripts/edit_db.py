@@ -83,7 +83,7 @@ def connect_to_db():
     }
 
     # Connect to the PostGIS database
-    logging.info("Creating database connection...")
+    logger.info("Creating database connection...")
     engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
     with engine.connect() as connection:
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
@@ -98,7 +98,7 @@ def drop_all_tables():
     """
     Drops all tables in the database except default PostGIS tables.
     """
-    logging.info("Dropping all the tables from the database...")
+    logger.info("Dropping all the tables from the database...")
     
     # Find all table names
     metadata = MetaData()
@@ -279,7 +279,7 @@ def to_db(gdf, table_names):
             try:
                 geom_gdf.to_postgis(table_name, conn, if_exists='append', schema='public', index=True, index_label='Paikallinen_tunniste')
             except Exception as e:
-                logging.error(f"Error occurred: {e}")
+                logger.error(f"Error occurred: {e}")
                 failed_features_count += len(geom_gdf)
 
     return failed_features_count
@@ -291,7 +291,7 @@ def update_single_table_indexes(table_name, connection):
     Parameters:
     table_name (str): The name of the table to update indexes for.
     """
-    logging.debug(f"Updating indexes for table: {table_name}")
+    logger.debug(f"Updating indexes for table: {table_name}")
 
     index_creation_sql = text(f'''
         CREATE INDEX IF NOT EXISTS "idx_{table_name}_Kunta" ON "{table_name}" ("Kunta");
@@ -317,7 +317,7 @@ def update_indexes(table_names, use_multiprocessing=True):
                 for table_name in table_names:
                     update_single_table_indexes(table_name, connection)
     else:
-        logging.warning("No table names given, can't update table indexes")
+        logger.warning("No table names given, can't update table indexes")
 
 def remove_duplicates(table_names):
     """
@@ -382,7 +382,7 @@ def merge_similar_observations(table_names, lookup_df):
     columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
         
     if not columns_to_group_by:
-        logging.warning("No groupby columns found in lookup table")
+        logger.warning("No groupby columns found in lookup table")
         return 0
     
     total_merged = 0
