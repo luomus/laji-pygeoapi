@@ -90,8 +90,8 @@ def add_resources_to_config(pygeoapi_config_out, db_path_in_config):
             title_field: title
     lajiapi-connection:
         type: collection
-        title: All Data as Center Points from api.laji.fi
-        description: Over 50 m. point obs. Slower. Use filters (=, !=, <, >). More than 1 million items raises an error.
+        title: All Data as Center Points
+        description: Over 50 m. points. Use filters. More than 1 million items raises an error. Read query instructions https://info.laji.fi/etusivu/paikkatieto/rajapintayhteydet/ogc-api-paikkatietorajapinta-yleisesti/
         keywords:
             - api.laji.fi
         extents:

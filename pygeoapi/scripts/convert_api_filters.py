@@ -19,7 +19,7 @@ def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, propert
         value = remove_tunfi_prefix(value)
         if name in ['lifeStage', 'sex', 'recordQuality', 'collectionQuality', 'secureReason', 'recordBasis']:
             value = map_value(value, name, access_token)
-        elif name in ['redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode']:
+        elif name in ['redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode', 'primaryHabitat']:
             value = map_value_ranges(all_value_ranges, value)
         elif name == 'biogeographicalProvinceId':
             value = map_biogeographical_provinces(value)
@@ -27,6 +27,11 @@ def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, propert
             value = map_municipality(municipals_ids, value)
         elif name == 'time':
             value = convert_time(value)
+        elif name == 'onlyNonStateLands':
+            if value.lower() == 'true': # Swap because filter is negative
+                value = 'False'
+            else:
+                value = 'True'
         logger.info(f"Converter name: {name}, value: {value}")
         params[name] = value
     return params
@@ -60,7 +65,7 @@ def remove_tunfi_prefix(value):
     return value
 
 
-def map_value_ranges(all_value_ranges, value):
+def map_value_ranges(all_value_ranges, value): 
     """
     Map filter values to api.laji.fi query parameters 
     For example, recordBasis value 'Havaittu' is mapped to 'HUMAN_OBSERVATION_UNSPECIFIED'
@@ -69,8 +74,10 @@ def map_value_ranges(all_value_ranges, value):
     values = [v.strip() for v in value.split(',')]
     mapped_values = []
     for val in values:
+        val_cleaned = val.replace(' ', '')
         for k, v_ in all_value_ranges.items():
-            if val.casefold() == v_.casefold():
+            v_cleaned = v_.replace(' ', '')
+            if val_cleaned.casefold() == v_cleaned.casefold():
                 mapped_values.append(k)
                 break
         else:
@@ -99,9 +106,11 @@ def map_value(value, filter_name, access_token):
     Map filter values to api.laji.fi query parameters 
     """
     mappings = get_filter_values(filter_name, access_token)
+    
+    case_insensitive_mappings = {k.replace(' ', '').casefold(): v for k, v in mappings.items()}
 
     values = [v.strip() for v in value.split(',')]
-    mapped_values = [mappings.get(val.casefold(), val) for val in values]
+    mapped_values = [case_insensitive_mappings.get(val.replace(' ', '').casefold(), val) for val in values]
     return ','.join([v for v in mapped_values if v is not None])
 
 

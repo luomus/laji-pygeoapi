@@ -48,7 +48,7 @@
                 - Aineiston_tunniste
                 - Aineiston_laatu
                 - Aineistolahde
-                - Paikan_tarkkuus_metreina
+                - Paikan_tarkkuus_metreina_max
                 - Karkeistuksen_syy
                 - Sijainti
                 - Kunta
@@ -57,11 +57,9 @@
                 - Havaintotapa
                 - Havainnoijat
                 - Maarittaja
-                - Havainnon_laatu
                 - Havainnon_luotettavuus
                 - Maara
                 - Yksilomaara_tulkittu
-                - Havainnon_maaran_yksikko
                 - Maaran_yksikko
                 - Havainnon_lisatiedot
                 - Havaintoeran_tunniste
@@ -86,10 +84,6 @@
                 - Seurantapaikan_tila
                 - Seurantapaikan_tyyppi
                 - Esiintyman_tila
-                - Seurattava_laji
-                - Sijainnin_tarkkuusluokka
-                - Peittavyysprosentti
-                - Vesistoalue
             crs:
                 - https://www.opengis.net/def/crs/EPSG/0/4326
                 - https://www.opengis.net/def/crs/EPSG/0/3067

@@ -10,8 +10,7 @@ from scripts.convert_api_filters import convert_filters, process_bbox
 logger = logging.getLogger(__name__)
 
 SELECTED_FIELDS = [
-    'document.loadDate', 'unit.facts', 'gathering.facts', 'document.facts',
-    'unit.linkings.taxon.threatenedStatus', 'unit.linkings.originalTaxon.administrativeStatuses',
+    'document.loadDate', 'unit.linkings.taxon.threatenedStatus', 'unit.linkings.originalTaxon.administrativeStatuses',
     'unit.linkings.taxon.taxonomicOrder', 'unit.linkings.originalTaxon.latestRedListStatusFinland.status',
     'gathering.displayDateTime', 'gathering.interpretations.biogeographicalProvinceDisplayname',
     'gathering.interpretations.coordinateAccuracy', 'unit.abundanceUnit', 'unit.atlasCode', 'unit.atlasClass',
@@ -22,7 +21,7 @@ SELECTED_FIELDS = [
     'document.notes', 'document.secureReasons', 'gathering.conversions.eurefWKT', 'gathering.notes', 'gathering.team',
     'unit.keywords', 'unit.linkings.originalTaxon', 'unit.linkings.taxon.nameFinnish', 'unit.linkings.taxon.nameSwedish',
     'unit.linkings.taxon.nameEnglish', 'document.linkings.collectionQuality', 'unit.linkings.taxon.sensitive',
-    'gathering.conversions.eurefCenterPoint.lat', 'gathering.conversions.eurefCenterPoint.lon', 'document.dataSource',
+    'gathering.conversions.eurefCenterPoint.lat', 'gathering.conversions.eurefCenterPoint.lon',
     'document.siteStatus', 'document.siteType', 'gathering.stateLand'
 ]
 

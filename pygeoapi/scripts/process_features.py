@@ -22,7 +22,7 @@ def process_json_features(self, data, crs='EPSG:4326'):
 
     # Process the GeoDataFrame to follow the same schema as the other data
     gdf = merge_taxonomy_data(gdf, self.taxon_df)
-    gdf = process_facts(gdf)
+    #gdf = process_facts(gdf)
     gdf = combine_similar_columns(gdf)
     gdf = compute_all(gdf, self.all_value_ranges, self.collection_names, self.municipals_gdf)
     gdf = translate_column_names(gdf, self.lookup_df, style='virva')
