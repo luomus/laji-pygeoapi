@@ -178,7 +178,7 @@ def main():
             edited_features_count += results[2]
             duplicates_count_by_id += results[3]
             converted_collections += results[4]
-            merged_features_count = results[5]
+            merged_features_count += results[5]
 
         if config["invasive_species"]:
             logger.info("Processing invasive species data...")
@@ -191,7 +191,7 @@ def main():
             edited_features_count += results[2]
             duplicates_count_by_id += results[3]
             converted_collections += results[4]
-            merged_features_count = results[5]
+            merged_features_count += results[5]
 
         logger.info("Processing completed.")
 

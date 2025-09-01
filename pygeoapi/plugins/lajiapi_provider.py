@@ -96,11 +96,11 @@ class LajiApiProvider(BaseProvider):
 
     def _make_api_request(self, params):
         try:
-            response = requests.get(self.api_url, params=params, timeout=30)
+            response = requests.get(self.api_url, params=params, timeout=300)
             response.raise_for_status()
             data = response.json()
         except requests.exceptions.Timeout:
-            raise ProviderQueryError(self._error_message('timeout', 'Upstream request timed out after 30s', hint='Try narrowing filters or reducing limit.'))
+            raise ProviderQueryError(self._error_message('timeout', 'Upstream request timed out after 300 seconds', hint='Try narrowing filters or reducing limit.'))
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code if e.response else None
             raise ProviderQueryError(self._error_message('upstream-http-error', f'Upstream HTTP error {status}', hint='Check filter validity or try again later.'))
