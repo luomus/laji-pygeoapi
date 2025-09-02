@@ -379,17 +379,18 @@ def merge_similar_observations(table_names, lookup_df):
     int: Total number of merged occurrences across all tables.
     """
     # Get columns to group by from lookup table
-    columns_to_group_by = lookup_df.loc[lookup_df['groupby'] == True, 'virva'].values.tolist()
-        
-    if not columns_to_group_by:
-        logger.warning("No groupby columns found in lookup table")
-        return 0
+    columns_to_group_by = lookup_df.loc[lookup_df['merge_option'] == 'GROUPBY', 'virva'].values.tolist()
+    columns_to_aggregate = lookup_df.loc[lookup_df['merge_option'] == 'AGGREGATE', 'virva'].values.tolist()
+    columns_to_use_first_value = lookup_df.loc[lookup_df['merge_option'] == 'FIRST', 'virva'].values.tolist()
+    columns_to_sum = lookup_df.loc[lookup_df['merge_option'] == 'SUM', 'virva'].values.tolist()
+    columns_to_use_max = lookup_df.loc[lookup_df['merge_option'] == 'MAX', 'virva'].values.tolist()
     
     total_merged = 0
     
     with get_engine().connect() as connection:
         for table_name in table_names:
             if not check_table_exists(table_name):
+                logger.error(f"Table {table_name} does not exist, skipping merging.")
                 continue
                 
             # Get count before merging
@@ -398,27 +399,33 @@ def merge_similar_observations(table_names, lookup_df):
             # Create the groupby clause
             groupby_columns = ', '.join([f'"{col}"' for col in columns_to_group_by])
             
-            # Build aggregation SQL
+            # Add all columns
+            agg_clauses = []
+            for col in columns_to_use_first_value:
+                agg_clauses.append(f'(ARRAY_AGG("{col}"))[1] as "{col}"')
+            for col in columns_to_aggregate:
+                agg_clauses.append(f'string_agg("{col}", \', \') FILTER (WHERE "{col}" IS NOT NULL AND "{col}" != \'nan\') as "{col}"')
+            for col in columns_to_sum:
+                agg_clauses.append(f'SUM("{col}") as "{col}"')
+            for col in columns_to_use_max:
+                agg_clauses.append(f'MAX("{col}") as "{col}"')
+            
+            # Include geometry and Yhdistetty
+            agg_clauses.append('ST_SetSRID((ARRAY_AGG(geometry))[1],4326)::geometry(GEOMETRY,4326) AS geometry')
+            agg_clauses.append('1 as "Yhdistetty"')
+                       
+            # Combine all aggregation clauses and build aggregation SQL
+            all_agg_columns = ', '.join(agg_clauses)
             agg_sql = f'''
                 CREATE TABLE merged_{table_name} AS
                 SELECT 
                     {groupby_columns},
-                    string_agg(DISTINCT "Keruutapahtuman_tunniste", ', ') as "Keruutapahtuman_tunniste",
-                    string_agg(DISTINCT "Havainnon_tunniste", ', ') as "Havainnon_tunniste",
-                    string_agg(DISTINCT "Maara", ', ') as "Maara",
-                    string_agg(DISTINCT "Avainsanat", ', ') as "Avainsanat",
-                    string_agg(DISTINCT "Havainnon_lisatiedot", ', ') as "Havainnon_lisatiedot",
-                    string_agg(DISTINCT "Aineisto", ', ') as "Aineisto",
-                    string_agg(DISTINCT "Paikallinen_tunniste", ', ') as "Paikallinen_tunniste",
-                    SUM("Yksilomaara_tulkittu") as "Yksilomaara_tulkittu",
-                    (ARRAY_AGG("geometry"))[1] as geometry,
-                    MAX("Lataus_pvm") as "Lataus_pvm",
-                    1 as "Yhdistetty"
+                    {all_agg_columns}
                 FROM "{table_name}"
                 GROUP BY {groupby_columns}
             '''
 
-            # Execute the aggregation
+            # Execute the aggregations
             connection.execute(text(agg_sql))
             
             connection.execute(text(f'''

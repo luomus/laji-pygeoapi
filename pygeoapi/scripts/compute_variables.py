@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 import geopandas as gpd
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 id_mapping = {
     "ML.251": "Ahvenanmaa",
@@ -226,10 +230,10 @@ def compute_all(gdf, value_ranges, collection_names, municipals_gdf):
         all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)
 
     # Computed values from different source
-    all_cols['compute_from_individual_count'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 
-    all_cols['compute_from_collection_id'] = compute_collection_id(gdf['document.collectionId'], collection_names) 
+    all_cols['Esiintyman_tila'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 
+    all_cols['Aineisto'] = compute_collection_id(gdf['document.collectionId'], collection_names) 
 
-    all_cols['computed_municipality'], all_cols['computed_ely_area'] = compute_areas(gdf[['unit.unitId', 'geometry']], municipals_gdf)
+    all_cols['Kunta'], all_cols['Vastuualue'] = compute_areas(gdf[['unit.unitId', 'geometry']], municipals_gdf)
 
     # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

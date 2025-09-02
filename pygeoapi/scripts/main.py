@@ -99,7 +99,6 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         processed_occurrences += len(gdf)
         
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
-        #gdf = process_data.process_facts(gdf)
         gdf = process_data.combine_similar_columns(gdf)
         gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipals_gdf)
         gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
