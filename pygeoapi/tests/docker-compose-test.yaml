@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: test_pw
       POSTGRES_HOST: localhost
     ports:
-      - "5433:5432"
+      - "5431:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -17,5 +17,6 @@ volumes:
   pgdata:
 
 # run all tests with:
-# docker-compose -f pygeoapi/tests/docker-compose-test.yaml up -d
-# python -m pytest pygeoapi/tests -v
+# cd pygeoapi
+# docker-compose -f tests/docker-compose-test.yaml up -d
+# python -m pytest tests -v

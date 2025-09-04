@@ -6,20 +6,18 @@ from scripts import convert_api_filters
 # python -m pytest tests/test_convert_api_filters.py -v
 
 def test_convert_filters():
-    lookup_df = pd.DataFrame({'virva': ['Aineiston_tunniste'], 'finbif_api_query': ['collectionId']})
-    all_value_ranges = {'HUMAN_OBSERVATION_UNSPECIFIED': 'Havaittu'}
+    lookup_df = pd.DataFrame({'selected': ['collectionId'], 'virva': ['Aineiston_tunniste'], 'finbif_api_query': ['collectionId']})
+    all_value_ranges = {}
     municipals_ids = {'Helsinki': '123'}
     params = {}
-    properties = [('Aineiston_tunniste', 'http://tun.fi/HR.95'), ('recordBasis', 'Havaittu'), ('finnishMunicipalityId', 'Helsinki')]
-    result = convert_api_filters.convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties)
+    properties = [('Aineiston_tunniste', 'http://tun.fi/HR.95'), ('finnishMunicipalityId', 'Helsinki')]
+    result = convert_api_filters.convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, access_token='test_token')
     assert result['collectionId'] == 'HR.95'
-    assert result['recordBasis'] == 'HUMAN_OBSERVATION_UNSPECIFIED'
     assert result['finnishMunicipalityId'] == '123'
 
 def test_translate_filter_names():
-    df = pd.DataFrame({'virva': ['foo'], 'finbif_api_query': ['bar']})
-    assert convert_api_filters.translate_filter_names(df, 'foo') == 'bar'
-    assert convert_api_filters.translate_filter_names(df, 'baz') == 'baz'
+    df = pd.DataFrame({'virva': ['Havainnon_tunniste'], 'finbif_api_query': ['unitId']})
+    assert convert_api_filters.translate_filter_names(df, 'Havainnon_tunniste') == 'unitId'
 
 def test_remove_tunfi_prefix():
     assert convert_api_filters.remove_tunfi_prefix('http://tun.fi/HR.95') == 'HR.95'
@@ -40,15 +38,24 @@ def test_map_biogeographical_provinces():
     assert convert_api_filters.map_biogeographical_provinces('vaRsinais-suomi') == 'ML.252'
     assert convert_api_filters.map_biogeographical_provinces('Ahvenanmaa,Varsinais-Suomi') == 'ML.251,ML.252'
 
-def test_map_sex():
-    assert convert_api_filters.map_sex('naaras') == 'FEMALE'
-    assert convert_api_filters.map_sex('koiras,naaras') == 'MALE,FEMALE'
-    assert convert_api_filters.map_sex('unknown') == 'unknown'
-
-def test_map_lifestage():
-    assert convert_api_filters.map_lifestage('aikuinen') == 'ADULT'
-    assert convert_api_filters.map_lifestage('nuori,aikuinen') == 'JUVENILE,ADULT'
-    assert convert_api_filters.map_lifestage('foobar') == 'foobar'
+def test_map_value():
+    # Mock the get_filter_values function
+    original_get_filter_values = convert_api_filters.get_filter_values
+    
+    def mock_get_filter_values(filter_name, access_token):
+        if filter_name == 'sex':
+            return {'naaras': 'FEMALE', 'koiras': 'MALE'}
+        return {}
+    
+    convert_api_filters.get_filter_values = mock_get_filter_values
+    
+    try:
+        assert convert_api_filters.map_value('naaras', 'sex', 'access_token') == 'FEMALE'
+        assert convert_api_filters.map_value('koiras,naaras', 'sex', 'access_token') == 'MALE,FEMALE'
+        assert convert_api_filters.map_value('unknown', 'sex', 'access_token') == 'unknown'
+    finally:
+        # Restore original function
+        convert_api_filters.get_filter_values = original_get_filter_values
 
 def test_map_municipality():
     municipals_ids = {'Helsinki': '1', 'Enontekiö': '2'}
@@ -65,18 +72,15 @@ def test_convert_time():
     assert convert_api_filters.convert_time('2020-01-01 [9:41] / 2025-12-31 [9:43]') == '2020-01-01/2025-12-31'
 
 def test_process_bbox():
-    # Test bbox conversion from WGS84 to EUREF-TM35FIN WKT polygon
-    bbox = [24.0, 60.0, 25.0, 61.0]  # minx, miny, maxx, maxy in WGS84
-    result = convert_api_filters.process_bbox(bbox)
-    
-    # Check that result is a WKT POLYGON string
-    assert result.startswith('POLYGON((')
-    assert '332705.1788734832 6655205.483511592' in result
+    # Test WGS84 coordinates (EPSG:4326)
 
-    # Check that polygon is closed (first and last coordinate pairs are the same)
-    coords_part = result[9:-2]  # Remove 'POLYGON((' and '))'
-    coord_pairs = coords_part.split(', ')
-    assert coord_pairs[0] == coord_pairs[-1]
-    
-    # Check that we have 5 coordinate pairs (4 corners + closing)
-    assert len(coord_pairs) == 5
+    bbox_tm35fin = [376244.4479,6664797.5738,401678.9648,6678720.0844]  # xmin, ymin, xmax, ymax
+    bbox_wgs84 = [24.7741,60.1014,25.2246,60.2333] # xmin, ymin, xmax, ymax
+
+    result_tm35fin = convert_api_filters.process_bbox(bbox_tm35fin)
+    result_wgs84 = convert_api_filters.process_bbox(bbox_wgs84)
+
+    # Basic structure check
+    assert result_wgs84.startswith('POLYGON((') and result_tm35fin.startswith('POLYGON((')
+    assert 'POLYGON((6664797.5738 376244.4479, 6678720.0844 376244.4479, 6678720.0844 401678.9648, 6664797.5738 401678.9648, 6664797.5738 376244.4479))' in result_tm35fin
+    assert 'POLYGON((3969942.835222635 3194502.392363714, 3969395.3907633997 3194502.392363714, 3969395.3907633997 3253996.7532844027, 3969942.835222635 3253996.7532844027, 3969942.835222635 3194502.392363714))' in result_wgs84

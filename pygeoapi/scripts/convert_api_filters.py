@@ -45,13 +45,11 @@ def translate_filter_names(lookup_df, name):
         return lookup_df.loc[lookup_df['virva'] == name, 'finbif_api_query'].values[0]
     
     # Check for similar names and log a hint
-    close_matches = get_close_matches(name, lookup_df['virva'].values, n=1, cutoff=0.6)
+    close_matches = get_close_matches(name, lookup_df['virva'].values, n=1, cutoff=0.8)
     if close_matches:
-        logger.warning(f"Unknown filter '{name}'. Did you mean '{close_matches[0]}'?")
         raise ValueError(f"Unknown filter '{name}'. Did you mean '{close_matches[0]}'?")
     else:
         logger.warning(f"Unknown filter '{name}'. Assuming it works in api.laji.fi..")
-        raise ValueError(f"Unknown filter '{name}'. Assuming it works in api.laji.fi..")
 
     return name
 
@@ -68,7 +66,6 @@ def remove_tunfi_prefix(value):
 def map_value_ranges(all_value_ranges, value): 
     """
     Map filter values to api.laji.fi query parameters 
-    For example, recordBasis value 'Havaittu' is mapped to 'HUMAN_OBSERVATION_UNSPECIFIED'
     """
     logger.debug(f"Mapping value ranges for value: {value}")
     values = [v.strip() for v in value.split(',')]
@@ -150,7 +147,7 @@ def process_bbox(bbox):
     """Return bbox as WKT POLYGON in EUREF-TM35FIN (EPSG:3067)."""
     logger.info(f"Processing bbox: {bbox}")
 
-    ymin, xmin, ymax, xmax = bbox # Weird order
+    ymin, xmin, ymax, xmax = bbox # Weird order due to the pygeoapi's crs handling?
 
     # Determine if bbox appears to be WGS84
     if -180 <= xmin <= 180 and -90 <= ymin <= 90 and -180 <= xmax <= 180 and -90 <= ymax <= 90:

@@ -9,22 +9,6 @@ from scripts.convert_api_filters import convert_filters, process_bbox
 
 logger = logging.getLogger(__name__)
 
-SELECTED_FIELDS = [
-    'document.loadDate', 'unit.linkings.taxon.threatenedStatus', 'unit.linkings.originalTaxon.administrativeStatuses',
-    'unit.linkings.taxon.taxonomicOrder', 'unit.linkings.originalTaxon.latestRedListStatusFinland.status',
-    'gathering.displayDateTime', 'gathering.interpretations.biogeographicalProvinceDisplayname',
-    'gathering.interpretations.coordinateAccuracy', 'unit.abundanceUnit', 'unit.atlasCode', 'unit.atlasClass',
-    'gathering.locality', 'unit.unitId', 'unit.linkings.taxon.scientificName', 'unit.interpretations.individualCount',
-    'unit.interpretations.recordQuality', 'unit.abundanceString', 'gathering.eventDate.begin', 'gathering.eventDate.end',
-    'gathering.gatheringId', 'document.collectionId', 'unit.breedingSite', 'unit.det', 'unit.lifeStage',
-    'unit.linkings.taxon.id', 'unit.notes', 'unit.recordBasis', 'unit.sex', 'unit.taxonVerbatim', 'document.documentId',
-    'document.notes', 'document.secureReasons', 'gathering.conversions.eurefWKT', 'gathering.notes', 'gathering.team',
-    'unit.keywords', 'unit.linkings.originalTaxon', 'unit.linkings.taxon.nameFinnish', 'unit.linkings.taxon.nameSwedish',
-    'unit.linkings.taxon.nameEnglish', 'document.linkings.collectionQuality', 'unit.linkings.taxon.sensitive',
-    'gathering.conversions.eurefCenterPoint.lat', 'gathering.conversions.eurefCenterPoint.lon',
-    'document.siteStatus', 'document.siteType', 'gathering.stateLand'
-]
-
 class LajiApiProvider(BaseProvider):
     """Custom api.laji.fi provider for pygeoapi."""
 
@@ -39,6 +23,7 @@ class LajiApiProvider(BaseProvider):
         self.municipals_gdf, self.municipals_ids, self.lookup_df, self.taxon_df, \
             self.collection_names, self.all_value_ranges = load_or_update_cache(config)
         self._cached_fields = None
+        self.selected_fields = ",".join([field for field in self.lookup_df['selected'].dropna().to_list() if field])
 
     def get_fields(self):
         if self._cached_fields is not None:
@@ -46,6 +31,7 @@ class LajiApiProvider(BaseProvider):
         fields = {}
         for _, row in self.lookup_df.iterrows():
             finbif_query = row.get('finbif_api_query')
+            description = row.get('description')
             if notna(finbif_query):
                 field_name = row.get('virva')
                 field_type = row.get('type')
@@ -56,7 +42,7 @@ class LajiApiProvider(BaseProvider):
                 elif field_type == 'bool':
                     field_type = 'boolean'
                 if field_name and field_type:
-                    fields[field_name] = {"type": field_type}
+                    fields[field_name] = {"type": field_type, "title": description}
                 else:
                     logger.debug('Skipping row with missing field_name or field_type: %s', row)
         logger.debug('Retrieved %d fields from lookup dataframe', len(fields))
@@ -91,7 +77,8 @@ class LajiApiProvider(BaseProvider):
         if bbox and len(bbox) == 4:
             params['polygon'] = process_bbox(bbox)
         params = convert_filters(self.lookup_df, self.all_value_ranges, self.municipals_ids, params, properties, self.access_token)
-        params['selected'] = ','.join(SELECTED_FIELDS)
+        params['selected'] = self.selected_fields
+
         return params
 
     def _make_api_request(self, params):
@@ -158,7 +145,7 @@ class LajiApiProvider(BaseProvider):
         }
         if self.access_token:
             params['access_token'] = self.access_token
-        params['selected'] = ','.join(SELECTED_FIELDS)
+        params['selected'] = self.selected_fields
         try:
             data = self._make_api_request(params)
             features = process_json_features(self, data)

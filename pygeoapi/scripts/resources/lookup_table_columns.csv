@@ -1,57 +1,57 @@
-finbif_api_var;finbif_api_query;translated_var;dwc;virva;type;merge_option
-unit.unitId;unitId;record_id;occurrenceID;Havainnon_tunniste;str;AGGREGATE
-unit.linkings.taxon.scientificName;target;scientific_name_interpreted;scientificNameInterpreted;Tieteellinen_nimi;str;FIRST
-unit.interpretations.individualCount;individualCountMin;abundance_interpreted;individualCountInterpreted;Yksilomaara_tulkittu;int;SUM
-gathering.interpretations.coordinateAccuracy;coordinateAccuracyMax;coordinates_uncertainty_interpreted;coordinateUncertaintyInMetersInterpreted;Paikan_tarkkuus_metreina_max;int;MAX
-unit.interpretations.recordQuality;recordQuality;record_quality;occurrenceQuality;Havainnon_luotettavuus;str;FIRST
-unit.abundanceString;;abundance_verbatim;verbatimAbundance;Maara;str;AGGREGATE
-gathering.interpretations.biogeographicalProvinceDisplayname;biogeographicalProvinceId;bio_province_interpreted;bioStateProvinceInterpreted;Eliomaakunta;str;FIRST
-gathering.eventDate.begin;;date_start;eventDateStart;Keruu_aloitus_pvm;datetime;GROUPBY
-gathering.eventDate.end;;date_end;eventDateEnd;Keruu_lopetus_pvm;datetime;GROUPBY
-gathering.gatheringId;gatheringId;event_id;eventID;Keruutapahtuman_tunniste;str;AGGREGATE
-document.collectionId;collectionId;collection_id;collectionID;Aineiston_tunniste;str;GROUPBY
-unit.breedingSite;breedingSite;is_breeding_location;breedingLocationStatus;Pesintapaikka;bool;GROUPBY
-unit.det;;determiner;identifiedBy;Maarittaja;str;AGGREGATE
-unit.lifeStage;lifeStage;life_stage;lifeStage;Elinvaihe;str;GROUPBY
-unit.linkings.taxon.id;taxonId;taxon_id;taxonID;Taksonin_tunniste;str;GROUPBY
-unit.notes;;record_notes;occurrenceRemarks;Havainnon_lisatiedot;str;AGGREGATE
-unit.recordBasis;recordBasis;record_basis;basisOfRecord;Havaintotapa;str;GROUPBY
-unit.sex;sex;sex;sex;Sukupuoli;str;GROUPBY
-unit.taxonVerbatim;target;reported_name;verbatimIdentification;Alkuperainen_nimi;str;AGGREGATE
-document.documentId;documentId;document_id;catalogNumber;Havaintoeran_tunniste;str;AGGREGATE
-document.notes;;document_notes;documentRemarks;Havaintoeran_lisatiedot;str;GROUPBY
-document.secureReasons;secureReason;restriction_reason;documentInformationWithheldReason;Karkeistuksen_syy;str;AGGREGATE
-gathering.conversions.eurefWKT;;footprint_euref;footprintWKT_EUREF;ETRS_TM35FIN_WKT;str;GROUPBY
-gathering.displayDateTime;time;formatted_date_time;eventDateTimeDisplay;Aika;str;GROUPBY
-gathering.locality;;locality;locality;Sijainti;str;GROUPBY
-gathering.notes;;event_notes;eventRemarks;Keruutapahtuman_lisatiedot;str;AGGREGATE
-gathering.team;teamMember;team;recordedBy;Havainnoijat;str;GROUPBY
-unit.keywords;keyword;record_keywords;occurrenceKeywords;Avainsanat;str;AGGREGATE
-unit.linkings.taxon.nameEnglish;target;common_name_english;vernacularNameEnglish;Englanninkielinen_nimi;str;FIRST
-unit.linkings.taxon.nameFinnish;target;common_name_finnish;vernacularNameFinnish;Suomenkielinen_nimi;str;FIRST
-unit.linkings.taxon.nameSwedish;target;common_name_swedish;vernacularNameSwedish;Ruotsinkielinen_nimi;str;FIRST
-unit.linkings.taxon.taxonomicOrder;;taxonomic_order;taxonTaxonomicOrder;Taksonominen_jarjestys;int;FIRST
-document.linkings.collectionQuality;collectionQuality;collection_quality;collectionQuality;Aineiston_laatu;str;FIRST
-unit.linkings.originalTaxon.latestRedListStatusFinland.status;redListStatusId;orig_last_red_list_status_id;originalLastRedListStatusID;Uhanalaisuusluokka;str;FIRST
-unit.linkings.originalTaxon.administrativeStatuses;administrativeStatusId;orig_taxon_regulatory_status_id;originalTaxonRegulatoryStatusID;Hallinnollinen_asema;str;FIRST
-unit.linkings.taxon.sensitive;sensitive;sensitive;sensitive;Sensitiivinen_laji;bool;FIRST
-gathering.conversions.eurefCenterPoint.lat;;lat_euref;decimalLatitudeEUREF;ETRS_TM35FIN_N;double;GROUPBY
-gathering.conversions.eurefCenterPoint.lon;;lon_euref;decimalLongitudeEUREF;ETRS_TM35FIN_E;double;GROUPBY
-unit.abundanceUnit;;abundance_unit;abundanceUnit;Maaran_yksikko;str;GROUPBY
-unit.linkings.originalTaxon.primaryHabitat.habitat;primaryHabitat;orig_primary_habitat_id;originalPrimaryHabitatID;Ensisijainen_biotooppi;str;FIRST
-unit.atlasClass;atlasClass;atlas_class_id;atlasClassID;Atlasluokka;str;GROUPBY
-unit.atlasCode;atlasCode;atlas_code_id;atlasCodeID;Atlaskoodi;str;GROUPBY
-document.siteStatus;;site_status;siteStatus;Seurantapaikan_tila;str;GROUPBY
-document.siteType;;site_type;siteType;Seurantapaikan_tyyppi;str;GROUPBY
-gathering.stateLand;onlyNonStateLands;state_land;stateLand;Valtion_maalla;bool;FIRST
-unit.linkings.taxon.threatenedStatus;;threatened_status_id;threatenedStatusID;Lajiturva;str;FIRST
-name;target;informal_group_name;InformalGroupName;Elioryhma;str;FIRST
-unit.linkings.originalTaxon.vernacularName.fi;target;;;Yleiskielinen_nimi;str;FIRST
-geometry;polygon;geometry;geometry;geometry;geom;
-document.loadDate;loadedSameOrAfter;custom_load_date;;Lataus_pvm;datetime;GROUPBY
-;;;;Esiintyman_tila;str;GROUPBY
-;;;;Aineisto;str;FIRST
-;;;;Vastuualue;str;FIRST
-;finnishMunicipalityId;municipality_verbatim;verbatimCounty;Kunta;str;FIRST
-;;;;Paikallinen_tunniste;str;AGGREGATE
-;;;;Yhdistetty;int;
+selected;finbif_api_var;finbif_api_query;dwc;virva;type;merge_option;description
+unit.unitId;unit.unitId;unitId;occurrenceID;Havainnon_tunniste;str;AGGREGATE;Yksittäisen havainnon tunniste
+unit.linkings.taxon.scientificName;unit.linkings.taxon.scientificName;target;scientificNameInterpreted;Tieteellinen_nimi;str;FIRST;Lajin tieteellinen nimi
+unit.interpretations.individualCount;unit.interpretations.individualCount;individualCountMin;individualCountInterpreted;Yksilomaara_tulkittu;int;SUM;Tulkittu numeerinen yksilömäärä (yhdistetyissä havainnoissa summattu)
+gathering.interpretations.coordinateAccuracy;gathering.interpretations.coordinateAccuracy;coordinateAccuracyMax;coordinateUncertaintyInMetersInterpreted;Paikan_tarkkuus_metreina_max;int;MAX;Havainnon koordinaattien tarkkuus metreinä
+unit.interpretations.recordQuality;unit.interpretations.recordQuality;recordQuality;occurrenceQuality;Havainnon_luotettavuus;str;FIRST;Luotettavuus perustuen alkuperäislähteen antamaan luotettavuusluokitukseen sekä Laji.fi:n laadunvalvontakommentteihin (virheellinen, epävarma, neutraali, yhteisön varmistama asiantuntijan varmistama)
+unit.abundanceString;unit.abundanceString;;verbatimAbundance;Maara;str;AGGREGATE;Kirjaimellisesti ilmoitettu yksilöiden lukumäärä
+gathering.interpretations.biogeographicalProvinceDisplayname;gathering.interpretations.biogeographicalProvinceDisplayname;biogeographicalProvinceId;bioStateProvinceInterpreted;Eliomaakunta;str;FIRST;Eliömaakunta koordinaattien perusteella
+gathering.eventDate.begin;gathering.eventDate.begin;;eventDateStart;Keruu_aloitus_pvm;datetime;GROUPBY;Keruutapahtuman aloituspäivämäärä
+gathering.eventDate.end;gathering.eventDate.end;;eventDateEnd;Keruu_lopetus_pvm;datetime;GROUPBY;Keruutapahtuman lopetuspäivämäärä
+gathering.gatheringId;gathering.gatheringId;gatheringId;eventID;Keruutapahtuman_tunniste;str;AGGREGATE;Keruutapahtumalle annettu tunniste
+document.collectionId;document.collectionId;collectionId;collectionID;Aineiston_tunniste;str;GROUPBY;Aineiston tunniste
+unit.breedingSite;unit.breedingSite;breedingSite;breedingLocationStatus;Pesintapaikka;bool;GROUPBY;Onko havainto pesintäpaikalta
+unit.det;unit.det;;identifiedBy;Maarittaja;str;AGGREGATE;Havainnon määrittäjän nimi
+unit.lifeStage;unit.lifeStage;lifeStage;lifeStage;Elinvaihe;str;GROUPBY;Havaitun yksilön elinvaihe
+unit.linkings.taxon.id;unit.linkings.taxon.id;taxonId;taxonID;Taksonin_tunniste;str;GROUPBY;Taksonin URI- tai muu yksilöivä tunniste
+unit.notes;unit.notes;;occurrenceRemarks;Havainnon_lisatiedot;str;AGGREGATE;Havaintoa koskevat lisätiedot
+unit.recordBasis;unit.recordBasis;recordBasis;basisOfRecord;Havaintotapa;str;GROUPBY;Havaintotapa (esim. näköhavainto)
+unit.sex;unit.sex;sex;sex;Sukupuoli;str;GROUPBY;Havaitun yksilön sukupuoli
+unit.taxonVerbatim;unit.taxonVerbatim;target;verbatimIdentification;Alkuperainen_nimi;str;AGGREGATE;Havainnon tekijän lajille antama nimi
+document.documentId;document.documentId;documentId;catalogNumber;Havaintoeran_tunniste;str;AGGREGATE;Havaintoerän tunniste
+document.notes;document.notes;;documentRemarks;Havaintoeran_lisatiedot;str;GROUPBY;Havaintoerään tallennetut lisätiedot
+document.secureReasons;document.secureReasons;secureReason;documentInformationWithheldReason;Karkeistuksen_syy;str;AGGREGATE;Karkeistuksen tai salauksen syy
+gathering.conversions.eurefWKT;gathering.conversions.eurefWKT;;footprintWKT_EUREF;ETRS_TM35FIN_WKT;str;GROUPBY;Alkuperäinen geometria WKT-muodossa (ETRS-TM35FIN)
+gathering.displayDateTime;gathering.displayDateTime;time;eventDateTimeDisplay;Aika;str;GROUPBY;Keruutapahtuman päivämäärät ja ajat tekstinä
+gathering.locality;gathering.locality;;locality;Sijainti;str;GROUPBY;Paikannimi sellaisena kuin ilmoitettu
+gathering.notes;gathering.notes;;eventRemarks;Keruutapahtuman_lisatiedot;str;AGGREGATE;Keruutapahtumaa koskevat lisätiedot
+gathering.team;gathering.team;teamMember;recordedBy;Havainnoijat;str;GROUPBY;Lista havainnoijista / kerääjistä
+unit.keywords;unit.keywords;keyword;occurrenceKeywords;Avainsanat;str;AGGREGATE;Havaintoerän liitetyt avainsanat
+unit.linkings.taxon.nameEnglish;unit.linkings.taxon.nameEnglish;target;vernacularNameEnglish;Englanninkielinen_nimi;str;FIRST;Lajin englanninkielinen nimi
+unit.linkings.taxon.nameFinnish;unit.linkings.taxon.nameFinnish;target;vernacularNameFinnish;Suomenkielinen_nimi;str;FIRST;Lajin suomenkielinen nimi
+unit.linkings.taxon.nameSwedish;unit.linkings.taxon.nameSwedish;target;vernacularNameSwedish;Ruotsinkielinen_nimi;str;FIRST;Lajin ruotsinkielinen nimi
+unit.linkings.taxon.taxonomicOrder;unit.linkings.taxon.taxonomicOrder;;taxonTaxonomicOrder;Taksonominen_jarjestys;int;FIRST;Taksonomista järjestystä kuvaava numero
+document.linkings.collectionQuality;document.linkings.collectionQuality;collectionQuality;collectionQuality;Aineiston_laatu;str;FIRST;Aineiston tai kokoelman laatu (kolmiportainen luokitus)
+unit.linkings.originalTaxon.latestRedListStatusFinland.status;unit.linkings.originalTaxon.latestRedListStatusFinland.status;redListStatusId;originalLastRedListStatusID;Uhanalaisuusluokka;str;FIRST;Lajin nykyinen uhanalaisuusluokka
+unit.linkings.originalTaxon.administrativeStatuses;unit.linkings.originalTaxon.administrativeStatuses;administrativeStatusId;originalTaxonRegulatoryStatusID;Hallinnollinen_asema;str;FIRST;Hallinnolliset luokat listattuna
+unit.linkings.taxon.sensitive;unit.linkings.taxon.sensitive;sensitive;sensitive;Sensitiivinen_laji;bool;FIRST;Onko laji määritelty sensitiiviseksi
+gathering.conversions.eurefCenterPoint.lat;gathering.conversions.eurefCenterPoint.lat;;decimalLatitudeEUREF;ETRS_TM35FIN_N;double;GROUPBY;Havainnon keskipisteen pohjoiskoordinaatti (ETRS-TM35FIN)
+gathering.conversions.eurefCenterPoint.lon;gathering.conversions.eurefCenterPoint.lon;;decimalLongitudeEUREF;ETRS_TM35FIN_E;double;GROUPBY;Havainnon keskipisteen itäkoordinaatti (ETRS-TM35FIN)
+unit.abundanceUnit;unit.abundanceUnit;;abundanceUnit;Maaran_yksikko;str;GROUPBY;Määrän ilmoittamisessa käytetty yksikkö
+unit.linkings.originalTaxon.primaryHabitat.habitat;unit.linkings.originalTaxon.primaryHabitat.habitat;primaryHabitat;originalPrimaryHabitatID;Ensisijainen_biotooppi;str;FIRST;Lista taksoniin liitetyistä biotoopeista
+unit.atlasClass;unit.atlasClass;atlasClass;atlasClassID;Atlasluokka;str;GROUPBY;Lintuatlaksen pesimävarmuusluokka
+unit.atlasCode;unit.atlasCode;atlasCode;atlasCodeID;Atlaskoodi;str;GROUPBY;Lintuatlaksen tarkka pesimävarmuusindeksi
+document.siteStatus;document.siteStatus;;siteStatus;Seurantapaikan_tila;str;GROUPBY;Seurantakohteen tila (Vain LajiGIS-aineisto)
+document.siteType;document.siteType;;siteType;Seurantapaikan_tyyppi;str;GROUPBY;Seurantapaikan tyyppi / kartoituksen tarkoitus  (Vain LajiGIS-aineisto)
+gathering.stateLand;gathering.stateLand;onlyNonStateLands;stateLand;Valtion_maalla;bool;FIRST;Sijaitseeko havainto valtion maalla
+unit.linkings.taxon.threatenedStatus;unit.linkings.taxon.threatenedStatus;;threatenedStatusID;Lajiturva;str;FIRST;Lajiturva-hankkeen hallinnollinen luokitus
+unit.linkings.originalTaxon.vernacularName;unit.linkings.originalTaxon.vernacularName.fi;target;;Yleiskielinen_nimi;str;FIRST;Taksonin yleiskielinen nimi (alkuperäinen)
+document.loadDate;document.loadDate;loadedSameOrAfter;;Lataus_pvm;datetime;GROUPBY;Päivä jolloin havainto ladattiin Lajitietokeskukseen
+unit.linkings.originalTaxon.informalTaxonGroups;name;target;InformalGroupName;Elioryhma;str;FIRST;Epävirallinen eliöryhmäluokittelu
+;;polygon;geometry;geometry;geom;;Geometria (polygon) WKT-muodossa
+;;;;Esiintyman_tila;str;GROUPBY;Onko laji paikalla vai poissa (nollahavainto)
+;;;;Aineisto;str;FIRST;Aineiston nimi
+;;;;Vastuualue;str;FIRST;Havainnon sijaintiin liitetyt ELY-vastuualueet
+;;finnishMunicipalityId;verbatimCounty;Kunta;str;FIRST;Kunta koordinaattien perusteella
+;;;;Paikallinen_tunniste;str;AGGREGATE;Tunniste vain tässä rajapinnassa
+;;;;Yhdistetty;int;;Identtisten yhdistettyjen havaintojen lukumäärä

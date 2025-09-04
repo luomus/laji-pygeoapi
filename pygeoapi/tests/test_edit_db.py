@@ -319,8 +319,8 @@ def test_merge_similar_observations(engine):
     
     # Create lookup DataFrame matching the structure from lookup_table_columns.csv
     lookup_df = pd.DataFrame({
-        'virva': ['Tieteellinen_nimi', 'Kunta', 'Havainnon_tunniste'],
-        'groupby': [True, True, False]
+        'virva': ['Tieteellinen_nimi', 'Kunta', 'Havainnon_tunniste', 'Yksilomaara_tulkittu'],
+        'merge_option': ['FIRST', 'GROUPBY', 'AGGREGATE', 'SUM']
     })
 
     merged = edit_db.merge_similar_observations(['test_merge_table'], lookup_df)

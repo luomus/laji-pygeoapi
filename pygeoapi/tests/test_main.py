@@ -50,8 +50,6 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
         'document.collectionId': ['HR.1', 'HR.2', 'HR.1', 'HR.2'],
         'unit.recordBasis': ['Observation', 'Specimen', 'Observation', 'Specimen'],
         'unit.interpretations.recordQuality': ['High', 'Medium', 'Low', 'Medium'],
-        'gatherings.facts[0].fact': ['Fact1', 'Fact2', 'Fact1', 'Fact2'],
-        'gatherings.facts[0].value': ['Value1', 'Value2', 'Value3', 'Value4'],
     }, geometry='geometry', crs="EPSG:4326")
 
     taxon_df = pd.DataFrame({'id': ['MVL.1', 'MVL.2'], 'name': ['Birds', 'Snakes']})
