@@ -7,6 +7,7 @@ from scripts import load_data
 from scripts import process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata
 import sys
 from time import time
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,9 @@ logging.basicConfig(
     stream=sys.stdout,
     format='%(asctime)s %(levelname)s %(message)s'
 )
+
+maintenance_executor = ThreadPoolExecutor(max_workers=1)
+maintenance_futures = []  # (future -> returns (duplicates_removed, merged_features))
 
 def _parse_bool(val, default=False):
     if val is None:
@@ -109,9 +113,18 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         converted_collections += converted
 
     if gdf is not None and not gdf.empty:
-        duplicates_count_by_id += edit_db.remove_duplicates(table_names)
-        merged_features_count += edit_db.merge_similar_observations(table_names, lookup_df)
-        edit_db.update_indexes(table_names, use_multiprocessing=True)
+        # Schedule maintenance work in background so next dataset can start downloading.
+        def maintenance_job(tnames, lookup):
+            try:
+                d = edit_db.remove_duplicates(tnames)
+                m = edit_db.merge_similar_observations(tnames, lookup)
+                edit_db.update_indexes(tnames, use_multiprocessing=True)
+                return d, m
+            except Exception as e:
+                logger.error(f"Maintenance job failed for {tnames}: {e}")
+                return 0, 0
+        maintenance_futures.append(maintenance_executor.submit(maintenance_job, table_names, lookup_df))
+        logger.debug(f"Scheduled async maintenance for tables {table_names}")
 
     return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections, merged_features_count
 
@@ -193,6 +206,18 @@ def main():
             merged_features_count += results[5]
 
         logger.info("Processing completed.")
+
+    # Wait for any async maintenance still running and aggregate their results
+    if maintenance_futures:
+        logger.info("Waiting for background maintenance tasks to finish...")
+        for fut in maintenance_futures:
+            try:
+                d, m = fut.result()
+                duplicates_count_by_id += d
+                merged_features_count += m
+            except Exception as e:
+                logger.error(f"A maintenance task failed during final aggregation: {e}")
+        maintenance_executor.shutdown(wait=True)
 
     # Create metadata for the processed data
     logger.info("Creating metadata...")

@@ -261,6 +261,7 @@ def get_enumerations(url):
     enumerations = {
         item['enumeration']: item['label']['fi']
         for item in json_data.get('results', [])
+        if item.get('label') and item['label'].get('fi')
     }
     return enumerations
 
