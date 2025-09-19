@@ -4,10 +4,157 @@ from unittest.mock import patch, MagicMock
 import requests
 
 from scripts import load_data
+import time
 
 # run with:
 # cd pygeoapi
 # python -m pytest tests/test_load_data.py -v
+
+def test_is_cache_valid():
+    
+    # Test cache key that doesn't exist
+    assert not load_data._is_cache_valid("nonexistent_key")
+    
+    # Test valid cache (recent timestamp)
+    test_key = "test_key"
+    load_data._cache_timestamps[test_key] = time.time()
+    assert load_data._is_cache_valid(test_key)
+    
+    # Test expired cache (old timestamp)
+    expired_key = "expired_key"
+    load_data._cache_timestamps[expired_key] = time.time() - load_data._cache_timeout - 1
+    assert not load_data._is_cache_valid(expired_key)
+    
+    # Test cache at the edge of expiration
+    edge_key = "edge_key"
+    load_data._cache_timestamps[edge_key] = time.time() - load_data._cache_timeout + 1
+    assert load_data._is_cache_valid(edge_key)
+    
+    # Clean up test data
+    load_data._cache_timestamps.pop(test_key, None)
+    load_data._cache_timestamps.pop(expired_key, None)
+    load_data._cache_timestamps.pop(edge_key, None)
+
+@patch('scripts.load_data.get_enumerations')
+@patch('scripts.load_data.get_value_ranges')
+@patch('scripts.load_data.get_collection_names')
+@patch('scripts.load_data.get_taxon_data')
+@patch('scripts.load_data.get_municipality_ids')
+@patch('pandas.read_csv')
+@patch('geopandas.read_file')
+def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipality_ids, 
+                             mock_get_taxon_data, mock_get_collection_names, 
+                             mock_get_value_ranges, mock_get_enumerations):
+    # Setup mocks
+    mock_gdf = MagicMock()
+    mock_gdf.to_crs.return_value = mock_gdf
+    mock_gdf.sindex = MagicMock()
+    mock_read_file.return_value = mock_gdf
+    
+    mock_lookup_df = pd.DataFrame({'col1': [1, 2], 'col2': ['a', 'b']})
+    mock_read_csv.return_value = mock_lookup_df
+    
+    mock_get_municipality_ids.return_value = {'Municipality1': 'ID1'}
+    mock_get_taxon_data.return_value = pd.DataFrame({'id': [1], 'name': ['Species1']})
+    mock_get_collection_names.return_value = {'Collection1': 'Name1'}
+    mock_get_value_ranges.return_value = {'range1': 'value1'}
+    mock_get_enumerations.return_value = {'enum1': 'label1'}
+    
+    config = {
+        'laji_api_url': 'https://api.laji.fi/v0/',
+        'access_token': 'test_token'
+    }
+    
+    # Clear cache to ensure fresh test
+    cache_key = f"helper_data_{config['laji_api_url']}"
+    load_data._cache.pop(cache_key, None)
+    load_data._cache_timestamps.pop(cache_key, None)
+    
+    # Test first call - should fetch from API
+    result = load_data.load_or_update_cache(config)
+    
+    # Verify all API calls were made
+    mock_read_file.assert_called_once_with('scripts/resources/municipalities.geojson', engine='pyogrio')
+    mock_read_csv.assert_called_once_with('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
+    mock_get_municipality_ids.assert_called_once()
+    mock_get_taxon_data.assert_called_once()
+    mock_get_collection_names.assert_called_once()
+    mock_get_value_ranges.assert_called_once()
+    mock_get_enumerations.assert_called_once()
+    
+    # Verify result structure
+    assert len(result) == 6
+    municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges = result
+    assert municipals_ids == {'Municipality1': 'ID1'}
+    assert collection_names == {'Collection1': 'Name1'}
+    assert all_value_ranges == {'range1': 'value1', 'enum1': 'label1'}
+    
+    # Verify data is cached
+    assert cache_key in load_data._cache
+    assert cache_key in load_data._cache_timestamps
+    
+    # Reset mocks for second call
+    mock_read_file.reset_mock()
+    mock_read_csv.reset_mock()
+    mock_get_municipality_ids.reset_mock()
+    mock_get_taxon_data.reset_mock()
+    mock_get_collection_names.reset_mock()
+    mock_get_value_ranges.reset_mock()
+    mock_get_enumerations.reset_mock()
+    
+    # Test second call - should use cache
+    result2 = load_data.load_or_update_cache(config)
+    
+    # Verify no API calls were made
+    mock_read_file.assert_not_called()
+    mock_read_csv.assert_not_called()
+    mock_get_municipality_ids.assert_not_called()
+    mock_get_taxon_data.assert_not_called()
+    mock_get_collection_names.assert_not_called()
+    mock_get_value_ranges.assert_not_called()
+    mock_get_enumerations.assert_not_called()
+    
+    # Verify same result returned
+    assert result == result2
+    
+    # Clean up
+    load_data._cache.pop(cache_key, None)
+    load_data._cache_timestamps.pop(cache_key, None)
+
+@patch('scripts.load_data.fetch_json_with_retry')
+def test_get_filter_values(mock_fetch):
+    # Test successful response with valid data
+    mock_fetch.return_value = {
+        'enumerations': [
+            {'label': {'fi': 'Lintu'}, 'name': 'BIRD'},
+            {'label': {'fi': 'Kasvi'}, 'name': 'PLANT'},
+            {'label': {'fi': 'Sieni'}, 'name': 'FUNGI'},
+            {'label': {}, 'name': 'NO_FINNISH_LABEL'},  # Should be filtered out
+            {'name': 'NO_LABEL_FIELD'}  # Should be filtered out
+        ]
+    }
+    
+    result = load_data.get_filter_values('taxonGroup', 'test_token')
+    expected = {
+        'Lintu': 'BIRD',
+        'Kasvi': 'PLANT', 
+        'Sieni': 'FUNGI'
+    }
+    assert result == expected
+    mock_fetch.assert_called_once_with('https://api.laji.fi/v0/warehouse/filters/taxonGroup?access_token=test_token')
+        
+    # Test caching behavior - second call should return cached result
+    mock_fetch.reset_mock()
+    mock_fetch.return_value = {'enumerations': [{'label': {'fi': 'Cached'}, 'name': 'CACHED'}]}
+    
+    # First call
+    result1 = load_data.get_filter_values('cached_filter', 'test_token')
+    assert mock_fetch.call_count == 1
+    
+    # Second call with same parameters should use cache
+    result2 = load_data.get_filter_values('cached_filter', 'test_token')
+    assert mock_fetch.call_count == 1  # No additional API call
+    assert result1 == result2
 
 @patch('requests.get')
 def test_fetch_json_with_retry(mock_get):
@@ -114,3 +261,30 @@ def test_get_enumerations():
     result = load_data.get_enumerations(url)
     assert isinstance(result, dict)
     assert result['IMAGE'] == 'Kuva'
+
+@patch('scripts.load_data.fetch_json_with_retry')
+def test_get_municipality_ids(mock_fetch):
+    # Test successful response with valid data
+    mock_fetch.return_value = {
+        'results': [
+            {'name': 'Helsinki', 'id': 'ML.206'},
+            {'name': 'Tampere', 'id': 'ML.837'},
+            {'name': 'Turku', 'id': 'ML.853'}
+        ]
+    }
+    
+    result = load_data.get_municipality_ids("http://example.com/api")
+    expected = {
+        'Helsinki': 'ML.206',
+        'Tampere': 'ML.837',
+        'Turku': 'ML.853'
+    }
+    assert result == expected
+    mock_fetch.assert_called_once_with("http://example.com/api")
+
+    # Test when fetch_json_with_retry returns None
+    mock_fetch.reset_mock()
+    mock_fetch.return_value = None
+    result = load_data.get_municipality_ids("http://example.com/api")
+    assert result is None
+    mock_fetch.assert_called_once_with("http://example.com/api")

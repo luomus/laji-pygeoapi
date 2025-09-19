@@ -30,6 +30,12 @@ def test_setup_environment(mock_load_dotenv):
     assert config['pygeoapi_config_out'] == r'pygeoapi-config.yml'
     assert config['metadata_db_path'] == 'catalogue.tinydb'
 
+def test_parse_bool():
+    assert main._parse_bool('True') is True
+    assert main._parse_bool('true') is True
+    assert main._parse_bool('False') is False
+    assert main._parse_bool('false') is False
+    assert main._parse_bool(None) is False
 
 @patch('pygeoapi.scripts.main.edit_db.to_db', return_value=0)
 @patch('pygeoapi.scripts.main.edit_db.remove_duplicates', return_value=0)

@@ -100,15 +100,16 @@ def drop_all_tables():
     """
     logger.info("Dropping all the tables from the database...")
     
-    # Find all table names
-    metadata = MetaData()
-    metadata.reflect(get_engine())
-    all_tables = metadata.tables.keys()
-
-    # Loop over tables and try to drop them
-    for table_name in all_tables:
-        if table_name not in postgis_default_tables:
-            metadata.tables[table_name].drop(get_engine(), checkfirst=True)
+    tables = get_all_tables()
+    if not tables:
+        return
+    with get_engine().connect() as connection:
+        for table_name in tables:
+            try:
+                connection.execute(text(f'DROP TABLE IF EXISTS "{table_name}" CASCADE'))
+            except Exception as e:
+                logger.warning(f"Failed to drop table {table_name}: {e}")
+        connection.commit()
 
 def drop_table(table_names):
     """
@@ -117,14 +118,16 @@ def drop_table(table_names):
     Parameters:
     table_names (list): The table names
     """
-    
-    # Find all table names
-    metadata = MetaData()
-    metadata.reflect(get_engine())
+    if not table_names:
+        return
 
-    for i in table_names:
-        if i in metadata.tables:
-            metadata.tables[i].drop(get_engine(), checkfirst=True) #TOOD: Check if could be direct SQL
+    with get_engine().connect() as connection:
+        for table_name in table_names:
+            try:
+                connection.execute(text(f'DROP TABLE IF EXISTS "{table_name}" CASCADE'))
+            except Exception as e:
+                logger.warning(f"Failed to drop table {table_name}: {e}")
+        connection.commit()
 
 def get_all_tables():
     """
@@ -218,8 +221,16 @@ def check_table_exists(table_name):
     Returns:
     bool: True if the table exists, False otherwise.
     """
-    inspector = inspect(get_engine())
-    return table_name in inspector.get_table_names()
+    sql = text("""
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = :tname
+        )
+    """)
+    with get_engine().connect() as connection:
+        exists = connection.execute(sql, {"tname": table_name}).scalar()
+    return bool(exists)
 
 def get_amount_of_occurrences(table_name):
     """
