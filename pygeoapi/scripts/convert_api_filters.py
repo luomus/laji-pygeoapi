@@ -16,7 +16,7 @@ def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, propert
     for name, value in properties:
         logger.info(f"Name: {name}, value: {value}")
         name = translate_filter_names(lookup_df, name)
-        value = remove_tunfi_prefix(value)
+        value = remove_id_prefix(value)
         if name in ['lifeStage', 'sex', 'recordQuality', 'collectionQuality', 'secureReason', 'recordBasis']:
             value = map_value(value, name, access_token)
         elif name in ['redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode', 'primaryHabitat']:
@@ -54,7 +54,7 @@ def translate_filter_names(lookup_df, name):
     return name
 
 
-def remove_tunfi_prefix(value):
+def remove_id_prefix(value):
     """
     Remove 'http://xyz.fi/' patterns from the filter values
     """
