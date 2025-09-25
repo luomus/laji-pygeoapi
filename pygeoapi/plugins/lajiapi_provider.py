@@ -136,7 +136,8 @@ class LajiApiProvider(BaseProvider):
         """
 
         # Decode identifier to restore '#'
-        decoded_identifier = 'http://tun.fi/' + str(identifier).replace('_', '#')
+        decoded_identifier = str(identifier).replace('_', '#')
+        logging.debug('Get called for identifier: %s', decoded_identifier)
         params = {
             'crs': 'WGS84',
             'featureType': 'ORIGINAL_FEATURE',

@@ -36,6 +36,10 @@ def test_map_values():
     result2 = compute_variables.map_values(col2, value_ranges)
     assert result2[0] == 'Metsästyslaissa luetellut riistalinnut, Metsästyslaissa luetellut riistanisäkkäät (5§), xyz123'
 
+    col3 = pd.Series(['http://tun.fi/MX.gameBird, http://luomus.fi/MX.gameMammal, http://asd.luomus.asd.fi/xyz123, 123123'])
+    result3 = compute_variables.map_values(col3, value_ranges)
+    assert result3[0] == 'Metsästyslaissa luetellut riistalinnut, Metsästyslaissa luetellut riistanisäkkäät (5§), http://asd.luomus.asd.fi/xyz123, 123123'
+
 def test_compute_areas():
     municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson').to_crs("EPSG:4326")
 

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 import logging
+import re
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ def map_values(col, value_ranges):
     Returns:
     pd.Series: Series with mapped values as a string.
     """
-    return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(value.strip("http://tun.fi/"), value) for value in values]))
+    return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(re.sub(r'http://[^/]+\.fi/', '', value), value) for value in values]))
 
 def compute_areas(gdf, municipals_gdf):
     """
@@ -179,7 +180,7 @@ def process_strip_url_columns(gdf, value_ranges):
     result = {}
     for col in columns:
         if col in gdf.columns:
-            result[col] = gdf[col].str.replace("http://tun.fi/", "", regex=False).map(value_ranges)
+            result[col] = gdf[col].str.replace(r'http://[^/]+\.fi/', "", regex=True).map(value_ranges)
     return result
 
 def process_direct_map_columns(gdf, value_ranges):
@@ -245,6 +246,5 @@ def compute_all(gdf, value_ranges, collection_names, municipals_gdf):
     gdf = pd.concat([gdf, computed_cols_df], axis=1)
 
     # Create a local id
-    gdf['Paikallinen_tunniste'] = gdf['unit.unitId'].str.replace("http://tun.fi/", "").str.replace("#", "_")
-
+    gdf['Paikallinen_tunniste'] = gdf['unit.unitId'].str.replace("#", "_")
     return gdf

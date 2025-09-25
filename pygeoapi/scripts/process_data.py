@@ -16,6 +16,8 @@ def merge_taxonomy_data(occurrence_gdf, taxonomy_df):
     Returns:
     geopandas.GeoDataFrame: The merged GeoDataFrame.
     """
+    if 'unit.linkings.originalTaxon.informalTaxonGroups[0]' not in occurrence_gdf.columns:
+        occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = None
     occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'] = occurrence_gdf['unit.linkings.originalTaxon.informalTaxonGroups[0]'].str.extract(r'(MVL\.\d+)')
     merged_gdf = occurrence_gdf.merge(taxonomy_df, left_on='unit.linkings.originalTaxon.informalTaxonGroups[0]', right_on='id', how='left')
     return merged_gdf

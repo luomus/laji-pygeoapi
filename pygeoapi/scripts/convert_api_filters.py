@@ -56,10 +56,10 @@ def translate_filter_names(lookup_df, name):
 
 def remove_tunfi_prefix(value):
     """
-    Remove 'http://tun.fi/' from the filter values
+    Remove 'http://xyz.fi/' patterns from the filter values
     """
-    if isinstance(value, str) and 'http://tun.fi/' in value:
-        return value.replace('http://tun.fi/', '')
+    if isinstance(value, str):
+        value = re.sub(r'http://[^/]+\.fi/', '', value)
     return value
 
 

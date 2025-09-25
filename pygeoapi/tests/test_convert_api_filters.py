@@ -21,6 +21,8 @@ def test_translate_filter_names():
 
 def test_remove_tunfi_prefix():
     assert convert_api_filters.remove_tunfi_prefix('http://tun.fi/HR.95') == 'HR.95'
+    assert convert_api_filters.remove_tunfi_prefix('http://id.luomus.fi/HR.95') == 'HR.95'
+    assert convert_api_filters.remove_tunfi_prefix('http://id.luomus.fi/HR.95/ggg') == 'HR.95/ggg'
     assert convert_api_filters.remove_tunfi_prefix('HR.95') == 'HR.95'
     assert convert_api_filters.remove_tunfi_prefix(123) == 123
 
