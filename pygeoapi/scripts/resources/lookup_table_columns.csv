@@ -32,22 +32,22 @@ unit.linkings.taxon.nameFinnish;unit.linkings.taxon.nameFinnish;target;vernacula
 unit.linkings.taxon.nameSwedish;unit.linkings.taxon.nameSwedish;target;vernacularNameSwedish;Ruotsinkielinen_nimi;str;FIRST;Lajin ruotsinkielinen nimi
 unit.linkings.taxon.taxonomicOrder;unit.linkings.taxon.taxonomicOrder;;taxonTaxonomicOrder;Taksonominen_jarjestys;int;FIRST;Taksonomista järjestystä kuvaava numero
 document.linkings.collectionQuality;document.linkings.collectionQuality;collectionQuality;collectionQuality;Aineiston_laatu;str;FIRST;Aineiston tai kokoelman laatu (kolmiportainen luokitus)
-unit.linkings.originalTaxon.latestRedListStatusFinland.status;unit.linkings.originalTaxon.latestRedListStatusFinland.status;redListStatusId;originalLastRedListStatusID;Uhanalaisuusluokka;str;FIRST;Lajin nykyinen uhanalaisuusluokka
-unit.linkings.originalTaxon.administrativeStatuses;unit.linkings.originalTaxon.administrativeStatuses;administrativeStatusId;originalTaxonRegulatoryStatusID;Hallinnollinen_asema;str;FIRST;Hallinnolliset luokat listattuna
+unit.linkings.taxon.latestRedListStatusFinland.status;unit.linkings.taxon.latestRedListStatusFinland.status;redListStatusId;originalLastRedListStatusID;Uhanalaisuusluokka;str;FIRST;Lajin nykyinen uhanalaisuusluokka
+unit.linkings.taxon.administrativeStatuses;unit.linkings.taxon.administrativeStatuses;administrativeStatusId;taxonRegulatoryStatusID;Hallinnollinen_asema;str;FIRST;Hallinnolliset luokat listattuna
 unit.linkings.taxon.sensitive;unit.linkings.taxon.sensitive;sensitive;sensitive;Sensitiivinen_laji;bool;FIRST;Onko laji määritelty sensitiiviseksi
 gathering.conversions.eurefCenterPoint.lat;gathering.conversions.eurefCenterPoint.lat;;decimalLatitudeEUREF;ETRS_TM35FIN_N;double;GROUPBY;Havainnon keskipisteen pohjoiskoordinaatti (ETRS-TM35FIN)
 gathering.conversions.eurefCenterPoint.lon;gathering.conversions.eurefCenterPoint.lon;;decimalLongitudeEUREF;ETRS_TM35FIN_E;double;GROUPBY;Havainnon keskipisteen itäkoordinaatti (ETRS-TM35FIN)
 unit.abundanceUnit;unit.abundanceUnit;;abundanceUnit;Maaran_yksikko;str;GROUPBY;Määrän ilmoittamisessa käytetty yksikkö
-unit.linkings.originalTaxon.primaryHabitat.habitat;unit.linkings.originalTaxon.primaryHabitat.habitat;primaryHabitat;originalPrimaryHabitatID;Ensisijainen_biotooppi;str;FIRST;Lista taksoniin liitetyistä biotoopeista
+unit.linkings.taxon.primaryHabitat.habitat;unit.linkings.taxon.primaryHabitat.habitat;primaryHabitat;originalPrimaryHabitatID;Ensisijainen_biotooppi;str;FIRST;Lista taksoniin liitetyistä biotoopeista
 unit.atlasClass;unit.atlasClass;atlasClass;atlasClassID;Atlasluokka;str;GROUPBY;Lintuatlaksen pesimävarmuusluokka
 unit.atlasCode;unit.atlasCode;atlasCode;atlasCodeID;Atlaskoodi;str;GROUPBY;Lintuatlaksen tarkka pesimävarmuusindeksi
 document.siteStatus;document.siteStatus;;siteStatus;Seurantapaikan_tila;str;GROUPBY;Seurantakohteen tila (Vain LajiGIS-aineisto)
 document.siteType;document.siteType;;siteType;Seurantapaikan_tyyppi;str;GROUPBY;Seurantapaikan tyyppi / kartoituksen tarkoitus  (Vain LajiGIS-aineisto)
 gathering.stateLand;gathering.stateLand;onlyNonStateLands;stateLand;Valtion_maalla;bool;FIRST;Sijaitseeko havainto valtion maalla
 unit.linkings.taxon.threatenedStatus;unit.linkings.taxon.threatenedStatus;;threatenedStatusID;Lajiturva;str;FIRST;Lajiturva-hankkeen hallinnollinen luokitus
-unit.linkings.originalTaxon.vernacularName;unit.linkings.originalTaxon.vernacularName.fi;target;;Yleiskielinen_nimi;str;FIRST;Taksonin yleiskielinen nimi (alkuperäinen)
+unit.linkings.taxon.vernacularName;unit.linkings.taxon.vernacularName.fi;target;;Yleiskielinen_nimi;str;FIRST;Taksonin yleiskielinen nimi (alkuperäinen)
 document.loadDate;document.loadDate;loadedSameOrAfter;;Lataus_pvm;datetime;GROUPBY;Päivä jolloin havainto ladattiin Lajitietokeskukseen
-unit.linkings.originalTaxon.informalTaxonGroups;name;target;InformalGroupName;Elioryhma;str;FIRST;Epävirallinen eliöryhmäluokittelu
+unit.linkings.taxon.informalTaxonGroups;name;target;InformalGroupName;Elioryhma;str;FIRST;Epävirallinen eliöryhmäluokittelu
 ;;polygon;geometry;geometry;geom;;Geometria (polygon) WKT-muodossa
 ;;;;Esiintyman_tila;str;GROUPBY;Onko laji paikalla vai poissa (nollahavainto)
 ;;;;Aineisto;str;FIRST;Aineiston nimi

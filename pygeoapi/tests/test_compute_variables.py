@@ -90,8 +90,8 @@ def test_compute_all(tmp_path):
     gdf = gpd.GeoDataFrame({
         'unit.atlasClass': ['http://tun.fi/atlasA'],
         'unit.atlasCode': ['http://tun.fi/code1'],
-        'unit.linkings.originalTaxon.primaryHabitat.habitat': ['http://tun.fi/habitatMkt'],
-        'unit.linkings.originalTaxon.latestRedListStatusFinland.status': ['http://tun.fi/iucnLC'],
+        'unit.linkings.taxon.primaryHabitat.habitat': ['http://tun.fi/habitatMkt'],
+        'unit.linkings.taxon.latestRedListStatusFinland.status': ['http://tun.fi/iucnLC'],
         'unit.linkings.taxon.threatenedStatus': ['threatened'],
         'unit.recordBasis': ['PRESERVED_SPECIMEN'],
         'unit.interpretations.recordQuality': ['EXPERT_VERIFIED'],
@@ -99,7 +99,7 @@ def test_compute_all(tmp_path):
         'unit.sex': ['MALE'],
         'unit.abundanceUnit': ['INDIVIDUAL_COUNT'],
         'document.linkings.collectionQuality': ['PROFESSIONAL'],
-        'unit.linkings.originalTaxon.administrativeStatuses': ['tun.fi/MX.birdsDirectiveStatusAppendix2A, tun.fi/MX.birdsDirectiveStatusAppendix3A'],
+        'unit.linkings.taxon.administrativeStatuses': ['http://tun.fi/MX.birdsDirectiveStatusAppendix2A, http://tun.fi/MX.birdsDirectiveStatusAppendix3A'],
         'unit.interpretations.individualCount': [3],
         'document.collectionId': ['HR.1747'],
         'unit.unitId': ['1'],
@@ -127,8 +127,8 @@ def test_compute_all(tmp_path):
     result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipals_gdf)
     assert result_gdf['unit.atlasClass'][0] == 'Atlas A'
     assert result_gdf['unit.atlasCode'][0] == 'Code 1'
-    assert result_gdf['unit.linkings.originalTaxon.primaryHabitat.habitat'][0] == 'Mkt – tuoreet ja lehtomaiset kankaat'
-    assert result_gdf['unit.linkings.originalTaxon.latestRedListStatusFinland.status'][0] == 'LC – Elinvoimaiset'
+    assert result_gdf['unit.linkings.taxon.primaryHabitat.habitat'][0] == 'Mkt – tuoreet ja lehtomaiset kankaat'
+    assert result_gdf['unit.linkings.taxon.latestRedListStatusFinland.status'][0] == 'LC – Elinvoimaiset'
     assert result_gdf['unit.linkings.taxon.threatenedStatus'][0] == 'Threatened'
     assert result_gdf['unit.recordBasis'][0] == 'Näyte'
     assert result_gdf['unit.interpretations.recordQuality'][0] == 'Asiantuntijan varmistama'
@@ -136,7 +136,7 @@ def test_compute_all(tmp_path):
     assert result_gdf['unit.sex'][0] == 'koiras'
     assert result_gdf['unit.abundanceUnit'][0] == 'Yksilömäärä'
     assert result_gdf['document.linkings.collectionQuality'][0] == 'Ammattiaineistot / asiantuntijoiden laadunvarmistama'
-    assert result_gdf['unit.linkings.originalTaxon.administrativeStatuses'][0] == 'EU:n lintudirektiivin II/A-liite, EU:n lintudirektiivin III/A-liite'
+    assert result_gdf['unit.linkings.taxon.administrativeStatuses'][0] == 'EU:n lintudirektiivin II/A-liite, EU:n lintudirektiivin III/A-liite'
     assert result_gdf['Esiintyman_tila'][0] == 'paikalla'
     assert result_gdf['Aineisto'][0] == 'Lajitietokeskus/FinBIF - Vihkon yleiset havainnot'
     assert result_gdf['Kunta'][0] == 'Helsinki'

@@ -50,8 +50,8 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
             Polygon([(0, 0), (2, 0), (0, 2), (2, 2), (0, 0)]),
             GeometryCollection([Point(25.1, 60.3)])
         ],
-        'unit.linkings.originalTaxon.informalTaxonGroups[0]': ['MVL.1', 'MVL.2', 'MVL.1', 'MVL.2'],
-        'unit.linkings.originalTaxon.administrativeStatuses': [['status1', 'status2'], ['status3'], ['status4'], ['status5']],
+        'unit.linkings.taxon.informalTaxonGroups[0]': ['MVL.1', 'MVL.2', 'MVL.1', 'MVL.2'],
+        'unit.linkings.taxon.administrativeStatuses': [['status1', 'status2'], ['status3'], ['status4'], ['status5']],
         'unit.interpretations.individualCount': [10, 20, 5, 15],
         'document.collectionId': ['HR.1', 'HR.2', 'HR.1', 'HR.2'],
         'unit.recordBasis': ['Observation', 'Specimen', 'Observation', 'Specimen'],

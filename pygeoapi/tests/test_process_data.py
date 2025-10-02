@@ -11,7 +11,7 @@ from scripts import process_data
 
 def test_merge_taxonomy_data():
     data_occurrence = {
-        'unit.linkings.originalTaxon.informalTaxonGroups[0]': [
+        'unit.linkings.taxon.informalTaxonGroups[0]': [
             "http://tun.fi/MVL.26280", "http://tun.fi/MVL.27899", "http://tun.fi/MVL.27801", "http://tun.fi/MVL.27800"
         ],
         'some_other_column': [1, 2, 3, 4],

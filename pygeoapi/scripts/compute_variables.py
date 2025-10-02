@@ -172,8 +172,8 @@ def process_strip_url_columns(gdf, value_ranges):
     columns = [
         'unit.atlasClass',
         'unit.atlasCode',
-        'unit.linkings.originalTaxon.primaryHabitat.habitat',
-        'unit.linkings.originalTaxon.latestRedListStatusFinland.status',
+        'unit.linkings.taxon.primaryHabitat.habitat',
+        'unit.linkings.taxon.latestRedListStatusFinland.status',
         'unit.linkings.taxon.threatenedStatus',
     ]
 
@@ -227,8 +227,8 @@ def compute_all(gdf, value_ranges, collection_names, municipals_gdf):
     all_cols.update(process_direct_map_columns(gdf, value_ranges))
 
     # Mappings with multiple value in a cell:
-    if 'unit.linkings.originalTaxon.administrativeStatuses' in gdf.columns:
-        all_cols['unit.linkings.originalTaxon.administrativeStatuses'] = map_values(gdf['unit.linkings.originalTaxon.administrativeStatuses'],value_ranges)
+    if 'unit.linkings.taxon.administrativeStatuses' in gdf.columns:
+        all_cols['unit.linkings.taxon.administrativeStatuses'] = map_values(gdf['unit.linkings.taxon.administrativeStatuses'],value_ranges)
 
     # Computed values from different source
     all_cols['Esiintyman_tila'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 
