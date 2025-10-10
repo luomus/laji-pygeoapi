@@ -11,7 +11,8 @@ def test_convert_filters():
     municipals_ids = {'Helsinki': '123'}
     params = {}
     properties = [('Aineiston_tunniste', 'http://tun.fi/HR.95'), ('finnishMunicipalityId', 'Helsinki')]
-    result = convert_api_filters.convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, access_token='test_token')
+    config = {'access_token': 'test_token', 'laji_api_url': 'https://api.laji.fi/'}
+    result = convert_api_filters.convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, config)
     assert result['collectionId'] == 'HR.95'
     assert result['finnishMunicipalityId'] == '123'
 
@@ -44,7 +45,7 @@ def test_map_value():
     # Mock the get_filter_values function
     original_get_filter_values = convert_api_filters.get_filter_values
     
-    def mock_get_filter_values(filter_name, access_token):
+    def mock_get_filter_values(filter_name, access_token, base_url=None):
         if filter_name == 'sex':
             return {'naaras': 'FEMALE', 'koiras': 'MALE'}
         return {}
@@ -52,9 +53,9 @@ def test_map_value():
     convert_api_filters.get_filter_values = mock_get_filter_values
     
     try:
-        assert convert_api_filters.map_value('naaras', 'sex', 'access_token') == 'FEMALE'
-        assert convert_api_filters.map_value('koiras,naaras', 'sex', 'access_token') == 'MALE,FEMALE'
-        assert convert_api_filters.map_value('unknown', 'sex', 'access_token') == 'unknown'
+        assert convert_api_filters.map_value('naaras', 'sex', 'test_access_token', 'https://api.laji.fi/') == 'FEMALE'
+        assert convert_api_filters.map_value('koiras,naaras', 'sex', 'test_access_token', 'https://api.laji.fi/') == 'MALE,FEMALE'
+        assert convert_api_filters.map_value('unknown', 'sex', 'test_access_token', 'https://api.laji.fi/') == 'unknown'
     finally:
         # Restore original function
         convert_api_filters.get_filter_values = original_get_filter_values

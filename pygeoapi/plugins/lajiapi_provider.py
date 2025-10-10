@@ -4,7 +4,7 @@ from pygeoapi.provider.base import BaseProvider, ProviderQueryError
 from pandas import notna
 from scripts.process_features import process_json_features
 from scripts.main import setup_environment
-from scripts.load_data import load_or_update_cache
+from scripts.load_data import load_or_update_cache, _get_api_headers
 from scripts.convert_api_filters import convert_filters, process_bbox
 
 logger = logging.getLogger(__name__)
@@ -16,12 +16,12 @@ class LajiApiProvider(BaseProvider):
 
     def __init__(self, provider_def):
         super().__init__(provider_def)
-        config = setup_environment()
+        self.config = setup_environment()
         self.include_extra_query_parameters = True
-        self.api_url = config['laji_api_url'] + 'warehouse/query/unit/list'
-        self.access_token = config.get('access_token')
+        self.api_url = self.config['laji_api_url'] + 'warehouse/query/unit/list'
+        self.access_token = self.config.get('access_token')
         self.municipals_gdf, self.municipals_ids, self.lookup_df, self.taxon_df, \
-            self.collection_names, self.all_value_ranges = load_or_update_cache(config)
+            self.collection_names, self.all_value_ranges = load_or_update_cache(self.config)
         self._cached_fields = None
         self.selected_fields = ",".join([field for field in self.lookup_df['selected'].dropna().to_list() if field])
 
@@ -72,18 +72,17 @@ class LajiApiProvider(BaseProvider):
             'featureType': 'CENTER_POINT',
             'format': 'geojson'
         }
-        if self.access_token:
-            params['access_token'] = self.access_token
         if bbox and len(bbox) == 4:
             params['polygon'] = process_bbox(bbox)
-        params = convert_filters(self.lookup_df, self.all_value_ranges, self.municipals_ids, params, properties, self.access_token)
+        params = convert_filters(self.lookup_df, self.all_value_ranges, self.municipals_ids, params, properties, self.config)
         params['selected'] = self.selected_fields
 
         return params
 
     def _make_api_request(self, params):
+        headers = _get_api_headers(self.access_token)
         try:
-            response = requests.get(self.api_url, params=params, timeout=300)
+            response = requests.get(self.api_url, params=params, headers=headers, timeout=300)
             response.raise_for_status()
             data = response.json()
         except requests.exceptions.Timeout:
@@ -144,8 +143,6 @@ class LajiApiProvider(BaseProvider):
             'format': 'geojson',
             'unitId': decoded_identifier
         }
-        if self.access_token:
-            params['access_token'] = self.access_token
         params['selected'] = self.selected_fields
         try:
             data = self._make_api_request(params)

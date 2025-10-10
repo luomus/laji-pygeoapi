@@ -22,6 +22,14 @@ def _is_cache_valid(key):
     return (time.time() - _cache_timestamps[key]) < _cache_timeout
 
 
+def _get_api_headers(access_token):
+    """Build headers for API requests"""
+    return {
+        'Authorization': f'Bearer {access_token}',
+        'Api-Version': '1'
+    }
+
+
 def load_or_update_cache(config):
     """
     Loads essential data (municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges) from the cache or the API.
@@ -34,14 +42,18 @@ def load_or_update_cache(config):
         return _cache[cache_key]
 
     logger.debug("Fetching data from API")
+    base_url = config['laji_api_url']
+    headers = _get_api_headers(config['access_token'])
+    
     municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson', engine='pyogrio').to_crs("EPSG:4326")
     _ = municipals_gdf.sindex  # force spatial index creation
-    municipals_ids = get_municipality_ids(f"{config['laji_api_url']}areas?type=municipality&lang=fi&access_token={config['access_token']}&pageSize=1000")
+    
+    municipals_ids = get_municipality_ids(f"{base_url}areas", {'type': 'municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
-    taxon_df = get_taxon_data(f"{config['laji_api_url']}informal-taxon-groups?lang=fi&pageSize=1000&access_token={config['access_token']}")
-    collection_names = get_collection_names(f"{config['laji_api_url']}collections?selected=id&lang=fi&pageSize=1500&langFallback=true&access_token={config['access_token']}")
-    ranges1 = get_value_ranges(f"{config['laji_api_url']}/metadata/ranges?lang=fi&asLookupObject=true&access_token={config['access_token']}")
-    ranges2 = get_enumerations(f"{config['laji_api_url']}/warehouse/enumeration-labels?access_token={config['access_token']}")
+    taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'lang': 'fi', 'pageSize': 1000}, headers)
+    collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'lang': 'fi', 'pageSize': 1500, 'langFallback': 'true'}, headers)
+    ranges1 = get_value_ranges(f"{base_url}metadata/ranges", {'lang': 'fi', 'asLookupObject': 'true'}, headers)
+    ranges2 = get_enumerations(f"{base_url}warehouse/enumeration-labels", {}, headers)
     all_value_ranges = ranges1 | ranges2  # type: ignore
 
     result = municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges
@@ -53,19 +65,23 @@ def load_or_update_cache(config):
     return result
 
 @functools.cache
-def get_filter_values(filter_name, access_token):
+def get_filter_values(filter_name, access_token, base_url=None):
     """
     Fetch filter values from the API and return them as a dictionary with names as keys and Finnish labels as values.
     
     Parameters:
     filter_name (str): The name of the filter to retrieve values for.
-    config (dict): Configuration dictionary containing access_token.
+    access_token (str): The access token for API authentication.
+    base_url (str): The base URL for the API. If None, defaults to https://api.laji.fi/
     
     Returns:
     dict: A dictionary with enumeration names as keys and Finnish labels as values.
     """
-    url = f'https://api.laji.fi/v0/warehouse/filters/{filter_name}?access_token={access_token}'
-    data = fetch_json_with_retry(url)
+    if base_url is None:
+        base_url = 'https://api.laji.fi/'
+    url = f'{base_url}warehouse/filters/{filter_name}'
+    headers = _get_api_headers(access_token)
+    data = fetch_json_with_retry(url, headers=headers)
     if data:
         enumerations = data.get('enumerations', [])
         return {
@@ -76,12 +92,14 @@ def get_filter_values(filter_name, access_token):
     logger.error(f"Failed to retrieve values for {filter_name}")
     return {}
 
-def fetch_json_with_retry(url, max_retries=5, delay=30):
+def fetch_json_with_retry(url, params=None, headers=None, max_retries=5, delay=30):
     """
     Fetches JSON data from an API URL with retry logic.
     
     Parameters:
-    url (str): The API URL to fetch JSON data from.
+    url (str): The base API URL to fetch JSON data from.
+    params (dict): Query parameters to include in the request.
+    headers (dict): Headers to include in the request.
     max_retries (int): The maximum number of retry attempts in case of failure.
     delay (int): The delay between retries in seconds.
     
@@ -91,7 +109,7 @@ def fetch_json_with_retry(url, max_retries=5, delay=30):
     attempt = 0
     while attempt < max_retries:
         try:
-            response = requests.get(url)
+            response = requests.get(url, params=params, headers=headers)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -101,25 +119,27 @@ def fetch_json_with_retry(url, max_retries=5, delay=30):
     logger.error(f"Failed to retrieve data from {url} after {max_retries} attempts.")
     return None
 
-def get_collection_names(url):
+def get_collection_names(url, params, headers):
     """
     Get collection names in Finnish from the API
 
     Parameters:
-    url (str): The URL of the Collection API endpoint.
+    url (str): The base URL of the Collection API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
 
     Returns:
     (dictionary): The dictionary containing all collection IDs and their long names
     """
 
-    data = fetch_json_with_retry(url)
+    data = fetch_json_with_retry(url, params=params, headers=headers)
 
     # Extracting collection ids and longNames and storing them in a dictionary
     if data:
         return {item['id']: item['longName'] for item in data['results']}
     return {}
 
-def get_pages(pages_env: str, occurrence_url: str, page_size: int) -> int:
+def get_pages(pages_env: str, occurrence_url: str, params: dict, headers: dict, page_size: int) -> int:
     """Resolve number of pages to process based on pages_env flag.
 
     pages_env values:
@@ -128,25 +148,30 @@ def get_pages(pages_env: str, occurrence_url: str, page_size: int) -> int:
       - numeric string: explicit fixed number of pages
     """
     if pages_env in ("all", "latest"):
-        pages = get_last_page(occurrence_url, int(page_size))
+        pages = get_last_page(occurrence_url, params, headers, int(page_size))
         return pages or 0
     if pages_env.isdigit():
         return int(pages_env)
     raise ValueError(f"Unsupported PAGES value: {pages_env}")
 
-def get_last_page(url, page_size, max_retries=5, delay=60):
+def get_last_page(url, params, headers, page_size, max_retries=5, delay=60):
     """
     Get the last page number from the API response with retry logic.
 
     Parameters:
-    url (str): The URL of the Warehouse API endpoint.
+    url (str): The base URL of the Warehouse API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
     page_size (int): The number of items per page.
 
     Returns:
     int: The last page number. Returns None if all retries fail.
     """
-    url = url.replace('/list/', '/count/').replace('&geoJSON=true&featureType=ORIGINAL_FEATURE', '')
-    api_response = fetch_json_with_retry(url, max_retries=max_retries, delay=delay)
+    count_url = url.replace('/list/', '/count/')
+    # Remove geoJSON parameters for count endpoint
+    count_params = {k: v for k, v in params.items() if k not in ['geoJSON', 'featureType']}
+    
+    api_response = fetch_json_with_retry(count_url, params=count_params, headers=headers, max_retries=max_retries, delay=delay)
     if api_response:
         total = api_response.get('total')
         pages = total // page_size
@@ -157,29 +182,34 @@ def get_last_page(url, page_size, max_retries=5, delay=60):
     else:
         return None
 
-def download_page(url, page_no):
+def download_page(url, params, headers, page_no):
     """
     Download data from a specific page of the API with retry logic. This is in separate function to speed up multiprocessing.
 
     Parameters:
-    url (str): The URL of the Warehouse API endpoint.
+    url (str): The base URL of the Warehouse API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
     page_no (int): The page number to download.
 
     Returns:
     geopandas.GeoDataFrame: The downloaded data as a GeoDataFrame.
     """
-    url = url.replace('page=1', f'page={page_no}')
-    data = fetch_json_with_retry(url)
+    page_params = params.copy()
+    page_params['page'] = page_no
+    data = fetch_json_with_retry(url, params=page_params, headers=headers)
     if data:
         return gpd.GeoDataFrame.from_features(data["features"], crs="EPSG:4326")
     return gpd.GeoDataFrame()
 
-def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
+def get_occurrence_data(url, params, headers, startpage, endpage, multiprocessing=False):
     """
     Retrieve occurrence data from the API.
 
     Parameters:
-    url (str): The URL of the Warehouse API endpoint.
+    url (str): The base URL of the Warehouse API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
     multiprocessing (bool, optional): Whether to use multiprocessing. Defaults to False.
     startpage (int): First page to retrieve. 
     endpage (int): Last page to retrieve 
@@ -194,7 +224,7 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     if multiprocessing in [True, "True"]:
         # Use multiprocessing to retrieve page by page. 
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(download_page, url, page_no) for page_no in range(startpage, endpage + 1)]
+            futures = [executor.submit(download_page, url, params, headers, page_no) for page_no in range(startpage, endpage + 1)]
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 gdfs.append(result)
@@ -203,7 +233,7 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     else:
         # Retrieve data page by page without multiprocessing 
         for page_no in range(startpage,endpage+1):
-            next_gdf = download_page(url, page_no)
+            next_gdf = download_page(url, params, headers, page_no)
             gdfs.append(next_gdf)
             if next_gdf.empty:
                 failed_features_counter += 10000
@@ -212,48 +242,54 @@ def get_occurrence_data(url, startpage, endpage, multiprocessing=False):
     gdf = pd.concat(gdfs, ignore_index=True) if gdfs else gpd.GeoDataFrame()
     return gdf, failed_features_counter
 
-def get_value_ranges(url):
+def get_value_ranges(url, params, headers):
     """
     Fetches JSON data from an API URL and returns it as a Python dictionary.
 
     Parameters:
-    url (str): The URL of the metadata API endpoint.
+    url (str): The base URL of the metadata API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
 
     Returns:
     dict: A dictionary containing the JSON data from the API.
     """
-    return fetch_json_with_retry(url)
+    return fetch_json_with_retry(url, params=params, headers=headers)
 
-def get_taxon_data(url):
+def get_taxon_data(url, params, headers):
     """
     Retrieve taxon data from the API. Will be merged to occurrence data later.
 
     Parameters:
-    url (str): The URL of the taxon name API endpoint.
+    url (str): The base URL of the taxon name API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
 
     Returns:
     pandas.DataFrame: The retrieved taxon data.
     """
 
     # Get the another taxon data
-    data = fetch_json_with_retry(url)
+    data = fetch_json_with_retry(url, params=params, headers=headers)
     if data:
         json_data_results = data.get('results', [])
         return pd.json_normalize(json_data_results)
     return pd.DataFrame()
 
-def get_enumerations(url):
+def get_enumerations(url, params, headers):
     """
     Fetches JSON data from an API URL and extracts a dictionary of enumerations 
     with 'enumeration' as keys and 'fi' labels as values.
 
     Parameters:
-    url (str): The URL of the data warehouse enumeration API endpoint.
+    url (str): The base URL of the data warehouse enumeration API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
 
     Returns:
     dict: A dictionary with enumeration values as keys and 'fi' labels as values.
     """
-    json_data = fetch_json_with_retry(url, max_retries=10, delay=60)
+    json_data = fetch_json_with_retry(url, params=params, headers=headers, max_retries=10, delay=60)
     if not json_data:
         raise ValueError("Error getting enumeration values.")
 
@@ -265,17 +301,19 @@ def get_enumerations(url):
     }
     return enumerations
 
-def get_municipality_ids(url):
+def get_municipality_ids(url, params, headers):
     """
     Fetch municipality ids and names from the api.laji.fi/areas endpoint
 
     Parameters:
-    url (str): The URL of the areas (type=municipality) API endpoint.
+    url (str): The base URL of the areas (type=municipality) API endpoint.
+    params (dict): Query parameters for the request.
+    headers (dict): Headers for the request.
 
     Returns:
     dict: A dictionary with municipality names as keys and ids as values.
     """
-    data = fetch_json_with_retry(url)
+    data = fetch_json_with_retry(url, params=params, headers=headers)
     if data:
         results = data['results']
         municipality_ids_dictionary = {}

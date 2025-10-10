@@ -65,7 +65,7 @@ def test_fields_property():
 def test_build_request_params():
     """Test _build_request_params method with different parameters"""
     # Mock convert_filters to just return the params unchanged
-    def mock_convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, access_token):
+    def mock_convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, config):
         return params
     
     # Mock process_bbox to return a simple string
@@ -152,7 +152,7 @@ def test_query():
     mock_features = [{'type': 'Feature', 'properties': {}, 'geometry': {}}]
     
     # Mock the dependencies
-    def mock_convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, access_token):
+    def mock_convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, config):
         return params
     
     def mock_process_bbox(bbox):

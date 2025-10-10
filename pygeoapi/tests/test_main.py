@@ -67,8 +67,18 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
     mock_compute_all.side_effect = lambda gdf, *args, **kwargs: gdf # Mock compute_all to return the input GeoDataFrame
 
     lookup_df = pd.read_csv("scripts/resources/lookup_table_columns.csv", sep=';', header=0)
+    
+    # Create mock municipals_gdf
+    municipals_gdf = gpd.GeoDataFrame({
+        'name': ['Test Municipality'],
+        'geometry': [Point(24.9384, 60.1699)]
+    })
+    
+    # Create mock params and headers
+    params = {'param1': 'value1'}
+    headers = {'Authorization': 'Bearer test_token'}
 
     results = main.load_and_process_data(
-        "occurrence_url", "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, "mock_path", lookup_df
+        "occurrence_url", params, headers, "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df
     )
     assert results == (4, 0, 1, 0, 2, 0) # 4 occurrences, 0 failed, 1 edited, 0 duplicates, 2 processed and 0 merged geometry collections

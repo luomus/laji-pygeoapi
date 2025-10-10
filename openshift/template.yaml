@@ -56,7 +56,7 @@ parameters:
     required: True
   - name: LAJI_API_URL
     required: true
-    value: "https://api.laji.fi/v0/"
+    value: "https://api.laji.fi/"
   - name: INTERNAL_POSTGRES_PASSWORD
     required: true
   - name: INTERNAL_POSTGRES_USER
@@ -84,6 +84,13 @@ parameters:
   - name: PYTHON_SCRIPTS_MEMORY_LIMIT
     required: true
     value: "1Gi"
+  - name: INVASIVE_SPECIES
+    required: true
+    value: "False"
+  - name: PYGEOAPI_VERSION
+    description: The version of the pygeoapi base Docker image to use
+    required: true
+    value: "0.21.0"
     
 metadata:
   name: template
@@ -439,6 +446,8 @@ objects:
                       value: ${MULTIPROCESSING}
                     - name: RUNNING_IN_OPENSHIFT
                       value: "True"
+                    - name: INVASIVE_SPECIES
+                      value: ${INVASIVE_SPECIES}
                     - name: ACCESS_TOKEN
                       valueFrom:
                         secretKeyRef:

@@ -61,7 +61,7 @@ def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipali
     mock_get_enumerations.return_value = {'enum1': 'label1'}
     
     config = {
-        'laji_api_url': 'https://api.laji.fi/v0/',
+        'laji_api_url': 'https://api.laji.fi/',
         'access_token': 'test_token'
     }
     
@@ -134,25 +134,25 @@ def test_get_filter_values(mock_fetch):
         ]
     }
     
-    result = load_data.get_filter_values('taxonGroup', 'test_token')
+    result = load_data.get_filter_values('taxonGroup', 'test_token', 'https://api.laji.fi/')
     expected = {
         'Lintu': 'BIRD',
         'Kasvi': 'PLANT', 
         'Sieni': 'FUNGI'
     }
     assert result == expected
-    mock_fetch.assert_called_once_with('https://api.laji.fi/v0/warehouse/filters/taxonGroup?access_token=test_token')
+    mock_fetch.assert_called_once_with('https://api.laji.fi/warehouse/filters/taxonGroup', headers={'Authorization': 'Bearer test_token', 'Api-Version': '1'})
         
     # Test caching behavior - second call should return cached result
     mock_fetch.reset_mock()
     mock_fetch.return_value = {'enumerations': [{'label': {'fi': 'Cached'}, 'name': 'CACHED'}]}
     
     # First call
-    result1 = load_data.get_filter_values('cached_filter', 'test_token')
+    result1 = load_data.get_filter_values('cached_filter', 'test_token', 'https://api.laji.fi/')
     assert mock_fetch.call_count == 1
     
     # Second call with same parameters should use cache
-    result2 = load_data.get_filter_values('cached_filter', 'test_token')
+    result2 = load_data.get_filter_values('cached_filter', 'test_token', 'https://api.laji.fi/')
     assert mock_fetch.call_count == 1  # No additional API call
     assert result1 == result2
 
@@ -165,7 +165,7 @@ def test_fetch_json_with_retry(mock_get):
     mock_get.return_value = mock_response
     result = load_data.fetch_json_with_retry("http://example.com/api")
     assert result == {"key": "value"}
-    mock_get.assert_called_once_with("http://example.com/api")
+    mock_get.assert_called_once_with("http://example.com/api", params=None, headers=None)
 
     # Test retry on failure and then success
     mock_get.reset_mock()
@@ -189,14 +189,18 @@ def test_get_collection_names(mock_fetch):
             {'id': '2', 'longName': 'Collection Two'}
         ]
     }
-    result = load_data.get_collection_names("http://example.com/api")
+    params = {}
+    headers = {}
+    result = load_data.get_collection_names("http://example.com/api", params, headers)
     expected = {'1': 'Collection One', '2': 'Collection Two'}
     assert result == expected
-    mock_fetch.assert_called_once_with("http://example.com/api")
+    mock_fetch.assert_called_once_with("http://example.com/api", params=params, headers=headers)
 
 def test_get_last_page():
-    url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE"
-    last_page = load_data.get_last_page(url, page_size=1)
+    url = "https://beta.laji.fi/api/warehouse/query/unit/list"
+    params = {'page': '1', 'pageSize': '1', 'geoJSON': 'true', 'featureType': 'ORIGINAL_FEATURE'}
+    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
+    last_page = load_data.get_last_page(url, params, headers, page_size=1)
     assert isinstance(last_page, int)
     assert last_page >= 1
 
@@ -204,33 +208,39 @@ def test_get_last_page():
 def test_get_pages(mock_get_last_page):
     # all mode
     mock_get_last_page.return_value = 10
-    assert load_data.get_pages('all', 'http://example.com/url', 10000) == 10
+    params = {}
+    headers = {}
+    assert load_data.get_pages('all', 'http://example.com/url', params, headers, 10000) == 10
     mock_get_last_page.assert_called_once()
 
     # latest mode
     mock_get_last_page.reset_mock()
     mock_get_last_page.return_value = 5
-    assert load_data.get_pages('latest', 'http://example.com/url', 10000) == 5
+    assert load_data.get_pages('latest', 'http://example.com/url', params, headers, 10000) == 5
     mock_get_last_page.assert_called_once()
 
     # numeric mode
-    assert load_data.get_pages('7', 'http://example.com/url', 10000) == 7
+    assert load_data.get_pages('7', 'http://example.com/url', params, headers, 10000) == 7
 
 def test_download_page():
-    url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE"
-    gdf = load_data.download_page(url, page_no=1)
+    url = "https://beta.laji.fi/api/warehouse/query/unit/list"
+    params = {'page': '1', 'pageSize': '1', 'geoJSON': 'true', 'featureType': 'ORIGINAL_FEATURE'}
+    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
+    gdf = load_data.download_page(url, params, headers, page_no=1)
     assert isinstance(gdf, gpd.GeoDataFrame)
     assert not gdf.empty
 
 def test_get_occurrence_data():
-    url = "https://beta.laji.fi/api/warehouse/query/unit/list?page=1&pageSize=1&geoJSON=true&featureType=ORIGINAL_FEATURE&time=/-1"
-    gdf, _ = load_data.get_occurrence_data(url=url, startpage=1, endpage=2, multiprocessing=True)
+    url = "https://beta.laji.fi/api/warehouse/query/unit/list"
+    params = {'page': '1', 'pageSize': '1', 'geoJSON': 'true', 'featureType': 'ORIGINAL_FEATURE', 'time': '/-1'}
+    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
+    gdf, _ = load_data.get_occurrence_data(url=url, params=params, headers=headers, startpage=1, endpage=2, multiprocessing=True)
     assert isinstance(gdf, gpd.GeoDataFrame)
     assert not gdf.empty
     assert gdf['geometry'].dtype == 'geometry'
     assert gdf['unit.unitId'].dtype == 'object'
 
-    gdf2, _ = load_data.get_occurrence_data(url=url, startpage=1, endpage=2, multiprocessing=False)
+    gdf2, _ = load_data.get_occurrence_data(url=url, params=params, headers=headers, startpage=1, endpage=2, multiprocessing=False)
     assert isinstance(gdf2, gpd.GeoDataFrame)
     assert not gdf2.empty
     assert gdf2['geometry'].dtype == 'geometry'
@@ -243,14 +253,18 @@ def test_get_occurrence_data():
     pd.testing.assert_frame_equal(gdf_sorted, gdf2_sorted, check_like=True)
 
 def test_get_value_ranges():
-    url = "https://beta.laji.fi/api/metadata/ranges?lang=fi&asLookupObject=true"
-    result = load_data.get_value_ranges(url)
+    url = "https://beta.laji.fi/api/metadata/ranges"
+    params = {'lang': 'fi', 'asLookupObject': 'true'}
+    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
+    result = load_data.get_value_ranges(url, params, headers)
     assert isinstance(result, dict)
     assert 'MY.recordBasisIndirectSampleIndirectSample' in result
 
 def test_get_taxon_data():
-    taxon_name_url = f'https://beta.laji.fi/api/informal-taxon-groups?pageSize=1'
-    df = load_data.get_taxon_data(taxon_name_url)
+    taxon_name_url = f'https://beta.laji.fi/api/informal-taxon-groups'
+    params = {'pageSize': '1'}
+    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
+    df = load_data.get_taxon_data(taxon_name_url, params, headers)
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
     assert 'id' in df.columns
@@ -258,7 +272,9 @@ def test_get_taxon_data():
 
 def test_get_enumerations():
     url = "https://beta.laji.fi/api/warehouse/enumeration-labels"
-    result = load_data.get_enumerations(url)
+    params = {}
+    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
+    result = load_data.get_enumerations(url, params, headers)
     assert isinstance(result, dict)
     assert result['IMAGE'] == 'Kuva'
 
@@ -273,18 +289,20 @@ def test_get_municipality_ids(mock_fetch):
         ]
     }
     
-    result = load_data.get_municipality_ids("http://example.com/api")
+    params = {}
+    headers = {}
+    result = load_data.get_municipality_ids("http://example.com/api", params, headers)
     expected = {
         'Helsinki': 'ML.206',
         'Tampere': 'ML.837',
         'Turku': 'ML.853'
     }
     assert result == expected
-    mock_fetch.assert_called_once_with("http://example.com/api")
+    mock_fetch.assert_called_once_with("http://example.com/api", params=params, headers=headers)
 
     # Test when fetch_json_with_retry returns None
     mock_fetch.reset_mock()
     mock_fetch.return_value = None
-    result = load_data.get_municipality_ids("http://example.com/api")
+    result = load_data.get_municipality_ids("http://example.com/api", params, headers)
     assert result is None
-    mock_fetch.assert_called_once_with("http://example.com/api")
+    mock_fetch.assert_called_once_with("http://example.com/api", params=params, headers=headers)

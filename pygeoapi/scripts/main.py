@@ -70,7 +70,7 @@ def setup_environment():
         "invasive_species": invasive_species,
     }
 
-def load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables=False):
+def load_and_process_data(occurrence_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables=False):
     """
     Load and process data in batches from the given URL.
     """
@@ -92,7 +92,7 @@ def load_and_process_data(occurrence_url, table_base_name, pages, config, all_va
         endpage = min(startpage + batch_size - 1, pages)
         logger.info(f"Loading {table_base_name} observations. Pages {startpage}-{endpage} ({pages} in total)")
         
-        gdf, failed_features = load_data.get_occurrence_data(occurrence_url, startpage=startpage, endpage=endpage, multiprocessing=config["multiprocessing"])
+        gdf, failed_features = load_data.get_occurrence_data(occurrence_url, params, headers, startpage=startpage, endpage=endpage, multiprocessing=config["multiprocessing"])
         failed_features_count += failed_features
 
         if gdf.empty:
@@ -155,35 +155,47 @@ def main():
         municipals_gdf, _, lookup_df, taxon_df, collection_names, all_value_ranges = load_data.load_or_update_cache(config)
 
         # Construct API URL for api.laji.fi
-        base_url = f"{config['laji_api_url']}warehouse/query/unit/list?"
-        if config['pages_env'] == "latest" and last_update:
-            base_url = f"{base_url}loadedSameOrAfter={last_update}&"
-        elif config['pages_env'] == "all":
-            drop_tables = True
+        base_url = f"{config['laji_api_url']}warehouse/query/unit/list"
         if config['target'] == 'virva':
             base_url = base_url.replace('/query/', '/private-query/')
-            base_url = f"{base_url}personEmail={config['access_email']}&"
-
-        selected_fields = ",".join([field for field in lookup_df['selected'].dropna().to_list() if field])
-        administrative_status_ids = "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds"
-        red_list_status_ids = "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT"
-        country_id = "ML.206"
-        time_range = "1990-01-01/" 
-        coordinate_accuracy_max = "1000"
-        page = "1"
-        page_size = "10000"
-        taxon_admin_filters_operator = "OR"
-        collection_and_record_quality = "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;"
-        geo_json = "true"
-        feature_type = "ORIGINAL_FEATURE"
 
         logger.info("Processing species data from each biogeographical region...")
-        biogeographical_province_ids = ["ML.251","ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
+        biogeographical_province_ids = ["ML.251"]#,"ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
+        headers = load_data._get_api_headers(config['access_token'])
+        
+        # Build common parameters
+        common_params = {
+            'selected': ",".join([field for field in lookup_df['selected'].dropna().to_list() if field]),
+            'countryId': "ML.206",
+            'time': "1990-01-01/",
+            'redListStatusId': "MX.iucnCR,MX.iucnEN,MX.iucnVU,MX.iucnNT",
+            'administrativeStatusId': "MX.finlex160_1997_appendix4_2021,MX.finlex160_1997_appendix4_specialInterest_2021,MX.finlex160_1997_appendix2a,MX.finlex160_1997_appendix2b,MX.finlex160_1997_appendix3a,MX.finlex160_1997_appendix3b,MX.finlex160_1997_appendix3c,MX.finlex160_1997_largeBirdsOfPrey,MX.habitatsDirectiveAnnexII,MX.habitatsDirectiveAnnexIV,MX.birdsDirectiveStatusAppendix1,MX.birdsDirectiveStatusMigratoryBirds",
+            'coordinateAccuracyMax': "1000",
+            'page': "1",
+            'pageSize': "10000",
+            'taxonAdminFiltersOperator': "OR",
+            'collectionAndRecordQuality': "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;",
+            'geoJSON': "true",
+            'featureType': "ORIGINAL_FEATURE"
+        }
+        
+        # Add conditional parameters
+        if config['pages_env'] == "latest" and last_update:
+            common_params['loadedSameOrAfter'] = last_update
+        elif config['pages_env'] == "all":
+            drop_tables = True
+            
+        if config['target'] == 'virva':
+            common_params['personEmail'] = config['access_email']
+        
         for province_id in biogeographical_province_ids:
             table_base_name = compute_variables.get_biogeographical_region_from_id(province_id)
-            occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&redListStatusId={red_list_status_ids}&administrativeStatusId={administrative_status_ids}&coordinateAccuracyMax={coordinate_accuracy_max}&page={page}&pageSize={page_size}&taxonAdminFiltersOperator={taxon_admin_filters_operator}&collectionAndRecordQuality={collection_and_record_quality}&geoJSON={geo_json}&featureType={feature_type}&biogeographicalProvinceId={province_id}&access_token={config['access_token']}"
-            pages = load_data.get_pages(config["pages_env"], occurrence_url, int(page_size))
-            results = load_and_process_data(occurrence_url, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
+            
+            params = common_params.copy()
+            params['biogeographicalProvinceId'] = province_id
+            
+            pages = load_data.get_pages(config["pages_env"], base_url, params, headers, int(params['pageSize']))
+            results = load_and_process_data(base_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]
@@ -194,9 +206,18 @@ def main():
 
         if config["invasive_species"]:
             logger.info("Processing invasive species data...")
-            occurrence_url = f"{base_url}selected={selected_fields}&countryId={country_id}&time={time_range}&invasive=True&page={page}&pageSize={page_size}&geoJSON={geo_json}&featureType={feature_type}&access_token={config['access_token']}"
-            pages = load_data.get_pages(config["pages_env"], occurrence_url, int(page_size))
-            results = load_and_process_data(occurrence_url, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
+            
+            params = common_params.copy()
+            params['invasive'] = 'true'
+            # Remove parameters not needed for invasive species
+            params.pop('redListStatusId', None)
+            params.pop('administrativeStatusId', None)
+            params.pop('coordinateAccuracyMax', None)
+            params.pop('taxonAdminFiltersOperator', None)
+            params.pop('collectionAndRecordQuality', None)
+            
+            pages = load_data.get_pages(config["pages_env"], base_url, params, headers, int(params['pageSize']))
+            results = load_and_process_data(base_url, params, headers, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]

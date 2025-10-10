@@ -8,17 +8,19 @@ from scripts.load_data import get_filter_values
 
 logger = logging.getLogger(__name__)
 
-def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, access_token):
+def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, properties, config):
     """
     Converts filters from virva Finnish language scheme to be suitable for querying api.laji.fi data warehouse endpoint.
     For example, "Aineiston_tunniste=http://tun.fi/HR.95" is converted to "collectionId=HR.95" that can be used to query warehouse endpoint. 
     """
+    access_token = config.get('access_token')
+    base_url = config.get('laji_api_url')
     for name, value in properties:
         logger.info(f"Name: {name}, value: {value}")
         name = translate_filter_names(lookup_df, name)
         value = remove_id_prefix(value)
         if name in ['lifeStage', 'sex', 'recordQuality', 'collectionQuality', 'secureReason', 'recordBasis']:
-            value = map_value(value, name, access_token)
+            value = map_value(value, name, access_token, base_url)
         elif name in ['redListStatusId', 'administrativeStatusId', 'atlasClass', 'atlasCode', 'primaryHabitat']:
             value = map_value_ranges(all_value_ranges, value)
         elif name == 'biogeographicalProvinceId':
@@ -98,11 +100,11 @@ def map_biogeographical_provinces(value):
             mapped_values.append(val)
     return ','.join([v for v in mapped_values if v is not None])
 
-def map_value(value, filter_name, access_token):
+def map_value(value, filter_name, access_token, base_url):
     """
     Map filter values to api.laji.fi query parameters 
     """
-    mappings = get_filter_values(filter_name, access_token)
+    mappings = get_filter_values(filter_name, access_token, base_url)
     
     case_insensitive_mappings = {k.replace(' ', '').casefold(): v for k, v in mappings.items()}
 
