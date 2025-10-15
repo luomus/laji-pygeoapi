@@ -41,15 +41,15 @@ def test_is_cache_valid():
 @patch('scripts.load_data.get_taxon_data')
 @patch('scripts.load_data.get_municipality_ids')
 @patch('pandas.read_csv')
-@patch('geopandas.read_file')
-def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipality_ids, 
+@patch('pandas.read_json')
+def test_load_or_update_cache(mock_read_json, mock_read_csv, mock_get_municipality_ids, 
                              mock_get_taxon_data, mock_get_collection_names, 
                              mock_get_value_ranges, mock_get_enumerations):
     # Setup mocks
     mock_gdf = MagicMock()
     mock_gdf.to_crs.return_value = mock_gdf
     mock_gdf.sindex = MagicMock()
-    mock_read_file.return_value = mock_gdf
+    mock_read_json.return_value = mock_gdf
     
     mock_lookup_df = pd.DataFrame({'col1': [1, 2], 'col2': ['a', 'b']})
     mock_read_csv.return_value = mock_lookup_df
@@ -74,7 +74,7 @@ def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipali
     result = load_data.load_or_update_cache(config)
     
     # Verify all API calls were made
-    mock_read_file.assert_called_once_with('scripts/resources/municipalities.geojson', engine='pyogrio')
+    mock_read_json.assert_called_once_with('scripts/resources/municipality_ely_mappings.json')
     mock_read_csv.assert_called_once_with('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     mock_get_municipality_ids.assert_called_once()
     mock_get_taxon_data.assert_called_once()
@@ -84,7 +84,7 @@ def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipali
     
     # Verify result structure
     assert len(result) == 6
-    municipals_gdf, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges = result
+    municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges = result
     assert municipals_ids == {'Municipality1': 'ID1'}
     assert collection_names == {'Collection1': 'Name1'}
     assert all_value_ranges == {'range1': 'value1', 'enum1': 'label1'}
@@ -94,7 +94,7 @@ def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipali
     assert cache_key in load_data._cache_timestamps
     
     # Reset mocks for second call
-    mock_read_file.reset_mock()
+    mock_read_json.reset_mock()
     mock_read_csv.reset_mock()
     mock_get_municipality_ids.reset_mock()
     mock_get_taxon_data.reset_mock()
@@ -106,7 +106,7 @@ def test_load_or_update_cache(mock_read_file, mock_read_csv, mock_get_municipali
     result2 = load_data.load_or_update_cache(config)
     
     # Verify no API calls were made
-    mock_read_file.assert_not_called()
+    mock_read_json.assert_not_called()
     mock_read_csv.assert_not_called()
     mock_get_municipality_ids.assert_not_called()
     mock_get_taxon_data.assert_not_called()

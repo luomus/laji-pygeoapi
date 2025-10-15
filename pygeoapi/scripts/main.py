@@ -70,7 +70,7 @@ def setup_environment():
         "invasive_species": invasive_species,
     }
 
-def load_and_process_data(occurrence_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables=False):
+def load_and_process_data(occurrence_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables=False):
     """
     Load and process data in batches from the given URL.
     """
@@ -104,7 +104,7 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
         
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
         gdf = process_data.combine_similar_columns(gdf)
-        gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipals_gdf)
+        gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipality_ely_mappings)
         gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
         gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf) #TODO: Make sure it works as resulting data has gcs / process in PostGIS
         gdf, edited = process_data.validate_geometry(gdf)
@@ -152,7 +152,7 @@ def main():
         edit_db.drop_all_tables()
     else:
 
-        municipals_gdf, _, lookup_df, taxon_df, collection_names, all_value_ranges = load_data.load_or_update_cache(config)
+        municipality_ely_mappings, _, lookup_df, taxon_df, collection_names, all_value_ranges = load_data.load_or_update_cache(config)
 
         # Construct API URL for api.laji.fi
         base_url = f"{config['laji_api_url']}warehouse/query/unit/list"
@@ -160,7 +160,7 @@ def main():
             base_url = base_url.replace('/query/', '/private-query/')
 
         logger.info("Processing species data from each biogeographical region...")
-        biogeographical_province_ids = ["ML.251"]#,"ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
+        biogeographical_province_ids = ["ML.251","ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
         headers = load_data._get_api_headers(config['access_token'])
         
         # Build common parameters
@@ -195,7 +195,7 @@ def main():
             params['biogeographicalProvinceId'] = province_id
             
             pages = load_data.get_pages(config["pages_env"], base_url, params, headers, int(params['pageSize']))
-            results = load_and_process_data(base_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
+            results = load_and_process_data(base_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]
@@ -217,7 +217,7 @@ def main():
             params.pop('collectionAndRecordQuality', None)
             
             pages = load_data.get_pages(config["pages_env"], base_url, params, headers, int(params['pageSize']))
-            results = load_and_process_data(base_url, params, headers, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipals_gdf, lookup_df, drop_tables)
+            results = load_and_process_data(base_url, params, headers, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]

@@ -14,7 +14,7 @@ class Dummy:
     taxon_df = None
     all_value_ranges = None
     collection_names = None
-    municipals_gdf = None
+    municipality_ely_mappings = None
     lookup_df = None
 
 

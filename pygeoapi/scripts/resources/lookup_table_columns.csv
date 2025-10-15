@@ -48,10 +48,10 @@ unit.linkings.taxon.threatenedStatus;unit.linkings.taxon.threatenedStatus;;threa
 unit.linkings.taxon.vernacularName;unit.linkings.taxon.vernacularName.fi;target;;Yleiskielinen_nimi;str;FIRST;Taksonin yleiskielinen nimi (alkuperäinen)
 document.loadDate;document.loadDate;loadedSameOrAfter;;Lataus_pvm;datetime;GROUPBY;Päivä jolloin havainto ladattiin Lajitietokeskukseen
 unit.linkings.taxon.informalTaxonGroups;name;target;InformalGroupName;Elioryhma;str;FIRST;Epävirallinen eliöryhmäluokittelu
+gathering.interpretations.municipalityDisplayname;gathering.interpretations.municipalityDisplayname;finnishMunicipalityId;verbatimCounty;Kunta;str;FIRST;Kunta koordinaattien perusteella
 ;;polygon;geometry;geometry;geom;;Geometria (polygon) WKT-muodossa
 ;;;;Esiintyman_tila;str;GROUPBY;Onko laji paikalla vai poissa (nollahavainto)
 ;;;;Aineisto;str;FIRST;Aineiston nimi
 ;;;;Vastuualue;str;FIRST;Havainnon sijaintiin liitetyt ELY-vastuualueet
-;;finnishMunicipalityId;verbatimCounty;Kunta;str;FIRST;Kunta koordinaattien perusteella
 ;;;;Paikallinen_tunniste;str;AGGREGATE;Tunniste vain tässä rajapinnassa
 ;;;;Yhdistetty;int;;Identtisten yhdistettyjen havaintojen lukumäärä

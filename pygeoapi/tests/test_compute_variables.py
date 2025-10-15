@@ -41,21 +41,19 @@ def test_map_values():
     assert result3[0] == 'Metsästyslaissa luetellut riistalinnut, Metsästyslaissa luetellut riistanisäkkäät (5§), http://asd.luomus.asd.fi/xyz123, 123123'
 
 def test_compute_areas():
-    municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson').to_crs("EPSG:4326")
+    municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
 
     gdf_with_geom_and_ids = gpd.GeoDataFrame({
         'unit.unitId': ['1', '2', '3'],
+        'gathering.interpretations.municipalityDisplayname': ['Helsinki', 'Espoo', 'Kuhmo, Nurmes'],
         'geometry': [Point(24.941, 60.169), Point(24.655, 60.205), LineString([(24.655, 60.205), (24.941, 60.169)])]
     }, crs="EPSG:4326")
 
-    result_municipality, result_ely_area = compute_variables.compute_areas(gdf_with_geom_and_ids, municipals_gdf)
+    result_ely_area = compute_variables.compute_areas(gdf_with_geom_and_ids, municipality_ely_mappings)
     
-    assert result_municipality[0] == 'Helsinki'
-    assert result_municipality[1] == 'Espoo'
     assert result_ely_area[0] == 'Uudenmaan ELY-keskus'
     assert result_ely_area[1] == 'Uudenmaan ELY-keskus'
-    assert result_municipality[2] == 'Helsinki, Espoo' or result_municipality[2] == 'Espoo, Helsinki'
-    assert result_ely_area[2] == 'Uudenmaan ELY-keskus'
+    assert result_ely_area[2] == 'Kainuun ELY-keskus, Pohjois-Karjalan ELY-keskus'
 
 
 def test_get_title_name_from_table_name():
@@ -103,6 +101,7 @@ def test_compute_all(tmp_path):
         'unit.interpretations.individualCount': [3],
         'document.collectionId': ['HR.1747'],
         'unit.unitId': ['1'],
+        'gathering.interpretations.municipalityDisplayname': ['Helsinki'],
         'geometry': [Point(24.941, 60.169)]
     }, crs="EPSG:4326")
     value_ranges = {
@@ -122,9 +121,9 @@ def test_compute_all(tmp_path):
     }
     collection_names = {'HR.1747': 'Lajitietokeskus/FinBIF - Vihkon yleiset havainnot'}
 
-    municipals_gdf = gpd.read_file('scripts/resources/municipalities.geojson').to_crs("EPSG:4326")
+    municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
 
-    result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipals_gdf)
+    result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings)
     assert result_gdf['unit.atlasClass'][0] == 'Atlas A'
     assert result_gdf['unit.atlasCode'][0] == 'Code 1'
     assert result_gdf['unit.linkings.taxon.primaryHabitat.habitat'][0] == 'Mkt – tuoreet ja lehtomaiset kankaat'
@@ -139,6 +138,5 @@ def test_compute_all(tmp_path):
     assert result_gdf['unit.linkings.taxon.administrativeStatuses'][0] == 'EU:n lintudirektiivin II/A-liite, EU:n lintudirektiivin III/A-liite'
     assert result_gdf['Esiintyman_tila'][0] == 'paikalla'
     assert result_gdf['Aineisto'][0] == 'Lajitietokeskus/FinBIF - Vihkon yleiset havainnot'
-    assert result_gdf['Kunta'][0] == 'Helsinki'
     assert result_gdf['Vastuualue'][0] == 'Uudenmaan ELY-keskus'
     assert result_gdf['Paikallinen_tunniste'][0] == '1'
