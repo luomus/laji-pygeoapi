@@ -22,9 +22,9 @@ def send_error_email(e, context):
 
     message = f"""From: PyGeoAPI Error Monitor <{sender}>
         To: Admin <{receivers[0]}>
-        Subject: [PyGeoAPI Error] {context}
+        Subject: [Laji-PyGeoAPI Error] {context}
 
-        Error occurred in PyGeoAPI
+        Error occurred in when loading data to the PyGeoAPI:
 
         Context: {context}
         Error Type: {type(e).__name__}

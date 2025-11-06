@@ -290,5 +290,9 @@ def main():
     logger.info("\nAPI is ready to use. All tasks completed successfully.")
 
 if __name__ == '__main__':
-    main()
-    send_error_emails.test_send_error_email()
+    try:
+        main()
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+        send_error_emails.send_error_email(e, "data download script crashed")
+        raise
