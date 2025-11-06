@@ -87,7 +87,7 @@ def compute_areas(gdf, municipality_ely_mappings):
     Returns:
     pd.Series: Series with ELY area names for each row.
     """
-    return gdf['gathering.interpretations.municipalityDisplayname'].str.split(', ').apply(lambda values: ', '.join(set([municipality_ely_mappings.get(value, value) for value in values])))
+    return gdf['gathering.interpretations.municipalityDisplayname'].str.split(', ').apply(lambda values: ', '.join(set([municipality_ely_mappings.get(value, value) for value in values])) if isinstance(values, list) else values)
 
 def get_title_name_from_table_name(table_name):
     """

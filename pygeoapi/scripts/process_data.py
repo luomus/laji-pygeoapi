@@ -60,11 +60,25 @@ def combine_similar_columns(gdf):
             base_name = match.group(1)
             columns_dict.setdefault(base_name, []).append(col)
     
+    # If no columns to combine, return as-is
+    if not columns_dict:
+        return gdf
+    
     gdf = gdf.copy()
 
     # Combine columns in each group
     for base_name, cols in columns_dict.items():
-        gdf[base_name] = gdf[cols].astype(str).where(gdf[cols].notna(), '').agg(', '.join, axis=1).str.strip(', ')
+        # Convert to numpy array for faster processing
+        values = gdf[cols].values
+        
+        # Create string array efficiently
+        result = np.empty(len(gdf), dtype=object)
+        for i in range(len(gdf)):
+            # Filter out None/NaN values and convert to strings
+            row_values = [str(val) for val in values[i] if pd.notna(val)]
+            result[i] = ', '.join(row_values)
+        
+        gdf[base_name] = result
         gdf.drop(columns=cols, inplace=True)
 
     return gdf

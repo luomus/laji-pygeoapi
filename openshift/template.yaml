@@ -91,6 +91,14 @@ parameters:
     description: The version of the pygeoapi base Docker image to use
     required: true
     value: "0.21.0"
+  - name: ERROR_EMAIL_SENDER
+    required: true
+    value: "laji-pygeoapi@luomus.fi"
+  - name: ERROR_EMAIL_RECEIVERS
+    required: true
+  - name: ERROR_EMAIL_SMTP_SERVER
+    required: true
+    value: "smtp.pouta.csc.fi"
     
 metadata:
   name: template
@@ -462,6 +470,12 @@ objects:
                       value: ${TARGET}
                     - name: PYTHONUNBUFFERED
                       value: '1'
+                    - name: ERROR_EMAIL_SENDER
+                      value: ${ERROR_EMAIL_SENDER}
+                    - name: ERROR_EMAIL_RECEIVERS
+                      value: ${ERROR_EMAIL_RECEIVERS}
+                    - name: ERROR_EMAIL_SMTP_SERVER
+                      value: ${ERROR_EMAIL_SMTP_SERVER}
                   resources: 
                     limits:
                       cpu: ${PYTHON_SCRIPTS_CPU_LIMIT}

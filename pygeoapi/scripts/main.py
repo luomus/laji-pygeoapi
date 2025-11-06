@@ -3,8 +3,7 @@ import geopandas as gpd
 from dotenv import load_dotenv
 import os
 import logging
-from scripts import load_data
-from scripts import process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata
+from scripts import load_data, process_data, edit_config, edit_configmaps, compute_variables, edit_db, edit_metadata, send_error_emails
 import sys
 from time import time
 from concurrent.futures import ThreadPoolExecutor
@@ -102,13 +101,36 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
         logger.info(f"Processing {len(gdf)} observations...")
         processed_occurrences += len(gdf)
         
+        timings = {}
+        t0 = time()
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
+        timings['merge_taxonomy_data'] = time() - t0
+
+        t1 = time()
         gdf = process_data.combine_similar_columns(gdf)
+        timings['combine_similar_columns'] = time() - t1
+
+        t2 = time()
         gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipality_ely_mappings)
+        timings['compute_all'] = time() - t2
+
+        t3 = time()
         gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
-        gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf) #TODO: Make sure it works as resulting data has gcs / process in PostGIS
+        timings['translate_column_names'] = time() - t3
+
+        t4 = time()
+        gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf)
+        timings['convert_geometry_collection_to_multipolygon'] = time() - t4
+
+        t5 = time()
         gdf, edited = process_data.validate_geometry(gdf)
+        timings['validate_geometry'] = time() - t5
+
+        t6 = time()
         failed_features_count += edit_db.to_db(gdf, table_names)
+        timings['to_db'] = time() - t6
+
+        logger.info("Processing times (seconds): " + ", ".join(f"{k}: {v:.2f}" for k, v in timings.items()))
         edited_features_count += edited
         converted_collections += converted
 
@@ -269,3 +291,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    send_error_emails.test_send_error_email()
