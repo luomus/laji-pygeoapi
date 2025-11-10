@@ -76,7 +76,7 @@ def map_values(col, value_ranges):
     """
     return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(re.sub(r'http://[^/]+\.fi/', '', value), value) for value in values]))
 
-def compute_areas(gdf, municipality_ely_mappings):
+def compute_areas(col, municipality_ely_mappings):
     """
     Maps municipality names to ELY area names using a simple mapping dictionary.
 
@@ -87,7 +87,15 @@ def compute_areas(gdf, municipality_ely_mappings):
     Returns:
     pd.Series: Series with ELY area names for each row.
     """
-    return gdf['gathering.interpretations.municipalityDisplayname'].str.split(', ').apply(lambda values: ', '.join(set([municipality_ely_mappings.get(value, value) for value in values])) if isinstance(values, list) else values)
+    def map_municipalities(values):
+        # Handle None, NaN, or non-list values
+        if values is None or (isinstance(values, float) and pd.isna(values)):
+            return values
+        if not isinstance(values, list):
+            return values
+        return ', '.join([municipality_ely_mappings.get(value, value) for value in values])
+    
+    return col.str.split(', ').apply(map_municipalities)
 
 def get_title_name_from_table_name(table_name):
     """
@@ -215,7 +223,7 @@ def compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings):
     all_cols['Esiintyman_tila'] = compute_individual_count(gdf['unit.interpretations.individualCount']) 
     all_cols['Aineisto'] = compute_collection_id(gdf['document.collectionId'], collection_names) 
 
-    all_cols['Vastuualue'] = compute_areas(gdf, municipality_ely_mappings)
+    all_cols['Vastuualue'] = compute_areas(gdf['gathering.interpretations.municipalityDisplayname'], municipality_ely_mappings)
 
     # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

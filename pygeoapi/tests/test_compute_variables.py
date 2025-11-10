@@ -49,8 +49,8 @@ def test_compute_areas():
         'geometry': [Point(24.941, 60.169), Point(24.655, 60.205), LineString([(24.655, 60.205), (24.941, 60.169)])]
     }, crs="EPSG:4326")
 
-    result_ely_area = compute_variables.compute_areas(gdf_with_geom_and_ids, municipality_ely_mappings)
-    
+    result_ely_area = compute_variables.compute_areas(gdf_with_geom_and_ids['gathering.interpretations.municipalityDisplayname'], municipality_ely_mappings)
+
     assert result_ely_area[0] == 'Uudenmaan ELY-keskus'
     assert result_ely_area[1] == 'Uudenmaan ELY-keskus'
     assert result_ely_area[2] == 'Kainuun ELY-keskus, Pohjois-Karjalan ELY-keskus'
