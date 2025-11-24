@@ -16,7 +16,7 @@ def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, propert
     access_token = config.get('access_token')
     base_url = config.get('laji_api_url')
     for name, value in properties:
-        logger.info(f"Name: {name}, value: {value}")
+        logger.debug(f"Name: {name}, value: {value}")
         name = translate_filter_names(lookup_df, name)
         value = remove_id_prefix(value)
         if name in ['lifeStage', 'sex', 'recordQuality', 'collectionQuality', 'secureReason', 'recordBasis']:
@@ -34,7 +34,7 @@ def convert_filters(lookup_df, all_value_ranges, municipals_ids, params, propert
                 value = 'False'
             else:
                 value = 'True'
-        logger.info(f"Converter name: {name}, value: {value}")
+        logger.debug(f"Converter name: {name}, value: {value}")
         params[name] = value
     return params
 
@@ -43,7 +43,7 @@ def translate_filter_names(lookup_df, name):
     Map filter names from virva to api.laji.fi warehouse filters
     """
     if name in lookup_df['virva'].values:
-        logger.info("Found exact match")
+        logger.debug("Found exact match")
         return lookup_df.loc[lookup_df['virva'] == name, 'finbif_api_query'].values[0]
     
     # Check for similar names and log a hint
@@ -147,7 +147,7 @@ def convert_time(value):
 
 def process_bbox(bbox):
     """Return bbox as WKT POLYGON in EUREF-TM35FIN (EPSG:3067)."""
-    logger.info(f"Processing bbox: {bbox}")
+    logger.debug(f"Processing bbox: {bbox}")
 
     ymin, xmin, ymax, xmax = bbox # Weird order due to the pygeoapi's crs handling?
 

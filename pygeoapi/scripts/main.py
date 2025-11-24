@@ -40,6 +40,7 @@ def setup_environment():
     batch_size = int(os.getenv('BATCH_SIZE', 5))
     run_in_openshift = _parse_bool(os.getenv('RUNNING_IN_OPENSHIFT'), False)
     invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES', 'true'), True)
+    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES', 'ML.251').split(',')
 
     # Paths depend on platform
     if run_in_openshift:
@@ -66,6 +67,7 @@ def setup_environment():
         "batch_size": batch_size,
         "run_in_openshift": run_in_openshift,
         "invasive_species": invasive_species,
+        "biogeographical_province_ids": biogeographical_province_ids
     }
 
 def load_and_process_data(occurrence_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables=False):
@@ -158,7 +160,6 @@ def main():
             base_url = base_url.replace('/query/', '/private-query/')
 
         logger.info("Processing species data from each biogeographical region...")
-        biogeographical_province_ids = ["ML.251","ML.252","ML.253","ML.254","ML.255","ML.256","ML.257","ML.258","ML.259","ML.260","ML.261","ML.262","ML.263","ML.264","ML.265","ML.266","ML.267","ML.268","ML.269","ML.270","ML.271"]
         headers = load_data._get_api_headers(config['access_token'])
         
         # Build common parameters
@@ -186,7 +187,7 @@ def main():
         if config['target'] == 'virva':
             common_params['personEmail'] = config['access_email']
         
-        for province_id in biogeographical_province_ids:
+        for province_id in config["biogeographical_province_ids"]:
             table_base_name = compute_variables.get_biogeographical_region_from_id(province_id)
             
             params = common_params.copy()
@@ -270,5 +271,6 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         logger.error(f"An error occurred: {e}")
-        send_error_emails.send_error_email(e, "data download script crashed")
+        if _parse_bool(os.getenv('SEND_ERROR_EMAILS', 'true'), True):
+            send_error_emails.send_error_email(e, "data download script crashed")
         raise

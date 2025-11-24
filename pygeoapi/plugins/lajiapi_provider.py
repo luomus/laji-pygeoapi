@@ -177,7 +177,7 @@ class LajiApiProvider(BaseProvider):
         return f'<LajiApiProvider> {self.api_url}'
     
     def get_metadata(self):
-        logger.info("Get_metadata called!")
+        logger.debug("Get_metadata called!")
         return {"title": 'metadata', "description": 'description'}
 
     # ----------------- helpers -----------------

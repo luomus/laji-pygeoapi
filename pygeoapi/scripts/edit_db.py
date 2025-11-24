@@ -83,7 +83,7 @@ def connect_to_db():
     }
 
     # Connect to the PostGIS database
-    logger.info("Creating database connection...")
+    logger.debug("Creating database connection...")
     engine = create_engine(f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
     with engine.connect() as connection:
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
