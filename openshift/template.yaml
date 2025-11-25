@@ -87,10 +87,6 @@ parameters:
   - name: INVASIVE_SPECIES
     required: true
     value: "False"
-  - name: PYGEOAPI_VERSION
-    description: The version of the pygeoapi base Docker image to use
-    required: true
-    value: "0.21.0"
   - name: ERROR_EMAIL_SENDER
     required: true
     value: "laji-pygeoapi@luomus.fi"
@@ -547,6 +543,7 @@ objects:
       annotations:
         haproxy.router.openshift.io/rewrite-target: /
         openshift.io/host.generated: 'true'
+        haproxy.router.openshift.io/timeout: 3600s
     spec:
       host: "${HOST_URL}"
       path: "${HOST_PATH}"

@@ -253,12 +253,12 @@ def test_get_occurrence_data():
     pd.testing.assert_frame_equal(gdf_sorted, gdf2_sorted, check_like=True)
 
 def test_get_value_ranges():
-    url = "https://beta.laji.fi/api/metadata/ranges"
-    params = {'lang': 'fi', 'asLookupObject': 'true'}
-    headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
-    result = load_data.get_value_ranges(url, params, headers)
-    assert isinstance(result, dict)
-    assert 'MY.recordBasisIndirectSampleIndirectSample' in result
+    headers = load_data._get_api_headers('19706d02dc96ea0dc8202f0263051242e769935f972aed4ccfb098c0d32f2dd7')
+    base_url = "https://apitest.laji.fi/"
+    ranges1 = load_data.get_value_ranges(f"{base_url}metadata/alts", None, headers)
+    assert isinstance(ranges1, dict)
+    assert 'MY.atlasCodeEnum5' in ranges1
+    assert ranges1['MY.identificationBasisDNA'] == 'DNA'
 
 def test_get_taxon_data():
     taxon_name_url = f'https://beta.laji.fi/api/informal-taxon-groups'

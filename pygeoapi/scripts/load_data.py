@@ -21,14 +21,12 @@ def _is_cache_valid(key):
         return False
     return (time.time() - _cache_timestamps[key]) < _cache_timeout
 
-
 def _get_api_headers(access_token):
     """Build headers for API requests"""
     return {
         'Authorization': f'Bearer {access_token}',
         'Api-Version': '1'
     }
-
 
 def load_or_update_cache(config):
     """
@@ -51,7 +49,7 @@ def load_or_update_cache(config):
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'lang': 'fi', 'pageSize': 1000}, headers)
     collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'lang': 'fi', 'pageSize': 1500, 'langFallback': 'true'}, headers)
-    ranges1 = get_value_ranges(f"{base_url}metadata/ranges", {'lang': 'fi', 'asLookupObject': 'true'}, headers)
+    ranges1 = get_value_ranges(f"{base_url}metadata/alts", {'lang': 'fi'}, headers)
     ranges2 = get_enumerations(f"{base_url}warehouse/enumeration-labels", {}, headers)
     all_value_ranges = ranges1 | ranges2  # type: ignore
 
@@ -243,17 +241,20 @@ def get_occurrence_data(url, params, headers, startpage, endpage, multiprocessin
 
 def get_value_ranges(url, params, headers):
     """
-    Fetches JSON data from an API URL and returns it as a Python dictionary.
-
-    Parameters:
-    url (str): The base URL of the metadata API endpoint.
-    params (dict): Query parameters for the request.
-    headers (dict): Headers for the request.
-
-    Returns:
-    dict: A dictionary containing the JSON data from the API.
+    Return a simple flat dict of id:value pairs from a nested JSON structure.
+    The JSON is expected to be a dict where each value is a list of dicts with 'id' and 'value' keys.
     """
-    return fetch_json_with_retry(url, params=params, headers=headers)
+    json_data = fetch_json_with_retry(url, params=params, headers=headers)
+    if not json_data:
+        raise ValueError("Error getting value ranges.")
+
+    # Flatten nested structure: {key: [{id:..., value:...}, ...], ...}
+    range_values = {}
+    for key, items in json_data.items():
+        for item in items:
+            if isinstance(item, dict) and item.get('id') and item.get('value'):
+                range_values[item['id']] = item['value']
+    return range_values
 
 def get_taxon_data(url, params, headers):
     """

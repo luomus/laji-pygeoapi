@@ -4,7 +4,8 @@ services:
       context: .
       dockerfile: pygeoapi/Dockerfile
       args:
-        target: ${TARGET}
+        TARGET: ${TARGET}
+        PYGEOAPI_VERSION: ${PYGEOAPI_VERSION}
     entrypoint: /pygeoapi/entrypoint-dev.sh
     ports:
       - "5000:5000"
