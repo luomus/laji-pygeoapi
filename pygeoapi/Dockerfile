@@ -1,5 +1,5 @@
-ARG TARGET
-ARG PYGEOAPI_VERSION
+ARG target
+ARG PYGEOAPI_VERSION=0.21.0
 
 FROM geopython/pygeoapi:${PYGEOAPI_VERSION} AS base
 
@@ -37,4 +37,4 @@ ENV RESTRICT_ACCESS="True"
 COPY pygeoapi/custom/virva-templates ./custom/templates/
 COPY pygeoapi/custom/virva-static ./pygeoapi/static/
 
-FROM laji-pygeoapi-${TARGET} AS final
+FROM laji-pygeoapi-${target} AS final
