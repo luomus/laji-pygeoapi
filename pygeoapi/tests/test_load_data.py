@@ -2,6 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from unittest.mock import patch, MagicMock
 import requests
+import os
 
 from scripts import load_data
 import time
@@ -253,7 +254,8 @@ def test_get_occurrence_data():
     pd.testing.assert_frame_equal(gdf_sorted, gdf2_sorted, check_like=True)
 
 def test_get_value_ranges():
-    headers = load_data._get_api_headers('19706d02dc96ea0dc8202f0263051242e769935f972aed4ccfb098c0d32f2dd7')
+    ACCESS_TOKEN = os.getenv('ACCESS_TOKEN', '')
+    headers = load_data._get_api_headers(ACCESS_TOKEN)
     base_url = "https://apitest.laji.fi/"
     ranges1 = load_data.get_value_ranges(f"{base_url}metadata/alts", None, headers)
     assert isinstance(ranges1, dict)
