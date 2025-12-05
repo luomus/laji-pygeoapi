@@ -175,7 +175,8 @@ def main():
             'taxonAdminFiltersOperator': "OR",
             'collectionAndRecordQuality': "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;",
             'geoJSON': "true",
-            'featureType': "ORIGINAL_FEATURE"
+            'featureType': "ORIGINAL_FEATURE",
+            'individualCountMin': "1"
         }
         
         # Add conditional parameters
