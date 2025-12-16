@@ -2,6 +2,7 @@ import logging
 import requests
 from pygeoapi.provider.base import BaseProvider, ProviderQueryError
 from pandas import notna
+from flask import g
 from scripts.process_features import process_json_features
 from scripts.main import setup_environment
 from scripts.load_data import load_or_update_cache, _get_api_headers
@@ -81,6 +82,14 @@ class LajiApiProvider(BaseProvider):
 
     def _make_api_request(self, params):
         headers = _get_api_headers(self.access_token)
+        if self.config['target'] == 'virva':
+            self.api_url = self.api_url.replace('/query/', '/private-query/')
+            # Get personId from authenticated user (stored in Flask g during login)
+            person_id = getattr(g, 'personId', None)
+            if person_id:
+                params['personId'] = person_id
+            else:
+                logger.warning('No personId found in request context for virva target')
         try:
             response = requests.get(self.api_url, params=params, headers=headers, timeout=300)
             response.raise_for_status()
@@ -96,7 +105,7 @@ class LajiApiProvider(BaseProvider):
         if isinstance(data, dict) and 'error' in data:
             error_msg = data.get('error', {}).get('message', 'Unknown API error')
             raise ProviderQueryError(self._error_message('upstream-error', error_msg))
-        MAX_ITEMS = 1_000_000
+        MAX_ITEMS = 100000
         if data.get('total', 0) > MAX_ITEMS and params.get('page', 0) > 1:
             logger.error('API response contains more than %s items.', MAX_ITEMS)
             raise ProviderQueryError(self._error_message('too-many-results', f"Too many items in response: {data.get('total', 0)}", hint='Refine with datetime, bbox, taxon, collection, or other filters.'))

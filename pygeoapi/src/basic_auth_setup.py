@@ -1,8 +1,10 @@
 from src.app import app, auth
 from src.services import request_log_service, laji_api
 from datetime import datetime
-from flask import request
+from flask import request, g
+import logging
 
+logger = logging.getLogger(__name__)
 
 @auth.verify_password
 def verify_password(username, password):
@@ -11,6 +13,12 @@ def verify_password(username, password):
         return
 
     api_key_info = laji_api.get_api_key_info(api_key)
+    
+    if not api_key_info:
+        logger.error('API key not found or invalid: %s', api_key)
+        return None
+    
+    personId = api_key_info.get('personId')
 
     if (
         'found' in api_key_info and
@@ -18,6 +26,9 @@ def verify_password(username, password):
         api_key_info['downloadType'] == app.config['API_KEY_TYPE'] and
         datetime.strptime(api_key_info['apiKeyExpires'], "%Y-%m-%d") > datetime.now()
     ):
+        # Store personId in Flask's g object for this request
+        g.personId = personId
+        g.api_key_info = api_key_info
         return api_key_info['id']
 
 

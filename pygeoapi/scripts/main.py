@@ -35,12 +35,12 @@ def setup_environment():
     laji_api_url = os.getenv('LAJI_API_URL')
     pages_env = os.getenv('PAGES', 'all').lower()
     access_email = os.getenv('ACCESS_EMAIL')
-    multiprocessing = _parse_bool(os.getenv('MULTIPROCESSING', 'true'), True)
-    target = os.getenv('TARGET', 'default')
+    multiprocessing = _parse_bool(os.getenv('MULTIPROCESSING'), True)
+    target = os.getenv('TARGET')
     batch_size = int(os.getenv('BATCH_SIZE', 5))
     run_in_openshift = _parse_bool(os.getenv('RUNNING_IN_OPENSHIFT'), False)
-    invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES', 'true'), True)
-    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES', 'ML.251').split(',')
+    invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES'), True)
+    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES').split(',')
 
     # Paths depend on platform
     if run_in_openshift:
@@ -176,7 +176,7 @@ def main():
             'collectionAndRecordQuality': "PROFESSIONAL:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL,UNCERTAIN;HOBBYIST:EXPERT_VERIFIED,COMMUNITY_VERIFIED,NEUTRAL;AMATEUR:EXPERT_VERIFIED,COMMUNITY_VERIFIED;",
             'geoJSON': "true",
             'featureType': "ORIGINAL_FEATURE",
-            'individualCountMin': "1"
+            'individualCountMin': "0"
         }
         
         # Add conditional parameters

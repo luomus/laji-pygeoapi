@@ -1,7 +1,7 @@
 selected;finbif_api_var;finbif_api_query;dwc;virva;type;merge_option;description
 unit.unitId;unit.unitId;unitId;occurrenceID;Havainnon_tunniste;str;AGGREGATE;Yksittäisen havainnon tunniste
 unit.linkings.taxon.scientificName;unit.linkings.taxon.scientificName;target;scientificNameInterpreted;Tieteellinen_nimi;str;FIRST;Lajin tieteellinen nimi
-unit.interpretations.individualCount;unit.interpretations.individualCount;individualCountMin;individualCountInterpreted;Yksilomaara_tulkittu;int;SUM;Tulkittu numeerinen yksilömäärä (yhdistetyissä havainnoissa summattu)
+unit.interpretations.individualCount;unit.interpretations.individualCount;individualCountMin;individualCountInterpreted;Yksilomaara_tulkittu;int;GROUPBY;Tulkittu numeerinen yksilömäärä (yhdistetyissä havainnoissa summattu)
 gathering.interpretations.coordinateAccuracy;gathering.interpretations.coordinateAccuracy;coordinateAccuracyMax;coordinateUncertaintyInMetersInterpreted;Paikan_tarkkuus_metreina_max;int;MAX;Havainnon koordinaattien tarkkuus metreinä
 unit.interpretations.recordQuality;unit.interpretations.recordQuality;recordQuality;occurrenceQuality;Havainnon_luotettavuus;str;FIRST;Luotettavuus perustuen alkuperäislähteen antamaan luotettavuusluokitukseen sekä Laji.fi:n laadunvalvontakommentteihin (virheellinen, epävarma, neutraali, yhteisön varmistama asiantuntijan varmistama)
 unit.abundanceString;unit.abundanceString;;verbatimAbundance;Maara;str;AGGREGATE;Kirjaimellisesti ilmoitettu yksilöiden lukumäärä
