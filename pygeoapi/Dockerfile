@@ -1,14 +1,16 @@
 ARG target
-ARG PYGEOAPI_VERSION=0.21.0
+ARG PYGEOAPI_VERSION=0.22.0
 
 FROM geopython/pygeoapi:${PYGEOAPI_VERSION} AS base
 
 ENV PYGEOAPI_HOME=/pygeoapi
 ENV PYGEOAPI_CONFIG="${PYGEOAPI_HOME}/local.config.yml"
 ENV PYGEOAPI_OPENAPI="${PYGEOAPI_HOME}/local.openapi.yml"
+ENV PYTHONPATH=/pygeoapi
 
+# Install custom requirements in the virtual environment
 COPY pygeoapi/requirements-custom.txt .
-RUN python3 -m pip install --no-cache-dir -r requirements-custom.txt
+RUN /venv/bin/pip install --no-cache-dir -r requirements-custom.txt
 
 COPY pygeoapi/setup.sh .
 COPY pygeoapi/entrypoint.sh .

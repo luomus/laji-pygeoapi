@@ -15,6 +15,15 @@ services:
       POSTGRES_HOST: ${INTERNAL_POSTGRES_HOST}
       LAJI_API_URL: ${LAJI_API_URL}
       ACCESS_TOKEN: ${ACCESS_TOKEN}
+      TARGET: ${TARGET}
+      PAGES: ${PAGES}
+      MULTIPROCESSING: ${MULTIPROCESSING}
+      BATCH_SIZE: ${BATCH_SIZE}
+      RUNNING_IN_OPENSHIFT: ${RUNNING_IN_OPENSHIFT}
+      INVASIVE_SPECIES: ${INVASIVE_SPECIES}
+      BIOGEOGRAPHICAL_PROVINCES: ${BIOGEOGRAPHICAL_PROVINCES}
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
+      SEND_ERROR_EMAILS: ${SEND_ERROR_EMAILS}
     volumes:
       - ./pygeoapi-config.yml:/pygeoapi/local.config.yml
       - ./catalogue.tinydb:/pygeoapi/catalogue.tinydb
