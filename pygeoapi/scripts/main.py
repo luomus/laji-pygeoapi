@@ -40,7 +40,9 @@ def setup_environment():
     batch_size = int(os.getenv('BATCH_SIZE', 5))
     run_in_openshift = _parse_bool(os.getenv('RUNNING_IN_OPENSHIFT'), False)
     invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES'), True)
-    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES').split(',')
+    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES')
+    if biogeographical_province_ids:
+        biogeographical_province_ids = biogeographical_province_ids.split(',')
 
     # Paths depend on platform
     if run_in_openshift:

@@ -45,7 +45,7 @@ def load_or_update_cache(config):
 
     municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
 
-    municipals_ids = get_municipality_ids(f"{base_url}areas", {'type': 'municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
+    municipals_ids = get_municipality_ids(f"{base_url}areas", {'areaType': 'ML.municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'lang': 'fi', 'pageSize': 1000}, headers)
     collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'lang': 'fi', 'pageSize': 1500, 'langFallback': 'true'}, headers)

@@ -372,6 +372,8 @@ objects:
                   value: postgres-${NAME_PREFIX}${BRANCH}
                 - name: LAJI_API_URL
                   value: ${LAJI_API_URL}
+                - name: BIOGEOGRAPHICAL_PROVINCES
+                  value: ${BIOGEOGRAPHICAL_PROVINCES}
                 - name: ACCESS_TOKEN
                   valueFrom:
                     secretKeyRef:
