@@ -22,7 +22,7 @@ class LajiApiProvider(BaseProvider):
         self.api_url = self.config['laji_api_url'] + 'warehouse/query/unit/list'
         self.access_token = self.config.get('access_token')
         self.municipality_ely_mappings, self.municipals_ids, self.lookup_df, self.taxon_df, \
-            self.collection_names, self.all_value_ranges = load_or_update_cache(self.config)
+            self.collection_names, self.all_value_ranges, self.municipality_elinvoima_mappings = load_or_update_cache(self.config)
         self._cached_fields = None
         self.selected_fields = ",".join([field for field in self.lookup_df['selected'].dropna().to_list() if field])
 

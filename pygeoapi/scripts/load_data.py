@@ -30,7 +30,7 @@ def _get_api_headers(access_token):
 
 def load_or_update_cache(config):
     """
-    Loads essential data (municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges) from the cache or the API.
+    Loads essential data (municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges, municipality_elinvoima_mappings) from the cache or the API.
     """
     cache_key = f"helper_data_{config.get('laji_api_url', '')}"
     
@@ -43,7 +43,9 @@ def load_or_update_cache(config):
     base_url = config['laji_api_url']
     headers = _get_api_headers(config['access_token'])
 
-    municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
+    municipality_df = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')
+    municipality_ely_mappings = municipality_df['ELY_Area_Name']
+    municipality_elinvoima_mappings = municipality_df['Elinvoimakeskus_Name']
 
     municipals_ids = get_municipality_ids(f"{base_url}areas", {'areaType': 'ML.municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
@@ -53,7 +55,7 @@ def load_or_update_cache(config):
     ranges2 = get_enumerations(f"{base_url}warehouse/enumeration-labels", {}, headers)
     all_value_ranges = ranges1 | ranges2  # type: ignore
 
-    result = municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges
+    result = municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges, municipality_elinvoima_mappings
 
     # Cache the result
     _cache[cache_key] = result

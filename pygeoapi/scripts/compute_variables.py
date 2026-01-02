@@ -196,7 +196,7 @@ def process_direct_map_columns(gdf, value_ranges):
             result[col] = gdf[col].map(value_ranges)
     return result
 
-def compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings):
+def compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings):
     """
     Computes or translates variables that cannot be directly accessed from the source API.
 
@@ -205,6 +205,7 @@ def compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings):
     value_ranges (dict): Dictionary containing all mapping keys and corresponding values.
     collection_names (dict): Dictionary containing all collection IDs and their long names.
     municipality_ely_mappings (pd.Series): Series mapping municipality names to ELY area names.
+    municipality_elinvoima_mappings (pd.Series): Series mapping municipality names to Elinvoimakeskus names.
 
     Returns:
     gpd.GeoDataFrame: GeoDataFrame containing occurrences and computed columns.
@@ -224,6 +225,7 @@ def compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings):
     all_cols['Aineisto'] = compute_collection_id(gdf['document.collectionId'], collection_names) 
 
     all_cols['Vastuualue'] = compute_areas(gdf['gathering.interpretations.municipalityDisplayname'], municipality_ely_mappings)
+    all_cols['Elinvoimakeskus'] = compute_areas(gdf['gathering.interpretations.municipalityDisplayname'], municipality_elinvoima_mappings)
 
     # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")

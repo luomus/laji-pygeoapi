@@ -52,6 +52,7 @@ gathering.interpretations.municipalityDisplayname;gathering.interpretations.muni
 ;;polygon;geometry;geometry;geom;;Geometria (polygon) WKT-muodossa
 ;;;;Esiintyman_tila;str;GROUPBY;Onko laji paikalla vai poissa (nollahavainto)
 ;;;;Aineisto;str;FIRST;Aineiston nimi
-;;;;Vastuualue;str;FIRST;Havainnon sijaintiin liitetyt ELY-vastuualueet
+;;;;Vastuualue;str;FIRST;Havainnon sijaintiin liitetyt ELY-vastuualueet (ennen vuotta 2026)
+;;;;Elinvoimakeskus;str;FIRST;Havainnon sijaintiin liitetyt elinvoimakeskuksien vastuualueet
 ;;;;Paikallinen_tunniste;str;AGGREGATE;Tunniste vain tässä rajapinnassa
 ;;;;Yhdistetty;int;;Identtisten yhdistettyjen havaintojen lukumäärä
