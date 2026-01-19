@@ -35,12 +35,14 @@ def setup_environment():
     laji_api_url = os.getenv('LAJI_API_URL')
     pages_env = os.getenv('PAGES', 'all').lower()
     access_email = os.getenv('ACCESS_EMAIL')
-    multiprocessing = _parse_bool(os.getenv('MULTIPROCESSING', 'true'), True)
-    target = os.getenv('TARGET', 'default')
+    multiprocessing = _parse_bool(os.getenv('MULTIPROCESSING'), True)
+    target = os.getenv('TARGET')
     batch_size = int(os.getenv('BATCH_SIZE', 5))
     run_in_openshift = _parse_bool(os.getenv('RUNNING_IN_OPENSHIFT'), False)
-    invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES', 'true'), True)
-    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES', 'ML.251').split(',')
+    invasive_species = _parse_bool(os.getenv('INVASIVE_SPECIES'), True)
+    biogeographical_province_ids = os.getenv('BIOGEOGRAPHICAL_PROVINCES')
+    if biogeographical_province_ids:
+        biogeographical_province_ids = biogeographical_province_ids.split(',')
 
     # Paths depend on platform
     if run_in_openshift:
@@ -70,7 +72,7 @@ def setup_environment():
         "biogeographical_province_ids": biogeographical_province_ids
     }
 
-def load_and_process_data(occurrence_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables=False):
+def load_and_process_data(occurrence_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings, lookup_df, drop_tables=False):
     """
     Load and process data in batches from the given URL.
     """
@@ -104,7 +106,7 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
         
         gdf = process_data.merge_taxonomy_data(gdf, taxon_df)
         gdf = process_data.combine_similar_columns(gdf)
-        gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipality_ely_mappings)
+        gdf = compute_variables.compute_all(gdf, all_value_ranges, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings)
         gdf = process_data.translate_column_names(gdf, lookup_df, style='virva')
         gdf, converted = process_data.convert_geometry_collection_to_multipolygon(gdf)
         gdf, edited = process_data.validate_geometry(gdf)
@@ -152,7 +154,7 @@ def main():
         edit_db.drop_all_tables()
     else:
 
-        municipality_ely_mappings, _, lookup_df, taxon_df, collection_names, all_value_ranges = load_data.load_or_update_cache(config)
+        municipality_ely_mappings, _, lookup_df, taxon_df, collection_names, all_value_ranges, municipality_elinvoima_mappings = load_data.load_or_update_cache(config)
 
         # Construct API URL for api.laji.fi
         base_url = f"{config['laji_api_url']}warehouse/query/unit/list"
@@ -195,7 +197,7 @@ def main():
             params['biogeographicalProvinceId'] = province_id
             
             pages = load_data.get_pages(config["pages_env"], base_url, params, headers, int(params['pageSize']))
-            results = load_and_process_data(base_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables)
+            results = load_and_process_data(base_url, params, headers, table_base_name, pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]
@@ -217,7 +219,7 @@ def main():
             params.pop('collectionAndRecordQuality', None)
             
             pages = load_data.get_pages(config["pages_env"], base_url, params, headers, int(params['pageSize']))
-            results = load_and_process_data(base_url, params, headers, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df, drop_tables)
+            results = load_and_process_data(base_url, params, headers, 'invasive_species', pages, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings, lookup_df, drop_tables)
 
             processed_occurrences += results[0]
             failed_features_count += results[1]

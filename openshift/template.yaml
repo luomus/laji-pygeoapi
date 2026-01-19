@@ -87,10 +87,6 @@ parameters:
   - name: INVASIVE_SPECIES
     required: true
     value: "False"
-  - name: PYGEOAPI_VERSION
-    description: The version of the pygeoapi base Docker image to use
-    required: true
-    value: "0.21.0"
   - name: ERROR_EMAIL_SENDER
     required: true
     value: "laji-pygeoapi@luomus.fi"
@@ -376,6 +372,8 @@ objects:
                   value: postgres-${NAME_PREFIX}${BRANCH}
                 - name: LAJI_API_URL
                   value: ${LAJI_API_URL}
+                - name: BIOGEOGRAPHICAL_PROVINCES
+                  value: ${BIOGEOGRAPHICAL_PROVINCES}
                 - name: ACCESS_TOKEN
                   valueFrom:
                     secretKeyRef:
@@ -547,6 +545,7 @@ objects:
       annotations:
         haproxy.router.openshift.io/rewrite-target: /
         openshift.io/host.generated: 'true'
+        haproxy.router.openshift.io/timeout: 3600s
     spec:
       host: "${HOST_URL}"
       path: "${HOST_PATH}"

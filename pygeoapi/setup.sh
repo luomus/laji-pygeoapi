@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Activate virtual environment
+source /venv/bin/activate
+
 cp /pygeoapi/catalogue.tinydb /pygeoapi/metadata_db.tinydb
 
 # generate openapi.yml

@@ -21,7 +21,6 @@ def _is_cache_valid(key):
         return False
     return (time.time() - _cache_timestamps[key]) < _cache_timeout
 
-
 def _get_api_headers(access_token):
     """Build headers for API requests"""
     return {
@@ -29,10 +28,9 @@ def _get_api_headers(access_token):
         'Api-Version': '1'
     }
 
-
 def load_or_update_cache(config):
     """
-    Loads essential data (municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges) from the cache or the API.
+    Loads essential data (municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges, municipality_elinvoima_mappings) from the cache or the API.
     """
     cache_key = f"helper_data_{config.get('laji_api_url', '')}"
     
@@ -45,17 +43,19 @@ def load_or_update_cache(config):
     base_url = config['laji_api_url']
     headers = _get_api_headers(config['access_token'])
 
-    municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
+    municipality_df = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')
+    municipality_ely_mappings = municipality_df['ELY_Area_Name']
+    municipality_elinvoima_mappings = municipality_df['Elinvoimakeskus_Name']
 
-    municipals_ids = get_municipality_ids(f"{base_url}areas", {'type': 'municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
+    municipals_ids = get_municipality_ids(f"{base_url}areas", {'areaType': 'ML.municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'lang': 'fi', 'pageSize': 1000}, headers)
     collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'lang': 'fi', 'pageSize': 1500, 'langFallback': 'true'}, headers)
-    ranges1 = get_value_ranges(f"{base_url}metadata/ranges", {'lang': 'fi', 'asLookupObject': 'true'}, headers)
+    ranges1 = get_value_ranges(f"{base_url}metadata/alts", {'lang': 'fi'}, headers)
     ranges2 = get_enumerations(f"{base_url}warehouse/enumeration-labels", {}, headers)
     all_value_ranges = ranges1 | ranges2  # type: ignore
 
-    result = municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges
+    result = municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges, municipality_elinvoima_mappings
 
     # Cache the result
     _cache[cache_key] = result
@@ -243,17 +243,20 @@ def get_occurrence_data(url, params, headers, startpage, endpage, multiprocessin
 
 def get_value_ranges(url, params, headers):
     """
-    Fetches JSON data from an API URL and returns it as a Python dictionary.
-
-    Parameters:
-    url (str): The base URL of the metadata API endpoint.
-    params (dict): Query parameters for the request.
-    headers (dict): Headers for the request.
-
-    Returns:
-    dict: A dictionary containing the JSON data from the API.
+    Return a simple flat dict of id:value pairs from a nested JSON structure.
+    The JSON is expected to be a dict where each value is a list of dicts with 'id' and 'value' keys.
     """
-    return fetch_json_with_retry(url, params=params, headers=headers)
+    json_data = fetch_json_with_retry(url, params=params, headers=headers)
+    if not json_data:
+        raise ValueError("Error getting value ranges.")
+
+    # Flatten nested structure: {key: [{id:..., value:...}, ...], ...}
+    range_values = {}
+    for key, items in json_data.items():
+        for item in items:
+            if isinstance(item, dict) and item.get('id') and item.get('value'):
+                range_values[item['id']] = item['value']
+    return range_values
 
 def get_taxon_data(url, params, headers):
     """
