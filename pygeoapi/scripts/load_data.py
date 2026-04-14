@@ -25,7 +25,8 @@ def _get_api_headers(access_token):
     """Build headers for API requests"""
     return {
         'Authorization': f'Bearer {access_token}',
-        'Api-Version': '1'
+        'Api-Version': '1',
+        'Accept-Language': 'fi'
     }
 
 def load_or_update_cache(config):
@@ -47,11 +48,11 @@ def load_or_update_cache(config):
     municipality_ely_mappings = municipality_df['ELY_Area_Name']
     municipality_elinvoima_mappings = municipality_df['Elinvoimakeskus_Name']
 
-    municipals_ids = get_municipality_ids(f"{base_url}areas", {'areaType': 'ML.municipality', 'lang': 'fi', 'pageSize': 1000}, headers)
+    municipals_ids = get_municipality_ids(f"{base_url}areas", {'areaType': 'ML.municipality', 'pageSize': 1000}, headers)
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
-    taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'lang': 'fi', 'pageSize': 1000}, headers)
-    collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'lang': 'fi', 'pageSize': 1500, 'langFallback': 'true'}, headers)
-    ranges1 = get_value_ranges(f"{base_url}metadata/alts", {'lang': 'fi'}, headers)
+    taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'pageSize': 1000}, headers)
+    collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'pageSize': 1500, 'langFallback': 'true'}, headers)
+    ranges1 = get_value_ranges(f"{base_url}metadata/alts", {}, headers)
     ranges2 = get_enumerations(f"{base_url}warehouse/enumeration-labels", {}, headers)
     all_value_ranges = ranges1 | ranges2  # type: ignore
 

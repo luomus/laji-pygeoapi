@@ -10,6 +10,13 @@ from scripts.convert_api_filters import convert_filters, process_bbox
 
 logger = logging.getLogger(__name__)
 
+"""
+This lajiapi_provider.py module implements a custom provider for the api.laji.fi data source, 
+allowing pygeoapi to query and retrieve occurrence data directly from the data warehouse. 
+
+It is not directly related to other functions in the scripts/ directory, which are used for weekly data loading.
+"""
+
 class LajiApiProvider(BaseProvider):
     """Custom api.laji.fi provider for pygeoapi."""
 

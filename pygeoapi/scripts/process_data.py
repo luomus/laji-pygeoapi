@@ -123,6 +123,8 @@ def translate_column_names(gdf, lookup_df, style='virva'):
             gdf[col] = gdf[col].astype(pd.BooleanDtype())
         elif col_type != 'geom':
             gdf[col] = gdf[col].astype(col_type)
+            if col_type == 'str':
+                gdf[col] = gdf[col].replace('nan', None)
 
     # Convert all NaN values to None
     gdf = gdf.where(pd.notnull(gdf), None)
