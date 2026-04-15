@@ -23,7 +23,8 @@ LajiApiProvider = lajiapi_provider.LajiApiProvider
 # Common test data and mocks
 MOCK_CONFIG = {
     'laji_api_url': 'https://api.laji.fi/',
-    'access_token': 'test_token'
+    'access_token': 'test_token',
+    'target': 'default'
 }
 
 MOCK_LOOKUP_DF = pd.DataFrame([
@@ -35,7 +36,7 @@ def create_test_provider():
     """Helper function to create a test provider with common mocks"""
     with patch('plugins.lajiapi_provider.setup_environment', return_value=MOCK_CONFIG), \
          patch('plugins.lajiapi_provider.load_or_update_cache', 
-               return_value=(None, None, MOCK_LOOKUP_DF, None, None, None)):
+               return_value=(None, None, MOCK_LOOKUP_DF, None, None, None, None)):
         provider_def = {'name': 'test_provider'}
         return LajiApiProvider(provider_def)
 

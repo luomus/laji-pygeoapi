@@ -1,7 +1,7 @@
 # Caching utility for essential data
 import geopandas as gpd
 import pandas as pd
-import requests, concurrent.futures
+import requests
 import time
 import logging
 import functools
@@ -184,7 +184,7 @@ def get_last_page(url, params, headers, page_size, max_retries=5, delay=60):
 
 def download_page(url, params, headers, page_no):
     """
-    Download data from a specific page of the API with retry logic. This is in separate function to speed up multiprocessing.
+    Download data from a specific page of the API with retry logic. 
 
     Parameters:
     url (str): The base URL of the Warehouse API endpoint.
@@ -202,7 +202,7 @@ def download_page(url, params, headers, page_no):
         return gpd.GeoDataFrame.from_features(data["features"], crs="EPSG:4326")
     return gpd.GeoDataFrame()
 
-def get_occurrence_data(url, params, headers, startpage, endpage, multiprocessing=False):
+def get_occurrence_data(url, params, headers, startpage, endpage):
     """
     Retrieve occurrence data from the API.
 
@@ -210,7 +210,6 @@ def get_occurrence_data(url, params, headers, startpage, endpage, multiprocessin
     url (str): The base URL of the Warehouse API endpoint.
     params (dict): Query parameters for the request.
     headers (dict): Headers for the request.
-    multiprocessing (bool, optional): Whether to use multiprocessing. Defaults to False.
     startpage (int): First page to retrieve. 
     endpage (int): Last page to retrieve 
 
@@ -221,22 +220,11 @@ def get_occurrence_data(url, params, headers, startpage, endpage, multiprocessin
     failed_features_counter = 0
     gdfs = []
 
-    if multiprocessing in [True, "True"]:
-        # Use multiprocessing to retrieve page by page. 
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(download_page, url, params, headers, page_no) for page_no in range(startpage, endpage + 1)]
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                gdfs.append(result)
-                if result.empty:
-                    failed_features_counter += 10000
-    else:
-        # Retrieve data page by page without multiprocessing 
-        for page_no in range(startpage,endpage+1):
-            next_gdf = download_page(url, params, headers, page_no)
-            gdfs.append(next_gdf)
-            if next_gdf.empty:
-                failed_features_counter += 10000
+    for page_no in range(startpage, endpage + 1):
+        next_gdf = download_page(url, params, headers, page_no)
+        gdfs.append(next_gdf)
+        if next_gdf.empty:
+            failed_features_counter += 10000
 
     # Finally merge all pages into one geodataframe
     gdf = pd.concat(gdfs, ignore_index=True) if gdfs else gpd.GeoDataFrame()

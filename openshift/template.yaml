@@ -45,9 +45,6 @@ parameters:
     description: Defines the number of pages to download from the laji.fi occurrence API. Default is "all" but for testing purposes, use smaller number, for e.g. 2
     required: true
     value: "1"
-  - name: MULTIPROCESSING
-    required: true
-    value: "False"
   - name: ACCESS_TOKEN
     description: API Access token for the source API. See https://api.laji.fi/explorer/.
     required: True
@@ -452,8 +449,6 @@ objects:
                       value: "pygeoapi-config-${NAME_PREFIX}${BRANCH}"
                     - name: SERVICE_NAME
                       value: "pygeoapi-${NAME_PREFIX}${BRANCH}"
-                    - name: MULTIPROCESSING
-                      value: ${MULTIPROCESSING}
                     - name: RUNNING_IN_OPENSHIFT
                       value: "True"
                     - name: INVASIVE_SPECIES

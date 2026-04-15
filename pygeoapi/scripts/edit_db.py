@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import logging
 from dotenv import load_dotenv
-import concurrent.futures
 from sqlalchemy.dialects.postgresql import base
 from geoalchemy2.types import Geometry
 from datetime import date
@@ -311,22 +310,17 @@ def update_single_table_indexes(table_name, connection):
     connection.execute(index_creation_sql)
     connection.commit()
 
-def update_indexes(table_names, use_multiprocessing=True):
+def update_indexes(table_names):
     """
     Updates spatial and normal indexes for the given tables.
 
     Parameters:
     table_names (list): A list of PostGIS table names to update indexes for.
-    use_multiprocessing (bool): Whether to use multiprocessing for updating indexes.
     """
     if table_names:
         with get_engine().connect() as connection:
-            if use_multiprocessing:
-                with concurrent.futures.ProcessPoolExecutor() as executor:
-                    executor.map(update_single_table_indexes, table_names, [connection]*len(table_names))
-            else:
-                for table_name in table_names:
-                    update_single_table_indexes(table_name, connection)
+            for table_name in table_names:
+                update_single_table_indexes(table_name, connection)
     else:
         logger.warning("No table names given, can't update table indexes")
 

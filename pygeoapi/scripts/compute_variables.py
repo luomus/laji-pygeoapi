@@ -229,6 +229,7 @@ def compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings, 
 
     # Create a DataFrame to join
     computed_cols_df = pd.DataFrame(all_cols, dtype="str")
+    computed_cols_df = computed_cols_df.replace({'nan': None, 'None': None})
 
     # Drop duplicate columns
     gdf.drop(columns=computed_cols_df.columns.intersection(gdf.columns), axis=1, inplace=True)

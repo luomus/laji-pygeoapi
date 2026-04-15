@@ -35,7 +35,6 @@ def setup_environment():
     laji_api_url = os.getenv('LAJI_API_URL')
     pages_env = os.getenv('PAGES', 'all').lower()
     access_email = os.getenv('ACCESS_EMAIL')
-    multiprocessing = _parse_bool(os.getenv('MULTIPROCESSING'), True)
     target = os.getenv('TARGET')
     batch_size = int(os.getenv('BATCH_SIZE', 5))
     run_in_openshift = _parse_bool(os.getenv('RUNNING_IN_OPENSHIFT'), False)
@@ -62,7 +61,6 @@ def setup_environment():
         "laji_api_url": laji_api_url,
         "target": target,
         "pages_env": pages_env,
-        "multiprocessing": multiprocessing,
         "pygeoapi_config_out": pygeoapi_config_out,
         "metadata_db_path": metadata_db_path,
         "db_path_in_config": db_path_in_config,
@@ -94,7 +92,7 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
         endpage = min(startpage + batch_size - 1, pages)
         logger.info(f"Loading {table_base_name} observations. Pages {startpage}-{endpage} ({pages} in total)")
         
-        gdf, failed_features = load_data.get_occurrence_data(occurrence_url, params, headers, startpage=startpage, endpage=endpage, multiprocessing=config["multiprocessing"])
+        gdf, failed_features = load_data.get_occurrence_data(occurrence_url, params, headers, startpage=startpage, endpage=endpage)
         failed_features_count += failed_features
 
         if gdf.empty:
@@ -120,7 +118,7 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
             try:
                 d = edit_db.remove_duplicates(tnames)
                 m = edit_db.merge_similar_observations(tnames, lookup)
-                edit_db.update_indexes(tnames, use_multiprocessing=True)
+                edit_db.update_indexes(tnames)
                 return d, m
             except Exception as e:
                 logger.error(f"Maintenance job failed for {tnames}: {e}")

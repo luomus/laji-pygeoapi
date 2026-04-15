@@ -15,6 +15,7 @@ class Dummy:
     all_value_ranges = None
     collection_names = None
     municipality_ely_mappings = None
+    municipality_elinvoima_mappings = None
     lookup_df = None
 
 

@@ -84,8 +84,8 @@ def test_load_or_update_cache(mock_read_json, mock_read_csv, mock_get_municipali
     mock_get_enumerations.assert_called_once()
     
     # Verify result structure
-    assert len(result) == 6
-    municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges = result
+    assert len(result) == 7
+    municipality_ely_mappings, municipals_ids, lookup_df, taxon_df, collection_names, all_value_ranges, municipality_elinvoima_mappings = result
     assert municipals_ids == {'Municipality1': 'ID1'}
     assert collection_names == {'Collection1': 'Name1'}
     assert all_value_ranges == {'range1': 'value1', 'enum1': 'label1'}
@@ -142,7 +142,7 @@ def test_get_filter_values(mock_fetch):
         'Sieni': 'FUNGI'
     }
     assert result == expected
-    mock_fetch.assert_called_once_with('https://api.laji.fi/warehouse/filters/taxonGroup', headers={'Authorization': 'Bearer test_token', 'Api-Version': '1'})
+    mock_fetch.assert_called_once_with('https://api.laji.fi/warehouse/filters/taxonGroup', headers={'Authorization': 'Bearer test_token', 'Api-Version': '1', 'Accept-Language': 'fi'})
         
     # Test caching behavior - second call should return cached result
     mock_fetch.reset_mock()
@@ -235,29 +235,24 @@ def test_get_occurrence_data():
     url = "https://beta.laji.fi/api/warehouse/query/unit/list"
     params = {'page': '1', 'pageSize': '1', 'geoJSON': 'true', 'featureType': 'ORIGINAL_FEATURE', 'time': '/-1'}
     headers = {'Authorization': 'Bearer test_token', 'Api-Version': '1'}
-    gdf, _ = load_data.get_occurrence_data(url=url, params=params, headers=headers, startpage=1, endpage=2, multiprocessing=True)
+    gdf, _ = load_data.get_occurrence_data(url=url, params=params, headers=headers, startpage=1, endpage=2)
     assert isinstance(gdf, gpd.GeoDataFrame)
     assert not gdf.empty
     assert gdf['geometry'].dtype == 'geometry'
     assert gdf['unit.unitId'].dtype == 'object'
 
-    gdf2, _ = load_data.get_occurrence_data(url=url, params=params, headers=headers, startpage=1, endpage=2, multiprocessing=False)
-    assert isinstance(gdf2, gpd.GeoDataFrame)
-    assert not gdf2.empty
-    assert gdf2['geometry'].dtype == 'geometry'
-    assert gdf2['unit.unitId'].dtype == 'object'
-    assert gdf.crs == gdf2.crs
-    assert set(gdf.columns) == set(gdf2.columns)
-
-    gdf_sorted = gdf.sort_values("unit.unitId").reset_index(drop=True)
-    gdf2_sorted = gdf2.sort_values("unit.unitId").reset_index(drop=True)
-    pd.testing.assert_frame_equal(gdf_sorted, gdf2_sorted, check_like=True)
-
-def test_get_value_ranges():
-    ACCESS_TOKEN = os.getenv('ACCESS_TOKEN', '')
-    headers = load_data._get_api_headers(ACCESS_TOKEN)
-    base_url = "https://apitest.laji.fi/"
-    ranges1 = load_data.get_value_ranges(f"{base_url}metadata/alts", None, headers)
+@patch('scripts.load_data.fetch_json_with_retry')
+def test_get_value_ranges(mock_fetch):
+    mock_fetch.return_value = {
+        'atlasCode': [
+            {'id': 'MY.atlasCodeEnum5', 'value': 'Atlas code 5'},
+        ],
+        'identificationBasis': [
+            {'id': 'MY.identificationBasisDNA', 'value': 'DNA'},
+        ]
+    }
+    headers = load_data._get_api_headers('test_token')
+    ranges1 = load_data.get_value_ranges('https://api.laji.fi/metadata/alts', None, headers)
     assert isinstance(ranges1, dict)
     assert 'MY.atlasCodeEnum5' in ranges1
     assert ranges1['MY.identificationBasisDNA'] == 'DNA'

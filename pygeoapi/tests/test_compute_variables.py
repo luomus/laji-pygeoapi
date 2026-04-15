@@ -121,9 +121,11 @@ def test_compute_all(tmp_path):
     }
     collection_names = {'HR.1747': 'Lajitietokeskus/FinBIF - Vihkon yleiset havainnot'}
 
-    municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
+    municipality_df = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')
+    municipality_ely_mappings = municipality_df['ELY_Area_Name']
+    municipality_elinvoima_mappings = municipality_df['Elinvoimakeskus_Name']
 
-    result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings)
+    result_gdf = compute_variables.compute_all(gdf, value_ranges, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings)
     assert result_gdf['unit.atlasClass'][0] == 'Atlas A'
     assert result_gdf['unit.atlasCode'][0] == 'Code 1'
     assert result_gdf['unit.linkings.taxon.primaryHabitat.habitat'][0] == 'Mkt – tuoreet ja lehtomaiset kankaat'

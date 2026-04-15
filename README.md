@@ -24,7 +24,6 @@ POSTGRES_PASSWORD=admin123
 POSTGRES_HOST=postgres
 PAGES=latest
 BRANCH=dev
-MULTIPROCESSING=False
 RUNNING_IN_OPENSHIFT=False
 LAJI_API_URL=https://apitest.laji.fi/
 ACCESS_TOKEN=loremipsum12456789
@@ -45,7 +44,6 @@ Where
 | POSTGRES_PASSWORD| The password associated with the default user | *not set*|
 | POSTGRES_HOST| The host running the database| postgres |
 | PAGES| Integer to download a specific number of pages. *"0"* to empty the database. *"all"* to add all data (this takes a lot of time), *"latest"* to add only the latest data after the last update | latest |
-| MULTIPROCESSING| Enables (*"True"*) or disables (*"False"*) multiprocessing when downloading data and calculating indexes| False |
 | RUNNING_IN_OPENSHIFT| *"True"* when Pygeoapi is running in an OpenShift / Kubernetes environment. *"False"* when locally in Docker.| False |
 | ACCESS_TOKEN| API Access token needed for using the source APIs. See instruction: https://api.laji.fi/explorer/ | loremipsum12456789 |
 | INTERNAL_POSTGRES_DB| Name for the internal database | my_internal_db |

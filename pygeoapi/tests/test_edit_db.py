@@ -1,4 +1,3 @@
-from multiprocessing.dummy import connection
 import os
 import pytest
 from sqlalchemy import text, inspect
@@ -249,7 +248,7 @@ def test_update_indexes(engine):
     drop_test_table(engine, 'idx2')
     create_test_table(engine, 'idx1')
     create_test_table(engine, 'idx2')
-    edit_db.update_indexes(['idx1', 'idx2'], use_multiprocessing=False)
+    edit_db.update_indexes(['idx1', 'idx2'])
     # Check that indexes exist for both
     with engine.connect() as conn:
         idx1 = conn.execute(text("SELECT indexname FROM pg_indexes WHERE tablename = 'idx1';")).fetchall()

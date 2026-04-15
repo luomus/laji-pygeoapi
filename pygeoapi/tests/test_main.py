@@ -18,7 +18,6 @@ from scripts import main
     'POSTGRES_PASSWORD': 'test_pw',
     'POSTGRES_HOST': 'test_host',
     'PAGES': '1',
-    'MULTIPROCESSING': 'False',
     'RUNNING_IN_OPENSHIFT': 'False'
 })
 @patch('pygeoapi.scripts.main.load_dotenv')
@@ -61,7 +60,7 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
     taxon_df = pd.DataFrame({'id': ['MVL.1', 'MVL.2'], 'name': ['Birds', 'Snakes']})
     collection_names = {'HR.1': 'Test Collection', 'HR.2': 'Another Collection'}
     all_value_ranges = {}
-    config = {"multiprocessing": "False", "batch_size": 5}
+    config = {"batch_size": 5}
 
     mock_get_occurrence_data.return_value = (gdf, 0) # Return GeoDataFrame and 0 errors
     mock_compute_all.side_effect = lambda gdf, *args, **kwargs: gdf # Mock compute_all to return the input GeoDataFrame
@@ -73,12 +72,17 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
         'Municipal_Name': ['Test Municipality'],
         'ELY_Area_Name': ['Test ELY Area']
     })
+
+    municipality_elinvoima_mappings = pd.DataFrame({
+        'Municipal_Name': ['Test Municipality'],
+        'Elinvoimakeskus_Name': ['Test Elinvoimakeskus']
+    })
     
     # Create mock params and headers
     params = {'param1': 'value1'}
     headers = {'Authorization': 'Bearer test_token'}
 
     results = main.load_and_process_data(
-        "occurrence_url", params, headers, "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, lookup_df
+        "occurrence_url", params, headers, "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings, lookup_df
     )
     assert results == (4, 0, 1, 0, 2, 0) # 4 occurrences, 0 failed, 1 edited, 0 duplicates, 2 processed and 0 merged geometry collections

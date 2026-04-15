@@ -76,7 +76,7 @@ def combine_similar_columns(gdf):
         for i in range(len(gdf)):
             # Filter out None/NaN values and convert to strings
             row_values = [str(val) for val in values[i] if pd.notna(val)]
-            result[i] = ', '.join(row_values)
+            result[i] = ', '.join(row_values) if row_values else None
         
         gdf[base_name] = result
         gdf.drop(columns=cols, inplace=True)
