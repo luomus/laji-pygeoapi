@@ -311,15 +311,15 @@ def test_merge_similar_observations(engine):
             INSERT INTO "test_merge_table" ("Tieteellinen_nimi", "Kunta", "Havainnon_tunniste", "Yksilomaara_tulkittu", 
                                      "Keruutapahtuman_tunniste", "Maara", "Avainsanat", "Havainnon_lisatiedot", "Aineisto", "Paikallinen_tunniste", "Lataus_pvm", geometry) VALUES
             ('species1', 'city1', 'obs1', 5, 'event1', '1', 'kw1,kw2', 'lisatiedot', 'collection1', '1', '2023-01-01', ST_GeomFromText('POINT(1 2)', 4326)),
-            ('species1', 'city1', 'obs2', 3, 'event2', '5', 'jee,juu', 'lisaa tietoa', 'aineisto3', '2', '2023-01-02', ST_GeomFromText('POINT(1 2)', 4326)),
+            ('species1', 'city1', 'obs2', 3, 'event2', '5', 'kw1,kw2', 'lisaa tietoa', 'collection1', '2', '2023-01-02', ST_GeomFromText('POINT(1 2)', 4326)),
             ('species2', 'city2', 'obs3', 2, 'event3', '10', 'abc,def', 'lisatiedot2', 'aineisto1', '3', '2023-01-01', ST_GeomFromText('POINT(2 3)', 4326));
         '''))
         conn.commit()
     
     # Create lookup DataFrame matching the structure from lookup_table_columns.csv
     lookup_df = pd.DataFrame({
-        'virva': ['Tieteellinen_nimi', 'Kunta', 'Havainnon_tunniste', 'Yksilomaara_tulkittu'],
-        'merge_option': ['FIRST', 'GROUPBY', 'AGGREGATE', 'SUM']
+        'virva': ['Tieteellinen_nimi', 'Kunta', 'Havainnon_tunniste', 'Yksilomaara_tulkittu', 'Aineisto'],
+        'merge_option': ['FIRST', 'GROUPBY', 'AGGREGATE', 'SUM', 'AGGREGATE']
     })
 
     merged = edit_db.merge_similar_observations(['test_merge_table'], lookup_df)
@@ -346,6 +346,8 @@ def test_merge_similar_observations(engine):
         assert 'species1' in result
         assert 'city1' in result
         assert 'obs1, obs2' in result
+        # Duplicate aggregate values should be deduplicated: both rows had 'collection1'
+        assert result._mapping['Aineisto'] == 'collection1'  # not 'collection1, collection1'
 
 
     drop_test_table(engine, 'test_merge_table')

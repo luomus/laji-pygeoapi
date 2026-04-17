@@ -74,7 +74,16 @@ def map_values(col, value_ranges):
     Returns:
     pd.Series: Series with mapped values as a string.
     """
-    return col.str.split(', ').apply(lambda values: ', '.join([value_ranges.get(re.sub(r'http://[^/]+\.fi/', '', value), value) for value in values]))
+    def map_cell(value):
+        if pd.isna(value):
+            return value
+        values = str(value).split(', ')
+        return ', '.join([
+            value_ranges.get(re.sub(r'http://[^/]+\.fi/', '', value), value)
+            for value in values
+        ])
+
+    return col.apply(map_cell)
 
 def compute_areas(col, municipality_ely_mappings):
     """

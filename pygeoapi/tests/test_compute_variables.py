@@ -40,6 +40,13 @@ def test_map_values():
     result3 = compute_variables.map_values(col3, value_ranges)
     assert result3[0] == 'Metsästyslaissa luetellut riistalinnut, Metsästyslaissa luetellut riistanisäkkäät (5§), http://asd.luomus.asd.fi/xyz123, 123123'
 
+    col4 = pd.Series([None, np.nan, 'MX.regionallyThreatened2020_4d'])
+    result4 = compute_variables.map_values(col4, value_ranges)
+    assert result4[0] is None
+    assert pd.isna(result4[1])
+    assert result4[2] == 'Alueellisesti uhanalainen'
+
+
 def test_compute_areas():
     municipality_ely_mappings = pd.read_json('scripts/resources/municipality_ely_mappings.json').set_index('Municipal_Name')['ELY_Area_Name']
 

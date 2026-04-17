@@ -409,7 +409,7 @@ def merge_similar_observations(table_names, lookup_df):
             for col in columns_to_use_first_value:
                 agg_clauses.append(f'(ARRAY_AGG("{col}"))[1] as "{col}"')
             for col in columns_to_aggregate:
-                agg_clauses.append(f'string_agg("{col}", \', \') FILTER (WHERE "{col}" IS NOT NULL AND "{col}" != \'nan\') as "{col}"')
+                agg_clauses.append(f'string_agg(DISTINCT "{col}", \', \') FILTER (WHERE "{col}" IS NOT NULL AND "{col}" != \'nan\') as "{col}"')
             for col in columns_to_sum:
                 agg_clauses.append(f'SUM("{col}") as "{col}"')
             for col in columns_to_use_max:
