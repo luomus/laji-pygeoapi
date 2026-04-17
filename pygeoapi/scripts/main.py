@@ -77,9 +77,7 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
     processed_occurrences = 0
     failed_features_count = 0
     edited_features_count = 0
-    duplicates_count_by_id = 0
     converted_collections = 0
-    merged_features_count = 0
     table_names = [f'{table_base_name}_points', f'{table_base_name}_lines', f'{table_base_name}_polygons']
 
     if drop_tables:
@@ -126,7 +124,7 @@ def load_and_process_data(occurrence_url, params, headers, table_base_name, page
         maintenance_futures.append(maintenance_executor.submit(maintenance_job, table_names, lookup_df))
         logger.debug(f"Scheduled async maintenance for tables {table_names}")
 
-    return processed_occurrences, failed_features_count, edited_features_count, duplicates_count_by_id, converted_collections, merged_features_count
+    return processed_occurrences, failed_features_count, edited_features_count, converted_collections
 
 def main():
     """
@@ -200,9 +198,7 @@ def main():
             processed_occurrences += results[0]
             failed_features_count += results[1]
             edited_features_count += results[2]
-            duplicates_count_by_id += results[3]
-            converted_collections += results[4]
-            merged_features_count += results[5]
+            converted_collections += results[3]
 
         if config["invasive_species"]:
             logger.info("Processing invasive species data...")
@@ -222,9 +218,7 @@ def main():
             processed_occurrences += results[0]
             failed_features_count += results[1]
             edited_features_count += results[2]
-            duplicates_count_by_id += results[3]
-            converted_collections += results[4]
-            merged_features_count += results[5]
+            converted_collections += results[3]
 
         logger.info("Processing completed.")
 

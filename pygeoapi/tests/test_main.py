@@ -85,4 +85,4 @@ def test_load_and_process_data(mock_compute_all, mock_get_occurrence_data, mock_
     results = main.load_and_process_data(
         "occurrence_url", params, headers, "uusimaa", 1, config, all_value_ranges, taxon_df, collection_names, municipality_ely_mappings, municipality_elinvoima_mappings, lookup_df
     )
-    assert results == (4, 0, 1, 0, 2, 0) # 4 occurrences, 0 failed, 1 edited, 0 duplicates, 2 processed and 0 merged geometry collections
+    assert results == (4, 0, 1, 2) # 4 occurrences, 0 failed, 1 edited geometry, 2 converted geometry collections
