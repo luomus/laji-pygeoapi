@@ -51,7 +51,7 @@ def load_or_update_cache(config):
     municipals_ids = get_municipality_ids(f"{base_url}areas", {'areaType': 'ML.municipality', 'pageSize': 1000}, headers)
     lookup_df = pd.read_csv('scripts/resources/lookup_table_columns.csv', sep=';', header=0)
     taxon_df = get_taxon_data(f"{base_url}informal-taxon-groups", {'pageSize': 1000}, headers)
-    collection_names = get_collection_names(f"{base_url}collections", {'selected': 'id', 'pageSize': 1500, 'langFallback': 'true'}, headers)
+    collection_names = get_collection_names(f"{base_url}collections", {'pageSize': 1500, 'langFallback': 'true'}, headers)
     ranges1 = get_value_ranges(f"{base_url}metadata/alts", {}, headers)
     ranges2 = get_enumerations(f"{base_url}warehouse/enumeration-labels", {}, headers)
     all_value_ranges = ranges1 | ranges2  # type: ignore
@@ -136,7 +136,7 @@ def get_collection_names(url, params, headers):
 
     # Extracting collection ids and longNames and storing them in a dictionary
     if data:
-        return {item['id']: item['longName'] for item in data['results']}
+        return {item['id']: item.get('longName') or item.get('collectionName') or item['id'] for item in data['results']}
     return {}
 
 def get_pages(pages_env: str, occurrence_url: str, params: dict, headers: dict, page_size: int) -> int:
