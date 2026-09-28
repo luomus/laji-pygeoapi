@@ -57,7 +57,11 @@ In the root directory, run:
 ```
 ./bin/init-db.sh
 ```
-*Note*: If you get "Permissions denied" error, you may have to change the permissions of the file `bin/init-database.sh`.
+*Note*: If you get "Permissions denied" error, you may have to change the permissions of the file `bin/init-database.sh`. For example, on Linux, run this command:
+
+`chmod +x bin/*.sh && ls -la bin/`
+
+
 On Windows, you may need to provide full paths and ensure that Docker Desktop is open.
 
 ### 5. Run docker command:
