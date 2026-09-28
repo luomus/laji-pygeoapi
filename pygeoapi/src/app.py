@@ -1,9 +1,16 @@
+import logging
+
 from flask import Flask
 from flask_httpauth import HTTPBasicAuth
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_caching import Cache
 from src.config import Config
+
+# pygeoapi's l10n.str2locale() warns on every non-locale dict key (e.g. host,
+# port, begin, end) when rendering HTML templates, regardless of the
+# configured logging level, so silence it explicitly here.
+logging.getLogger('pygeoapi.l10n').setLevel(logging.ERROR)
 
 app = Flask(__name__, static_folder='/pygeoapi/pygeoapi/static', static_url_path='/static')
 app.config.from_object(Config)
